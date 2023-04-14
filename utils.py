@@ -8,7 +8,7 @@ for the forward pass (first batch).
 Use profiling values
 '''
 def get_fwd_release_delays(K,H):
-    return [[1,1],[1,1]]
+    return [[3,2],[3,2]]
 
 
 '''
@@ -42,4 +42,4 @@ return np an numpy array of shape(H,1) with the memory capacity of each
 helper node
 '''
 def get_memory_characteristics(H):
-    return [1,1]
+    return [10,10]
