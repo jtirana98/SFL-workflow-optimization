@@ -6,7 +6,7 @@ import utils
 import warnings
 warnings.filterwarnings("ignore")
 
-K = 3 # number of data owners
+K = 10 # number of data owners
 H = 2 # number of compute nodes
 
 
@@ -25,6 +25,7 @@ trans_back = np.array(utils.get_trans_back(K, H))
 
 proc_param = cp.Parameter((K, H))
 trans_back_pp = cp.Parameter((K, H))
+f = cp.Parameter((H))
 
 
 trans_back_pp.value  = np.array(trans_back)
@@ -39,7 +40,7 @@ for i in range(K):
   x[i] = cp.Variable((H,T), boolean=True)
 
 y = cp.Variable((K,H), boolean=True) # auxiliary variable
-f = cp.Variable(K, integer=True) # completition time
+#f = cp.Variable(K, integer=True) # completition time
 
 # Define constraints
 constraints = []
@@ -80,13 +81,16 @@ for j in range(H): #for all devices
             temp += x[key][j,t]
         constraints += [temp <= 1]
 
-
-#C8: the completition time for each data owner
+#C8: the completition time for each data owner -- NOTE: Removed it from constraints
+f_values = []
 for i in range(K): #for all jobs
+    f_interm = []
     for j in range(H): #for all machines
         for t in range(T): #for all timeslots
-            constraints += [f[i] >= (t+1)*x[i][j,t]]
-            #print(constraints[-1])
+            f_interm += [(t+1)*x[i][j,t]]
+    f_values += [cp.max(cp.hstack(f_interm))]
+
+f = cp.hstack(f_values)
 
 # Define objective function
 
@@ -100,7 +104,7 @@ obj = cp.Minimize(cp.max( f + proc_local + cp.hstack(trans)))
 # wrap the formula to a Problem
 prob = cp.Problem(obj, constraints)
 #prob.solve(solver=cp.GUROBI, verbose=True)
-prob.solve(solver=cp.MOSEK,# verbose=True,
+prob.solve(solver=cp.MOSEK, verbose=True,
            mosek_params={
                 'MSK_IPAR_NUM_THREADS': 2,
                 },
@@ -108,6 +112,8 @@ prob.solve(solver=cp.MOSEK,# verbose=True,
 
 # solve
 prob.solve()
+print("status:", prob.status)
+print("optimal value", prob.value)
 
 # C1: job cannot be assigned to a time interval before the release time
 for i in range(K): #for all jobs
@@ -165,8 +171,7 @@ for j in range(H): #for all devices
 
 print('All constraints are satisfied')
 
-print("status:", prob.status)
-print("optimal value", prob.value)
+
 print("release date - shape (K,H)\n", release_date)
 print("memory capacity\n", memory_capacity)
 print("proc. times\n", proc)
