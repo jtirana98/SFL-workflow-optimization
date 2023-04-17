@@ -6,7 +6,7 @@ import utils
 import warnings
 warnings.filterwarnings("ignore")
 
-K = 10 # number of data owners
+K = 3 # number of data owners
 H = 2 # number of compute nodes
 
 
@@ -103,15 +103,17 @@ obj = cp.Minimize(cp.max( f + proc_local + cp.hstack(trans)))
 
 # wrap the formula to a Problem
 prob = cp.Problem(obj, constraints)
-#prob.solve(solver=cp.GUROBI, verbose=True)
+prob.solve(solver=cp.GUROBI, verbose=True,
+            options={'Threads': 8},)
+'''
 prob.solve(solver=cp.MOSEK, verbose=True,
            mosek_params={
-                'MSK_IPAR_NUM_THREADS': 2,
+                'MSK_IPAR_NUM_THREADS': 8,
                 },
-            save_file = 'dump_dump.ptf',)
+            #save_file = 'dump_dump.ptf',
+            )
+'''
 
-# solve
-prob.solve()
 print("status:", prob.status)
 print("optimal value", prob.value)
 
