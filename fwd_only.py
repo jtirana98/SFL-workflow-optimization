@@ -24,13 +24,10 @@ trans_back = np.array(utils.get_trans_back(K, H))
 
 
 proc_param = cp.Parameter((K, H))
-#f = cp.Parameter((K))
-trans_back_param = cp.Parameter((K))
 trans_back_pp = cp.Parameter((K, H))
 
-#f = np.array(np.zeros(K))
+
 trans_back_pp.value  = np.array(trans_back)
-trans_back_param.value  = np.array(np.zeros(K))
 proc_param.value = np.array(proc)
 
 T = np.max(release_date) + K*np.max(proc[0,:]) # time intervals
@@ -97,7 +94,6 @@ trans = []
 for i in range(K): # for each job/data owner
     trans.append(cp.sum(trans_back_pp[i,:] * y[i,:]))
 
-trans_back_param.value = cp.sum([trans_back_pp[i,:] * y[i,:] for i in range(K)]).value
 
 obj = cp.Minimize(cp.max( f + proc_local + cp.hstack(trans)))
 
@@ -171,9 +167,11 @@ print('All constraints are satisfied')
 
 print("status:", prob.status)
 print("optimal value", prob.value)
-print("release date - shape (K,H)", release_date)
-print("memory capacity", memory_capacity)
-print("proc. times", proc)
+print("release date - shape (K,H)\n", release_date)
+print("memory capacity\n", memory_capacity)
+print("proc. times\n", proc)
+print("send back\n", trans_back)
+print("fwd last local\n", proc_local)
 print("--------------------------------")
 print("optimal time allocation:")
 
@@ -190,7 +188,7 @@ print("optimal end time")
 print(f.value)
 
 
-print("----------------")
+print("--------Machine allocation--------")
 
 for i in range(H):
     for k in range(T):
@@ -205,3 +203,15 @@ for i in range(H):
         if(at_least == 0):
             print(f'0', end='\t')
     print('')
+
+print("--------Machine allocation--------")
+
+for i in range(K):
+    C = np.rint(f[i].value)
+    my_machine = 0
+    for j in range(H):
+        if np.rint(y[i,j].value) == 1:
+            my_machine = j
+            break
+    C += proc_local[i] + trans_back[i,my_machine]
+    print(f'C{i+1}: {C}')
