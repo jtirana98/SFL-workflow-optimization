@@ -17,7 +17,8 @@ for the forward pass on the compute nodes.
 Use profiling values
 '''
 def get_fwd_proc_compute_node(K, H):
-    return [[1,1],[1,1]]
+    #return [[2,2],[2,2]]
+    return [[2,3],[2,3]]
 
 '''
 return np an numpy array of shape (H, 1) with the processing time

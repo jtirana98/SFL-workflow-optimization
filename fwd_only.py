@@ -73,13 +73,20 @@ for j in range(H): #for all devices
 # C5: job should be processed entirely once  #NOTE: I am not sure about this one
 for i in range(K): #for all jobs
     #sum_ = cp.sum(cp.sum(x[i][ :, :], axis=1)[:-1] / proc_param[i, :])
-    sum_ = cp.sum(x[i][ :, :], axis=1)[:-1]
+    sub_sum = []
+    for j in range(H):
+        sub_sum += [cp.sum(x[i][ j, :] )/ proc_param[i, j]]
+    
+    sum_ = cp.sum(cp.hstack(sub_sum))
     constraints += [sum_ == 1]
 
 # C6: machine processes only a single job at each interval
 for j in range(H): #for all devices
     for t in range(T): #for all timeslots
-        constraints += [cp.sum(x[i in range(K)][j,t]) <= 1]
+        temp = 0
+        for key in x:
+            temp += x[key]
+        constraints += [temp <= 1]
 
 #C7: at each time interval a job is processed in at most once  # NOTE: maybe we can ommit that TO BE DISCUSSED
 #for i in range(K): #for all jobs
@@ -106,7 +113,7 @@ for i in range(K): # for each job/data owner
 
 trans_back_param.value = cp.sum([trans_back_pp[i,:] * y[i,:] for i in range(K)]).value
 
-obj = cp.Minimize(cp.max( f + proc_local +cp.hstack(trans)))
+obj = cp.Minimize(cp.max( f + proc_local + cp.hstack(trans)))
 
 # wrap the formula to a Problem
 prob = cp.Problem(obj, constraints)
