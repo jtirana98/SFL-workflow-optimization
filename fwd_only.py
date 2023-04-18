@@ -6,10 +6,11 @@ import utils
 import warnings
 warnings.filterwarnings("ignore")
 
-K = 10 # number of data owners
-H = 2 # number of compute nodes
+
 
 def main():
+    K = 50 # number of data owners
+    H = 5 # number of compute nodes
     release_date = np.array(utils.get_fwd_release_delays(K,H)) # release date - shape (K,H)
     #release_date = np.array([[3,2],[3,4],[2,2]])
     memory_capacity = np.array(utils.get_memory_characteristics(H))
@@ -110,7 +111,7 @@ def main():
 
     # wrap the formula to a Problem
     prob = cp.Problem(obj, constraints)
-    prob.solve(solver=cp.GUROBI,# verbose=True,
+    prob.solve(solver=cp.GUROBI, verbose=True,
                 options={'Threads': 8},)
     '''
     prob.solve(solver=cp.MOSEK, verbose=True,
@@ -126,7 +127,7 @@ def main():
 
     # C1: job cannot be assigned to a time interval before the release time
     for i in range(K): #for all jobs
-        my_machine = 0
+        my_machine = -1
         for j in range(H):
             if np.rint(y[i,j].value) == 1:
                 my_machine = j
@@ -136,8 +137,6 @@ def main():
                 print("Constraint 1 is violated")
                 return
 
-    for i in range(K): #for all jobs
-        constraints += [cp.sum(y[i,:]) == 1]
     # C2: define auxiliary variable
     # C3: all jobs interval are assigned to one only machine
     for i in range(K): #for all jobs
@@ -147,7 +146,7 @@ def main():
 
     # C4: memory constraint
     for j in range(H): #for all devices
-        if np.sum(np.rint(y[:,j].value)*utils.max_memory_demand >memory_capacity[j]):
+        if np.sum(np.rint(y[:,j].value))*utils.max_memory_demand > memory_capacity[j]:
             print("Constraint 4 is violated")
             return
 

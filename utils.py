@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 
 max_memory_demand = 3
-file_name = 'test1.xlsx'
+file_name = 'test3.xlsx'
 '''
 return np an numpy array of shape (K, H) with the release dates
 for the forward pass (first batch).
@@ -21,11 +21,15 @@ Use profiling values
 '''
 def get_fwd_proc_compute_node(K, H):
     df = pd.read_excel(io=file_name, sheet_name='get_fwd_proc_compute_node', header=None)
-    machines = df.values.tolist()
-    #machines = [2,4]
+    temp = df.values.tolist()
+
+    machines = []
+    for i in  range(len(temp)):
+        machines.append(temp[i][0])
+
     total = []
     for i in range(K):
-        total += [machines[0]]
+        total += [machines]
     return total
 
 '''
@@ -35,7 +39,13 @@ Use profiling values
 '''
 def get_fwd_end_local(K):
     df = pd.read_excel(io=file_name, sheet_name='get_fwd_end_local', header=None)
-    return df.values.tolist()[0]
+    temp = df.values.tolist()
+
+    df_list = []
+    for i in  range(len(temp)):
+        df_list.append(temp[i][0])
+
+    return df_list
     #return [1,1,4]
 
 
@@ -56,5 +66,11 @@ helper node
 '''
 def get_memory_characteristics(H):
     df = pd.read_excel(io=file_name, sheet_name='get_memory_characteristics', header=None)
-    return df.values.tolist()[0]
+    temp = df.values.tolist()
+
+    df_list = []
+    for i in  range(len(temp)):
+        df_list.append(temp[i][0])
+
+    return df_list
     #return [10,10]
