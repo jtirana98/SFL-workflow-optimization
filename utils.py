@@ -1,8 +1,19 @@
 import numpy as np
 import pandas as pd
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 max_memory_demand = 3
-file_name = 'test3.xlsx'
+file_name = 'test1.xlsx'
 '''
 return np an numpy array of shape (K, H) with the release dates
 for the forward pass (first batch).
@@ -11,7 +22,11 @@ Use profiling values
 def get_fwd_release_delays(K,H):
     df = pd.read_excel(io=file_name, sheet_name='get_fwd_release_delays', header=None)
     return df.values.tolist()
-    #return [[3,1],[3,4],[2,2]]
+
+
+def get_bwd_release_delays(K,H):
+    df = pd.read_excel(io=file_name, sheet_name='get_bwd_release_delays', header=None)
+    return df.values.tolist()
 
 
 '''
@@ -21,6 +36,19 @@ Use profiling values
 '''
 def get_fwd_proc_compute_node(K, H):
     df = pd.read_excel(io=file_name, sheet_name='get_fwd_proc_compute_node', header=None)
+    temp = df.values.tolist()
+
+    machines = []
+    for i in  range(len(temp)):
+        machines.append(temp[i][0])
+
+    total = []
+    for i in range(K):
+        total += [machines]
+    return total
+
+def get_bwd_proc_compute_node(K, H):
+    df = pd.read_excel(io=file_name, sheet_name='get_bwd_proc_compute_node', header=None)
     temp = df.values.tolist()
 
     machines = []
@@ -46,7 +74,16 @@ def get_fwd_end_local(K):
         df_list.append(temp[i][0])
 
     return df_list
-    #return [1,1,4]
+
+def get_bwd_end_local(K):
+    df = pd.read_excel(io=file_name, sheet_name='get_bwd_end_local', header=None)
+    temp = df.values.tolist()
+
+    df_list = []
+    for i in  range(len(temp)):
+        df_list.append(temp[i][0])
+
+    return df_list
 
 
 '''
@@ -57,8 +94,10 @@ Use profiling values
 def get_trans_back(K, H):
     df = pd.read_excel(io=file_name, sheet_name='get_trans_back', header=None)
     return df.values.tolist()
-    #return [[1,1],[1,1],[1,1]]
 
+def get_grad_trans_back(K, H):
+    df = pd.read_excel(io=file_name, sheet_name='get_grad_trans_back', header=None)
+    return df.values.tolist()
 
 '''
 return np an numpy array of shape(H,1) with the memory capacity of each 
