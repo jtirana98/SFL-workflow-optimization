@@ -327,7 +327,7 @@ def main():
     print(f_bwd.value)
 
 
-    print("--------Machine allocation--------")
+    print("--------Machine forward--------")
 
     for i in range(H):
         for k in range(T):
@@ -344,7 +344,7 @@ def main():
                 print(f'0', end='\t')
         print('')
 
-
+    print("--------Machine back--------")
     for i in range(H):
         for k in range(T):
             at_least = 0
