@@ -16,7 +16,7 @@ def main():
     proc_param_bwd = cp.Parameter((K, H))
     trans_back_pp = cp.Parameter((K, H))
     release_back_param = cp.Parameter((K, H))
-    C_fwd = cp.Parameter((K))
+    C_fwd = cp.Parameter((K), integer=True)
     f_fwd = cp.Parameter((K))
     f_bwd = cp.Parameter((K))
 
@@ -115,18 +115,27 @@ def main():
 
     C_fwd =  cp.hstack(temp_C)
 
-     # C9: backprop job cannot be assigned to a time interval before the backprops release time ?????????????????
+    # C9: backprop job cannot be assigned to a time interval before the backprops release time ?????????????????
     for i in range(K): #for all jobs
         for j in range(H):
-            constraints += [z[i][j,t] == 0 for t in range(T) if t <= C_fwd[i] + release_date_back[i,j]]
+            for t in range(T):
+                if t <= 10 + release_date_back[i,j]:
+                    constraints += [z[i][j,t] == 0]
+           
     
     # C10: backprop job should be processed entirely once and in the same machine as fwd
+    for i in range(K): #for all jobs
+        sub_sum_1 = []
+        sub_sum_2 = []
+        for j in range(H):
+            constraints += [(cp.sum(z[i][ j, :])/ proc_param_bwd[i, j]) == (cp.sum(x[i][ j, :])/ proc_param_fwd[i, j])]
+    
     for i in range(K): #for all jobs
         sub_sum = []
         for j in range(H):
             sub_sum += [cp.sum(z[i][ j, :])/ proc_param_bwd[i, j]]
-            sum_ = cp.sum(cp.hstack(sub_sum))
-            constraints += [sum_ == y[i,j]]
+        sum_ = cp.sum(cp.hstack(sub_sum))
+        constraints += [sum_ == 1]
 
     # C11: compute node will run only one job at each slot either fwd or bwd NOTE: can we ignore C6?
     for j in range(H): #for all devices
@@ -135,7 +144,6 @@ def main():
             for key in x:
                 temp += x[key][j,t] + z[key][j,t]
             constraints += [temp <= 1]
-
 
     #C12: the completition time for each data owner
     f_values = []
@@ -264,7 +272,7 @@ def main():
             sum += np.rint(z[i][my_machine,k].value)
         if sum != proc_param_bwd[i, my_machine].value:
             print(f"{utils.bcolors.FAIL}Constraint 10 is violated{utils.bcolors.ENDC}")
-            return
+            #return
 
     # check - C11
     for j in range(H): #for all devices
@@ -325,12 +333,26 @@ def main():
         for k in range(T):
             at_least = 0
             for j in range(K):
-                if(np.rint(x[j][i,k].value) <= 0 and np.rint(z[j][i,k].value) <= 0):
+                if(np.rint(x[j][i,k].value) <= 0):
                     continue
                 else:
                     if np.rint(x[j][i,k].value) > 0:
                         print(f'{j+1}', end='\t')
-                    else:
+                    at_least = 1
+                    break
+            if(at_least == 0):
+                print(f'0', end='\t')
+        print('')
+
+
+    for i in range(H):
+        for k in range(T):
+            at_least = 0
+            for j in range(K):
+                if( np.rint(z[j][i,k].value) <= 0):
+                    continue
+                else:
+                    if np.rint(z[j][i,k].value) > 0:
                         print(f'{j+1}\'', end='\t')
                     at_least = 1
                     break
