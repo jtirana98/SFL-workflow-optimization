@@ -9,8 +9,8 @@ warnings.filterwarnings("ignore")
 
 
 def main():
-    K = 50 # number of data owners
-    H = 5 # number of compute nodes
+    K = 3 # number of data owners
+    H = 2 # number of compute nodes
     release_date = np.array(utils.get_fwd_release_delays(K,H)) # release date - shape (K,H)
     #release_date = np.array([[3,2],[3,4],[2,2]])
     memory_capacity = np.array(utils.get_memory_characteristics(H))
