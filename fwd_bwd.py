@@ -15,7 +15,8 @@ def main():
     proc_param_fwd = cp.Parameter((K, H))
     proc_param_bwd = cp.Parameter((K, H))
     trans_back_pp = cp.Parameter((K, H))
-    C_fwd = cp.Parameter(K)
+    release_back_param = cp.Parameter((K, H))
+    C_fwd = cp.Parameter((K))
     f_fwd = cp.Parameter((K))
     f_bwd = cp.Parameter((K))
 
@@ -32,13 +33,14 @@ def main():
 
     # back-propagation parameters
     release_date_back = np.array(utils.get_bwd_release_delays(K,H))
+    release_back_param.value = np.array(release_date_back)
     proc_bck = np.array(utils.get_bwd_proc_compute_node(K,H))
     proc_param_bwd.value = np.array(proc_bck)
     proc_local_back = np.array(utils.get_bwd_end_local(K))
     trans_back_gradients = np.array(utils.get_grad_trans_back(K,H))
 
     
-    T = np.max(release_date_back) + K*np.max(proc_bck[0,:]) # time intervals
+    T = np.max(release_date_fwd) + K*np.max(proc_fwd[0,:]) + np.max(release_date_back) + K*np.max(proc_bck[0,:]) # time intervals
     print(f"T = {T}")
 
     # Define variables
@@ -102,21 +104,21 @@ def main():
 
     f_fwd = cp.hstack(f_values)
 
-    
     trans = []
     for i in range(K): # for each job/data owner
         trans.append(cp.sum(trans_back_pp[i,:] * y[i,:]))
 
+    trans = cp.hstack(trans)
+    temp_C = []
+    for i in range(K):
+        temp_C += [f_fwd[i] + cp.hstack(proc_local_fwd)[i] + trans[i]]
 
-    C_fwd =  f_fwd + cp.hstack(proc_local_fwd) + cp.hstack(trans)
+    C_fwd =  cp.hstack(temp_C)
 
-    
-    # C9: backprop job cannot be assigned to a time interval before the backprops release time
+     # C9: backprop job cannot be assigned to a time interval before the backprops release time ?????????????????
     for i in range(K): #for all jobs
-        for j in range(H): #for all devices
-            for t in range(T): #for all timeslots
-                if t < (release_date_back[i,j]+ C_fwd[i]):
-                    constraints += [z[i][j,t] == 0]
+        for j in range(H):
+            constraints += [z[i][j,t] == 0 for t in range(T) if t <= C_fwd[i] + release_date_back[i,j]]
     
     # C10: backprop job should be processed entirely once and in the same machine as fwd
     for i in range(K): #for all jobs
@@ -133,6 +135,7 @@ def main():
             for key in x:
                 temp += x[key][j,t] + z[key][j,t]
             constraints += [temp <= 1]
+
 
     #C12: the completition time for each data owner
     f_values = []
@@ -170,20 +173,20 @@ def main():
                 break
         for k in range(release_date_fwd[i,my_machine]):
             if np.rint(x[i][j,k].value) == 1:
-                print(f"{utils.bcolors.WARNING}Constraint 1 is violated{utils.bcolors.ENDC}")
+                print(f"{utils.bcolors.FAIL}Constraint 1 is violated{utils.bcolors.ENDC}")
                 return
 
     
     # check - C3
     for i in range(K): #for all jobs
         if np.sum(np.rint(y[i,:].value)) != 1:
-            print(f"{utils.bcolors.WARNING}Constraint 3 is violated{utils.bcolors.ENDC}")
+            print(f"{utils.bcolors.FAIL}Constraint 3 is violated{utils.bcolors.ENDC}")
             return
 
     # check - C4
     for j in range(H): #for all devices
         if np.sum(np.rint(y[:,j].value))*utils.max_memory_demand > memory_capacity[j]:
-            print(f"{utils.bcolors.WARNING}Constraint 4 is violated{utils.bcolors.ENDC}")
+            print(f"{utils.bcolors.FAIL}Constraint 4 is violated{utils.bcolors.ENDC}")
             return
 
     # check - C5
@@ -197,7 +200,7 @@ def main():
         for k in range(T):
             sum += np.rint(x[i][my_machine,k].value)
         if sum != proc_param_fwd[i, my_machine].value:
-            print(f"{utils.bcolors.WARNING}Constraint 5 is violated{utils.bcolors.ENDC}")
+            print(f"{utils.bcolors.FAIL}Constraint 5 is violated{utils.bcolors.ENDC}")
             return
 
     # check - C6
@@ -207,7 +210,7 @@ def main():
             for key in x:
                 temp += np.rint(x[key][j,t].value)
             if temp > 1:
-                print(f"{utils.bcolors.WARNING}Constraint 6 is violated{utils.bcolors.ENDC}")
+                print(f"{utils.bcolors.FAIL}Constraint 6 is violated{utils.bcolors.ENDC}")
                 return
 
     # check - C8
@@ -224,7 +227,7 @@ def main():
                 last_zero = k+1
         fmax = last_zero
         if fmax != f_fwd[i].value:
-            print(f"{utils.bcolors.WARNING}Constraint 8 is violated{utils.bcolors.ENDC}")
+            print(f"{utils.bcolors.FAIL}Constraint 8 is violated{utils.bcolors.ENDC}")
             return
         
      # check - C9
@@ -241,13 +244,13 @@ def main():
 
             for k in range(K):
                 if np.rint(z[i][j,k].value) == 1:
-                    print(f"{utils.bcolors.WARNING}Constraint 9 is violated - backpropagation assigned to different machine from fwd{utils.bcolors.ENDC}")
+                    print(f"{utils.bcolors.FAIL}Constraint 9 is violated - backpropagation assigned to different machine from fwd{utils.bcolors.ENDC}")
                     return
 
         for k in range(release_date_back[i,my_machine]):
             if np.rint(z[i][j,k].value) == 1:
-                print(f"{utils.bcolors.WARNING}Constraint 9 is violated{utils.bcolors.ENDC}")
-                return
+                print(f"{utils.bcolors.FAIL}Constraint 9 is violated{utils.bcolors.ENDC}")
+                #return
     
     # check - C10: backprop job should be processed entirely once and in the same machine as fwd
     for i in range(K):
@@ -260,7 +263,7 @@ def main():
         for k in range(T):
             sum += np.rint(z[i][my_machine,k].value)
         if sum != proc_param_bwd[i, my_machine].value:
-            print(f"{utils.bcolors.WARNING}Constraint 10 is violated{utils.bcolors.ENDC}")
+            print(f"{utils.bcolors.FAIL}Constraint 10 is violated{utils.bcolors.ENDC}")
             return
 
     # check - C11
@@ -270,7 +273,7 @@ def main():
             for key in x:
                 temp += np.rint(x[key][j,t].value + z[key][j,t].value)
             if temp > 1:
-                print(f"{utils.bcolors.WARNING}Constraint 11 is violated{utils.bcolors.ENDC}")
+                print(f"{utils.bcolors.FAIL}Constraint 11 is violated{utils.bcolors.ENDC}")
                 return
 
     #C12: the completition time for each data owner
@@ -287,8 +290,8 @@ def main():
                 last_zero = k+1
         fmax = last_zero
         if fmax != f_fwd[i].value:
-            print(f"{utils.bcolors.WARNING}Constraint 12 is violated{utils.bcolors.ENDC}")
-            return
+            print(f"{utils.bcolors.FAIL}Constraint 12 is violated{utils.bcolors.ENDC}")
+            #return
     
     print(f"{utils.bcolors.OKGREEN}All constraints are satisfied{utils.bcolors.ENDC}")
 
@@ -310,8 +313,10 @@ def main():
     print(np.rint(y.value))
 
     print("--------------------------------")
-    print("optimal end time")
-    print(f.value)
+    print("optimal forward finish time")
+    print(f_fwd.value)
+    print("optimal bacward finish time")
+    print(f_bwd.value)
 
 
     print("--------Machine allocation--------")
@@ -320,17 +325,20 @@ def main():
         for k in range(T):
             at_least = 0
             for j in range(K):
-                if(np.rint(x[j][i,k].value) <= 0):
+                if(np.rint(x[j][i,k].value) <= 0 and np.rint(z[j][i,k].value) <= 0):
                     continue
                 else:
-                    print(f'{j+1}', end='\t')
+                    if np.rint(x[j][i,k].value) > 0:
+                        print(f'{j+1}', end='\t')
+                    else:
+                        print(f'{j+1}\'', end='\t')
                     at_least = 1
                     break
             if(at_least == 0):
                 print(f'0', end='\t')
         print('')
 
-    print("--------Machine allocation--------")
+    print("--------End allocation--------")
 
     for i in range(K):
         C = np.rint(f_fwd[i].value)
