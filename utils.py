@@ -13,7 +13,7 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 max_memory_demand = 3
-file_name = 'test1.xlsx'
+file_name = 'test3.xlsx'
 '''
 return np an numpy array of shape (K, H) with the release dates
 for the forward pass (first batch).

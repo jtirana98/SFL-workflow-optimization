@@ -9,8 +9,8 @@ warnings.filterwarnings("ignore")
 
 
 def main():
-    K = 3 # number of data owners
-    H = 2 # number of compute nodes
+    K = 50 # number of data owners
+    H = 5 # number of compute nodes
 
     C_fwd = cp.Parameter((K), integer=True)
     #f_fwd = cp.Parameter((K))
