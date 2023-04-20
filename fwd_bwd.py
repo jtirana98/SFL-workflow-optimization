@@ -12,7 +12,6 @@ def main():
     K = 3 # number of data owners
     H = 2 # number of compute nodes
 
-    release_back_param = cp.Parameter((K, H))
     C_fwd = cp.Parameter((K), integer=True)
     #f_fwd = cp.Parameter((K))
     #f_bwd = cp.Parameter((K))
@@ -28,13 +27,14 @@ def main():
 
     # back-propagation parameters
     release_date_back = np.array(utils.get_bwd_release_delays(K,H))
-    release_back_param.value = np.array(release_date_back)
     proc_bck = np.array(utils.get_bwd_proc_compute_node(K,H))
     proc_local_back = np.array(utils.get_bwd_end_local(K))
     trans_back_gradients = np.array(utils.get_grad_trans_back(K,H))
 
     
-    T = np.max(release_date_fwd) + K*np.max(proc_fwd[0,:]) + np.max(release_date_back) + K*np.max(proc_bck[0,:]) + 100# NOTE FIX THAT
+    T = np.max(release_date_fwd) + K*np.max(proc_fwd[0,:]) + np.max(release_date_back) + K*np.max(proc_bck[0,:]) \
+                        + np.max(proc_local_back) + np.max(proc_local_back) +np.max(proc_fwd) \
+                        + np.max(np.max(trans_back_activations)) + np.max(np.max(trans_back_gradients))
     print(f"T = {T}")
 
     # Define variables
@@ -148,7 +148,7 @@ def main():
 
     # wrap the formula to a Problem
     prob = cp.Problem(obj, constraints)
-    prob.solve(solver=cp.GUROBI, verbose=True,
+    prob.solve(solver=cp.GUROBI, #verbose=True,
                 options={'Threads': 8},)
 
     print("status:", prob.status)
@@ -290,28 +290,34 @@ def main():
     
     print(f"{utils.bcolors.OKGREEN}All constraints are satisfied{utils.bcolors.ENDC}")
 
+    f_out = open("all_out.txt", "w")
 
-    print("release date - shape (K,H)\n", release_date_fwd)
-    print("memory capacity\n", memory_capacity)
-    print("proc. times\n", proc_fwd)
-    print("send back\n", trans_back_activations)
-    print("fwd last local\n", proc_local_fwd)
-    print("--------------------------------")
-    print("optimal time allocation:")
+
+
+    f_out.write(f"release date - shape (K,H)\n, {release_date_fwd}")
+    f_out.write(f"memory capacity\n {memory_capacity}",)
+    f_out.write(f"proc. times\n, {proc_fwd}")
+    f_out.write(f"send back\n, {trans_back_activations}")
+    f_out.write(f"fwd last local\n, {proc_local_fwd}")
+    f_out.write("--------------------------------")
+    f_out.write("optimal time allocation:")
 
     for i in range(len(list(x.keys()))):
-        print(f'Data ownwer/job {i+1}:')
-        print(np.rint(x[i].value))
+        f_out.write(f'Data ownwer/job {i+1}:\n {np.rint(x[i].value)}')
 
-    print("--------------------------------")
-    print("optimal device allocation")
-    print(np.rint(y.value))
 
-    print("--------------------------------")
-    print("optimal forward finish time")
+    f_out.write("--------------------------------")
+    f_out.write(f"optimal device allocation\n {np.rint(y.value)}")
+
+
+    f_out.write("--------------------------------")
+    f_out.write("optimal forward finish time")
     #print(f_fwd.value)
-    print("optimal bacward finish time")
-    print(f_bwd.value)
+    f_out.write("optimal bacward finish time")
+    #f_out.write(f_bwd.value)
+
+   
+    f_out.close()
 
 
     print("--------Machine TIMELINE--------")
