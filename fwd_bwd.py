@@ -53,7 +53,7 @@ def main():
     z = {}
     for i in range(K):
         z[i] = cp.Variable((H,T), boolean=True)
-
+    #aux = cp.Variable((K,T), boolean=True)
     # Define constraints
     constraints = []
 
@@ -113,20 +113,19 @@ def main():
     for i in range(K):
         temp_C += [f_fwd[i] + cp.hstack(proc_local_fwd)[i] + trans[i]]
 
-    C_fwd =  cp.hstack(temp_C)
+    C_fwd.values =  cp.hstack(temp_C)
 
+    
     # C9: backprop job cannot be assigned to a time interval before the backprops release time ?????????????????
     for i in range(K): #for all jobs
         for j in range(H):
             for t in range(T):
-                if t <= 10 + release_date_back[i,j]:
+                if t <=  release_date_back[i,j]:
                     constraints += [z[i][j,t] == 0]
            
-    
-    # C10: backprop job should be processed entirely once and in the same machine as fwd
+   
+    '''
     for i in range(K): #for all jobs
-        sub_sum_1 = []
-        sub_sum_2 = []
         for j in range(H):
             constraints += [(cp.sum(z[i][ j, :])/ proc_param_bwd[i, j]) == (cp.sum(x[i][ j, :])/ proc_param_fwd[i, j])]
     
@@ -136,7 +135,13 @@ def main():
             sub_sum += [cp.sum(z[i][ j, :])/ proc_param_bwd[i, j]]
         sum_ = cp.sum(cp.hstack(sub_sum))
         constraints += [sum_ == 1]
+    '''
 
+    # C10: backprop job should be processed entirely once and in the same machine as fwd
+    for i in range(K): #for all jobs
+        for j in range(H):
+            constraints += [cp.sum(z[i][ j, :])/ proc_param_bwd[i, j] == y[i,j]]
+     
     # C11: compute node will run only one job at each slot either fwd or bwd NOTE: can we ignore C6?
     for j in range(H): #for all devices
         for t in range(T): #for all timeslots
@@ -144,6 +149,8 @@ def main():
             for key in x:
                 temp += x[key][j,t] + z[key][j,t]
             constraints += [temp <= 1]
+ 
+
 
     #C12: the completition time for each data owner
     f_values = []
