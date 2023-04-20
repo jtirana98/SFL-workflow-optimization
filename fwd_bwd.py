@@ -12,13 +12,10 @@ def main():
     K = 3 # number of data owners
     H = 2 # number of compute nodes
 
-    proc_param_fwd = cp.Parameter((K, H))
-    proc_param_bwd = cp.Parameter((K, H))
-    trans_back_pp = cp.Parameter((K, H))
     release_back_param = cp.Parameter((K, H))
     C_fwd = cp.Parameter((K), integer=True)
-    f_fwd = cp.Parameter((K))
-    f_bwd = cp.Parameter((K))
+    #f_fwd = cp.Parameter((K))
+    #f_bwd = cp.Parameter((K))
 
     
     memory_capacity = np.array(utils.get_memory_characteristics(H))
@@ -26,21 +23,18 @@ def main():
     # forward-propagation parameters
     release_date_fwd = np.array(utils.get_fwd_release_delays(K,H))
     proc_fwd = np.array(utils.get_fwd_proc_compute_node(K, H))
-    proc_param_fwd.value = np.array(proc_fwd)
     proc_local_fwd = np.array(utils.get_fwd_end_local(K))
     trans_back_activations = np.array(utils.get_trans_back(K, H))
-    trans_back_pp.value  = np.array(trans_back_activations)
 
     # back-propagation parameters
     release_date_back = np.array(utils.get_bwd_release_delays(K,H))
     release_back_param.value = np.array(release_date_back)
     proc_bck = np.array(utils.get_bwd_proc_compute_node(K,H))
-    proc_param_bwd.value = np.array(proc_bck)
     proc_local_back = np.array(utils.get_bwd_end_local(K))
     trans_back_gradients = np.array(utils.get_grad_trans_back(K,H))
 
     
-    T = np.max(release_date_fwd) + K*np.max(proc_fwd[0,:]) + np.max(release_date_back) + K*np.max(proc_bck[0,:]) # time intervals
+    T = np.max(release_date_fwd) + K*np.max(proc_fwd[0,:]) + np.max(release_date_back) + K*np.max(proc_bck[0,:]) + 100# NOTE FIX THAT
     print(f"T = {T}")
 
     # Define variables
@@ -53,7 +47,7 @@ def main():
     z = {}
     for i in range(K):
         z[i] = cp.Variable((H,T), boolean=True)
-    #aux = cp.Variable((K,T), boolean=True)
+
     # Define constraints
     constraints = []
 
@@ -81,7 +75,7 @@ def main():
     for i in range(K): #for all jobs
         sub_sum = []
         for j in range(H):
-            sub_sum += [cp.sum(x[i][ j, :])/ proc_param_fwd[i, j]]
+            sub_sum += [cp.sum(x[i][ j, :])/ proc_fwd[i, j]]
         sum_ = cp.sum(cp.hstack(sub_sum))
         constraints += [sum_ == 1]
 
@@ -103,44 +97,26 @@ def main():
         f_values += [cp.max(cp.hstack(f_interm))]
 
     f_fwd = cp.hstack(f_values)
-
-    trans = []
-    for i in range(K): # for each job/data owner
-        trans.append(cp.sum(trans_back_pp[i,:] * y[i,:]))
-
-    trans = cp.hstack(trans)
-    temp_C = []
-    for i in range(K):
-        temp_C += [f_fwd[i] + cp.hstack(proc_local_fwd)[i] + trans[i]]
-
-    C_fwd.values =  cp.hstack(temp_C)
-
     
-    # C9: backprop job cannot be assigned to a time interval before the backprops release time ?????????????????
+    # C9: backprop job cannot be assigned to a time interval before the backprops release time
     for i in range(K): #for all jobs
         for j in range(H):
+            temp = proc_local_fwd[i] + trans_back_activations[i,j] + release_date_back[i,j]
+
+            for t in range(temp):
+                constraints += [z[i][j,t] == 0]
+
             for t in range(T):
-                if t <=  release_date_back[i,j]:
-                    constraints += [z[i][j,t] == 0]
+                if t + temp >= T:
+                    break
+                
+                constraints += [z[i][j,t+temp] <= cp.sum(x[i][j,:t])/proc_fwd[i,j]]
            
-   
-    '''
-    for i in range(K): #for all jobs
-        for j in range(H):
-            constraints += [(cp.sum(z[i][ j, :])/ proc_param_bwd[i, j]) == (cp.sum(x[i][ j, :])/ proc_param_fwd[i, j])]
-    
-    for i in range(K): #for all jobs
-        sub_sum = []
-        for j in range(H):
-            sub_sum += [cp.sum(z[i][ j, :])/ proc_param_bwd[i, j]]
-        sum_ = cp.sum(cp.hstack(sub_sum))
-        constraints += [sum_ == 1]
-    '''
 
     # C10: backprop job should be processed entirely once and in the same machine as fwd
     for i in range(K): #for all jobs
         for j in range(H):
-            constraints += [cp.sum(z[i][ j, :])/ proc_param_bwd[i, j] == y[i,j]]
+            constraints += [cp.sum(z[i][ j, :])/ proc_bck[i, j] == y[i,j]]
      
     # C11: compute node will run only one job at each slot either fwd or bwd NOTE: can we ignore C6?
     for j in range(H): #for all devices
@@ -214,7 +190,7 @@ def main():
         sum = 0
         for k in range(T):
             sum += np.rint(x[i][my_machine,k].value)
-        if sum != proc_param_fwd[i, my_machine].value:
+        if sum != proc_fwd[i, my_machine]:
             print(f"{utils.bcolors.FAIL}Constraint 5 is violated{utils.bcolors.ENDC}")
             return
 
@@ -262,10 +238,14 @@ def main():
                     print(f"{utils.bcolors.FAIL}Constraint 9 is violated - backpropagation assigned to different machine from fwd{utils.bcolors.ENDC}")
                     return
 
-        for k in range(release_date_back[i,my_machine]):
-            if np.rint(z[i][j,k].value) == 1:
-                print(f"{utils.bcolors.FAIL}Constraint 9 is violated{utils.bcolors.ENDC}")
-                #return
+        for t in range(T):
+            if t < release_date_back[i,my_machine] + np.rint(f_fwd[i].value) + trans_back_activations[i, my_machine] + proc_local_fwd[i]:
+                if np.rint(z[i][j,t].value) == 1:
+                    print(f'{i} {j} {t}')
+                    print(f"{utils.bcolors.FAIL}Constraint 9 is violated{utils.bcolors.ENDC}")
+                    return
+            else:
+                break
     
     # check - C10: backprop job should be processed entirely once and in the same machine as fwd
     for i in range(K):
@@ -277,9 +257,9 @@ def main():
         sum = 0
         for k in range(T):
             sum += np.rint(z[i][my_machine,k].value)
-        if sum != proc_param_bwd[i, my_machine].value:
+        if sum != proc_bck[i, my_machine]:
             print(f"{utils.bcolors.FAIL}Constraint 10 is violated{utils.bcolors.ENDC}")
-            #return
+            return
 
     # check - C11
     for j in range(H): #for all devices
@@ -304,7 +284,7 @@ def main():
             if np.rint(z[i][my_machine,k].value) >= 1:
                 last_zero = k+1
         fmax = last_zero
-        if fmax != f_fwd[i].value:
+        if fmax != f_bwd[i].value:
             print(f"{utils.bcolors.FAIL}Constraint 12 is violated{utils.bcolors.ENDC}")
             #return
     
@@ -329,36 +309,22 @@ def main():
 
     print("--------------------------------")
     print("optimal forward finish time")
-    print(f_fwd.value)
+    #print(f_fwd.value)
     print("optimal bacward finish time")
     print(f_bwd.value)
 
 
-    print("--------Machine forward--------")
+    print("--------Machine TIMELINE--------")
 
     for i in range(H):
         for k in range(T):
             at_least = 0
             for j in range(K):
-                if(np.rint(x[j][i,k].value) <= 0):
+                if(np.rint(x[j][i,k].value) <= 0 and np.rint(z[j][i,k].value) <= 0):
                     continue
                 else:
                     if np.rint(x[j][i,k].value) > 0:
                         print(f'{j+1}', end='\t')
-                    at_least = 1
-                    break
-            if(at_least == 0):
-                print(f'0', end='\t')
-        print('')
-
-    print("--------Machine back--------")
-    for i in range(H):
-        for k in range(T):
-            at_least = 0
-            for j in range(K):
-                if( np.rint(z[j][i,k].value) <= 0):
-                    continue
-                else:
                     if np.rint(z[j][i,k].value) > 0:
                         print(f'{j+1}\'', end='\t')
                     at_least = 1
@@ -370,13 +336,13 @@ def main():
     print("--------End allocation--------")
 
     for i in range(K):
-        C = np.rint(f_fwd[i].value)
+        C = np.rint(f_bwd[i].value)
         my_machine = 0
         for j in range(H):
             if np.rint(y[i,j].value) == 1:
                 my_machine = j
                 break
-        C += proc_local_fwd[i] + trans_back_activations[i,my_machine]
+        C += proc_local_back[i] + trans_back_gradients[i,my_machine]
         print(f'C{i+1}: {C}')
 
 if __name__ == '__main__':
