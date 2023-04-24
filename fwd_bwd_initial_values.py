@@ -1,6 +1,7 @@
 import numpy as np
 import cvxpy as cp
 import time
+import fwd_only
 
 import utils
 
@@ -38,6 +39,8 @@ def main():
                         + np.max(proc_local_back) + np.max(proc_local_back) +np.max(proc_fwd) \
                         + np.max(np.max(trans_back_activations)) + np.max(np.max(trans_back_gradients))
     print(f"T = {T}")
+
+    x_prev, y_prev = fwd_only.main()
 
     # Define variables
     x = {}
@@ -150,15 +153,29 @@ def main():
 
     obj = cp.Minimize(cp.max( f_bwd + proc_local_back + cp.hstack(trans)))
 
+    # initialise
+    for i in range(K):
+        x_temp = np.zeros((H,T))
+        x_prev_array = np.abs(np.rint(x_prev[i].value))
+
+        for j in range(H):
+            for k in range(x_prev_array.shape[1]):
+                x_temp[j,k] = x_prev_array[j,k]
+        
+        x[i].value = x_temp
+
+    y.value = np.abs(np.rint(y_prev.value))
+    
+
     # wrap the formula to a Problem
     prob = cp.Problem(obj, constraints)
     start = time.time()
-    prob.solve(solver=cp.GUROBI, verbose=True,
-                options={'Threads': 16},)
-    end = time.time()
+    prob.solve(solver=cp.GUROBI, verbose=True, warm_start= True)
+    end = time.time()   
     print("status:", prob.status)
     print("optimal value", prob.value)
-    print("Time: ", (end - start))
+    print("TIME: ", (end-start))
+
 
     # check - C1
     for i in range(K): #for all jobs
@@ -307,9 +324,7 @@ def main():
     f_out.write("--------------------------------")
     f_out.write("optimal time allocation:")
 
-    for i in range(len(list(x.keys()))):
-        f_out.write(f'Data ownwer/job {i+1}:\n {np.rint(x[i].value)}')
-
+    
 
     f_out.write("--------------------------------")
     f_out.write(f"optimal device allocation\n {np.rint(y.value)}")

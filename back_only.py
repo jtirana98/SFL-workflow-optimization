@@ -3,6 +3,7 @@ import cvxpy as cp
 import time
 
 import utils
+import fwd_only
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -10,9 +11,10 @@ warnings.filterwarnings("ignore")
 
 
 def main():
-    K = 10 # number of data owners
+    K = 5 # number of data owners
     H = 2 # number of compute nodes
-    utils.file_name = 'test2.xlsx'
+    utils.file_name = 'test1.xlsx'
+
     C_fwd = cp.Parameter((K), integer=True)
     #f_fwd = cp.Parameter((K))
     f_bwd = cp.Parameter((K))
@@ -38,13 +40,26 @@ def main():
                         + np.max(proc_local_back) + np.max(proc_local_back) +np.max(proc_fwd) \
                         + np.max(np.max(trans_back_activations)) + np.max(np.max(trans_back_gradients))
     print(f"T = {T}")
-
+    
+    x_prev, y_prev = fwd_only.main()
     # Define variables
     x = {}
     for i in range(K):
-        x[i] = cp.Variable((H,T), boolean=True)
+        x[i] = cp.Parameter((H,T), boolean=True)
+        x_temp = np.zeros((H,T))
+        x_prev_array = np.abs(np.rint(x_prev[i].value))
 
-    y = cp.Variable((K,H), boolean=True) # auxiliary variable
+        for j in range(H):
+            for k in range(x_prev_array.shape[1]):
+                x_temp[j,k] = x_prev_array[j,k]
+        
+        x[i].value = x_temp
+
+    
+
+    y = cp.Parameter((K,H), boolean=True) # auxiliary variable
+
+    y.value = np.abs(np.rint(y_prev.value))
     
     z = {}
     for i in range(K):
@@ -52,54 +67,6 @@ def main():
 
     # Define constraints
     constraints = []
-
-    # C1: job cannot be assigned to a time interval before the release time
-    for i in range(K): #for all jobs
-        for j in range(H): #for all devices
-            for t in range(T): #for all timeslots
-                if t < release_date_fwd[i,j]: # <= ?? -- minor
-                    constraints += [x[i][j,t] == 0]
-
-    # C2: define auxiliary variable
-    for i in range(K): #for all jobs
-        for j in range(H): #for all devices
-            constraints += [cp.sum(x[i][j,:]) <= T*y[i,j]]
-
-    # C3: all jobs interval are assigned to one only machine
-    for i in range(K): #for all jobs
-        constraints += [cp.sum(y[i,:]) == 1]
-
-    # C4: memory constraint
-    for j in range(H): #for all devices
-        constraints += [cp.sum(y[:,j])*utils.max_memory_demand <= memory_capacity[j]]
-
-    # C5: job should be processed entirely once
-    for i in range(K): #for all jobs
-        sub_sum = []
-        for j in range(H):
-            sub_sum += [cp.sum(x[i][ j, :])/ proc_fwd[i, j]]
-        sum_ = cp.sum(cp.hstack(sub_sum))
-        constraints += [sum_ == 1]
-
-    # C6: machine processes only a single job at each interval
-    for j in range(H): #for all devices
-        for t in range(T): #for all timeslots
-            temp = 0
-            for key in x:
-                temp += x[key][j,t]
-            constraints += [temp <= 1]
-
-    #C8: the completition time for each data owner
-    
-    f_values = []
-    for i in range(K): #for all jobs
-        f_interm = []
-        for j in range(H): #for all machines
-            for t in range(T): #for all timeslots
-                f_interm += [(t+1)*x[i][j,t]]
-        f_values += [cp.max(cp.hstack(f_interm))]
-
-    f_fwd = cp.hstack(f_values)
     
     # C9: backprop job cannot be assigned to a time interval before the backprops release time
     for i in range(K): #for all jobs
@@ -130,7 +97,6 @@ def main():
             constraints += [temp <= 1]
  
 
-
     #C12: the completition time for each data owner
     f_values = []
     for i in range(K): #for all jobs
@@ -159,7 +125,7 @@ def main():
     print("status:", prob.status)
     print("optimal value", prob.value)
     print("Time: ", (end - start))
-
+    '''
     # check - C1
     for i in range(K): #for all jobs
         my_machine = -1
@@ -225,7 +191,7 @@ def main():
         if fmax != f_fwd[i].value:
             print(f"{utils.bcolors.FAIL}Constraint 8 is violated{utils.bcolors.ENDC}")
             return
-      
+    
      # check - C9
     for i in range(K): #for all jobs
         my_machine = -1
@@ -251,7 +217,7 @@ def main():
                     return
             else:
                 break
-        
+    '''
     # check - C10: backprop job should be processed entirely once and in the same machine as fwd
     for i in range(K):
         my_machine = 0
@@ -308,7 +274,7 @@ def main():
     f_out.write("optimal time allocation:")
 
     for i in range(len(list(x.keys()))):
-        f_out.write(f'Data ownwer/job {i+1}:\n {np.rint(x[i].value)}')
+        print(f'Data ownwer/job {i+1}:\n {np.rint(z[i].value)}')
 
 
     f_out.write("--------------------------------")

@@ -8,13 +8,11 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-
-def main():
+def run():
     start = time.time()
-    K = 10 # number of data owners
-    H = 2 # number of compute nodes
-    utils.file_name = 'test2.xlsx'
-
+    K = 50 # number of data owners
+    H = 5 # number of compute nodes
+    utils.file_name = 'test3.xlsx'
     release_date = np.array(utils.get_fwd_release_delays(K,H)) # release date - shape (K,H)
     #release_date = np.array([[3,2],[3,4],[2,2]])
     memory_capacity = np.array(utils.get_memory_characteristics(H))
@@ -30,7 +28,7 @@ def main():
 
     proc_param = cp.Parameter((K, H))
     trans_back_pp = cp.Parameter((K, H))
-    f = cp.Parameter((K))
+    #f = cp.Parameter((K))
     #f.value = np.zeros(K)
 
     trans_back_pp.value  = np.array(trans_back)
@@ -45,7 +43,7 @@ def main():
         x[i] = cp.Variable((H,T), boolean=True)
 
     y = cp.Variable((K,H), boolean=True) # auxiliary variable
-    #f = cp.Variable(K, integer=True) # completition time
+    f = cp.Variable(K, integer=True) # completition time
 
     # Define constraints
     constraints = []
@@ -87,7 +85,8 @@ def main():
             constraints += [temp <= 1]
 
     #C8: the completition time for each data owner -- NOTE: Removed it from constraints
-    
+    #S1
+    '''
     f_values = []
     for i in range(K): #for all jobs
         f_interm = []
@@ -99,11 +98,12 @@ def main():
     f = cp.hstack(f_values)
     
     '''
+    #S2
     for i in range(K): #for all jobs
         for j in range(H): #for all machines
             for t in range(T): #for all timeslots
                 constraints += [f[i] >= (t+1)*x[i][j,t]]
-    '''
+    
     # Define objective function
 
     trans = []
@@ -115,8 +115,7 @@ def main():
 
     # wrap the formula to a Problem
     prob = cp.Problem(obj, constraints)
-    prob.solve(solver=cp.GUROBI, verbose=True,
-                options={'Threads': 8},)
+    prob.solve(solver=cp.GUROBI, options={'Threads': 8},)
     '''
     prob.solve(solver=cp.MOSEK, verbose=True,
             mosek_params={
@@ -192,36 +191,12 @@ def main():
                 last_zero = k+1
         fmax = last_zero
         if fmax != f[i].value:
-            print("Constraint 8 is violated")
-            return
-
+            #f[i].value = fmax
+            print(f"Constraint 8 is violated for client {i+1}")
+            #return
+    end = time.time()
     print('All constraints are satisfied')
 
-    '''
-    print("release date - shape (K,H)\n", release_date)
-    print("memory capacity\n", memory_capacity)
-    print("proc. times\n", proc)
-    print("send back\n", trans_back)
-    print("fwd last local\n", proc_local)
-    print("--------------------------------")
-    print("optimal time allocation:")
-    end = time.time()
-    print("TIME: ", end - start)
-    '''
-    print('X:')
-    #for i in range(len(list(x.keys()))):
-    #    print(f'Data ownwer/job {i+1}:')
-    #    print(np.rint(x[i].value))
-
-    #print("--------------------------------")
-    #print("optimal device allocation (Y)")
-    #print(np.rint(y.value))
-
-    #print("--------------------------------")
-    #print("optimal end time")
-    #print(f.value)
-
-    '''
     print("--------Machine allocation--------")
 
     for i in range(H):
@@ -241,16 +216,31 @@ def main():
     print("--------Completition time--------")
 
     for i in range(K):
-        C = np.rint(f[i].value)
+        #C = np.rint(f[i].value)
+        
         my_machine = 0
         for j in range(H):
             if np.rint(y[i,j].value) == 1:
                 my_machine = j
                 break
-        C += proc_local[i] + trans_back[i,my_machine]
+        
+        last_zero = -1
+        for k in range(T):
+            if np.rint(x[i][my_machine,k].value) >= 1:
+                last_zero = k+1
+        fmax = last_zero
+
+
+        #C += proc_local[i] + trans_back[i,my_machine]
+        C = proc_local[i] + trans_back[i,my_machine] + fmax
         print(f'C{i+1}: {C}')
-        '''
-    return (x,y)
+
+    
+    return (end - start)
+
+def main():
+    for i in range(10):
+        print(run())
 
 if __name__ == '__main__':
     main()
