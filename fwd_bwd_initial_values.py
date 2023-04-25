@@ -1,9 +1,10 @@
 import numpy as np
 import cvxpy as cp
 import time
-import fwd_only
 
 import utils
+import fwd_only
+import back_only
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -41,7 +42,7 @@ def main():
     print(f"T = {T}")
 
     x_prev, y_prev = fwd_only.main()
-
+    z_prev = back_only.main()
     # Define variables
     x = {}
     for i in range(K):
@@ -163,6 +164,16 @@ def main():
                 x_temp[j,k] = x_prev_array[j,k]
         
         x[i].value = x_temp
+
+    for i in range(K):
+        z_temp = np.zeros((H,T))
+        z_prev_array = np.abs(np.rint(z_prev[i].value))
+
+        for j in range(H):
+            for k in range(z_prev_array.shape[1]):
+                z_temp[j,k] = z_prev_array[j,k]
+        
+        z[i].value = z_temp
 
     y.value = np.abs(np.rint(y_prev.value))
     
