@@ -19,7 +19,7 @@ def main():
     #f_bwd = np.zeros(K)
     #f_bwd = cp.Variable((K), integer=True)
     
-    memory_capacity = np.array(utils.get_memory_characteristics(H))
+    memory_capacity = np.array(utils.get_memory_characteristics(H, K))
 
     # forward-propagation parameters
     release_date_fwd = np.array(utils.get_fwd_release_delays(K,H))

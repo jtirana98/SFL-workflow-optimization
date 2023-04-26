@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import random
 
 class bcolors:
     HEADER = '\033[95m'
@@ -19,14 +20,43 @@ return np an numpy array of shape (K, H) with the release dates
 for the forward pass (first batch).
 Use profiling values
 '''
+
+def mysum(mylist):
+    sum = 0
+
+    for s in mylist:
+        sum += s
+
+    return sum
+
 def get_fwd_release_delays(K,H):
     df = pd.read_excel(io=file_name, sheet_name='get_fwd_release_delays', header=None)
-    return df.values.tolist()
+
+    all_data = df.values.tolist()
+    return_list = []
+
+    for i in range(K):
+        row_ = []
+        for j in range(H):
+            row_.append(all_data[i][j])
+        return_list.append(row_)
+
+    return return_list
 
 
 def get_bwd_release_delays(K,H):
     df = pd.read_excel(io=file_name, sheet_name='get_bwd_release_delays', header=None)
-    return df.values.tolist()
+
+    all_data = df.values.tolist()
+    return_list = []
+
+    for i in range(K):
+        row_ = []
+        for j in range(H):
+            row_.append(all_data[i][j])
+        return_list.append(row_)
+
+    return return_list
 
 
 '''
@@ -39,7 +69,7 @@ def get_fwd_proc_compute_node(K, H):
     temp = df.values.tolist()
 
     machines = []
-    for i in  range(len(temp)):
+    for i in  range(H):#range(len(temp)):
         machines.append(temp[i][0])
 
     total = []
@@ -52,7 +82,7 @@ def get_bwd_proc_compute_node(K, H):
     temp = df.values.tolist()
 
     machines = []
-    for i in  range(len(temp)):
+    for i in  range(H):#range(len(temp)):
         machines.append(temp[i][0])
 
     total = []
@@ -70,7 +100,7 @@ def get_fwd_end_local(K):
     temp = df.values.tolist()
 
     df_list = []
-    for i in  range(len(temp)):
+    for i in  range(K):#range(len(temp)):
         df_list.append(temp[i][0])
 
     return df_list
@@ -80,7 +110,7 @@ def get_bwd_end_local(K):
     temp = df.values.tolist()
 
     df_list = []
-    for i in  range(len(temp)):
+    for i in  K:#range(len(temp)):
         df_list.append(temp[i][0])
 
     return df_list
@@ -93,17 +123,38 @@ Use profiling values
 '''
 def get_trans_back(K, H):
     df = pd.read_excel(io=file_name, sheet_name='get_trans_back', header=None)
-    return df.values.tolist()
+    
+    all_data = df.values.tolist()
+    return_list = []
+
+    for i in range(K):
+        row_ = []
+        for j in range(H):
+            row_.append(all_data[i][j])
+        return_list.append(row_)
+
+    return return_list
 
 def get_grad_trans_back(K, H):
     df = pd.read_excel(io=file_name, sheet_name='get_grad_trans_back', header=None)
-    return df.values.tolist()
+
+    all_data = df.values.tolist()
+    return_list = []
+
+    for i in range(K):
+        row_ = []
+        for j in range(H):
+            row_.append(all_data[i][j])
+        return_list.append(row_)
+
+    return return_list
 
 '''
 return np an numpy array of shape(H,1) with the memory capacity of each 
 helper node
 '''
-def get_memory_characteristics(H):
+def get_memory_characteristics(H, K=10):
+    '''
     df = pd.read_excel(io=file_name, sheet_name='get_memory_characteristics', header=None)
     temp = df.values.tolist()
 
@@ -113,3 +164,40 @@ def get_memory_characteristics(H):
 
     return df_list
     #return [10,10]
+    '''
+    df_list = []
+    
+    total_demand = max_memory_demand * K
+    if file_name == 'fully_symmetric.xlsx' or file_name == 'symmetric_machines.xlsx': # all the same
+        minimum_avail = int(K/H)
+        if K % H == 0:
+            df_list = [minimum_avail*max_memory_demand for i in range(H)]
+        else:
+            df_list = [minimum_avail*max_memory_demand for i in range(H-1)]
+            df_list.append((minimum_avail+1)*max_memory_demand)
+    else: # choose from a distribution but in the end all data owners should be served
+        end = int(K/H)
+        first_round = False
+        while True:
+            for i in range(H):
+                data_owners = random.randint(1,end)
+                if first_round:
+                    df_list[i] = df_list[i] + data_owners
+                    if mysum(df_list) >= K:
+                        for i in range(H):
+                            df_list[i] = df_list[i] * max_memory_demand
+                        return df_list
+                else:
+                    df_list.append(data_owners)
+            
+            first_round = True
+            if mysum(df_list) < K:
+                end = K - mysum(df_list)
+            else:  
+                break
+        
+        for i in range(H):
+            df_list[i] = df_list[i] * max_memory_demand
+        
+
+    return df_list

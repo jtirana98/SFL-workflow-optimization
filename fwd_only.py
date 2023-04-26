@@ -13,31 +13,24 @@ def main():
     start = time.time()
     K = 10 # number of data owners
     H = 2 # number of compute nodes
-    utils.file_name = 'test2.xlsx'
+    utils.file_name = 'fully_heterogeneous.xlsx'
 
     release_date = np.array(utils.get_fwd_release_delays(K,H)) # release date - shape (K,H)
-    #release_date = np.array([[3,2],[3,4],[2,2]])
-    memory_capacity = np.array(utils.get_memory_characteristics(H))
-    #memory_capacity = np.array([10,10])
+    memory_capacity = np.array(utils.get_memory_characteristics(H, K))
     proc = np.array(utils.get_fwd_proc_compute_node(K, H))
-    #proc=np.array([[2,3], [1,2], [3,4]])
-
     proc_local = np.array(utils.get_fwd_end_local(K))
-    #proc_local=np.array([1,1,1])
-    #trans_back=np.array([[1,1],[1,1],[1,1]])
     trans_back = np.array(utils.get_trans_back(K, H))
-
-
     proc_param = cp.Parameter((K, H))
     trans_back_pp = cp.Parameter((K, H))
     f = cp.Parameter((K))
     #f.value = np.zeros(K)
-
     trans_back_pp.value  = np.array(trans_back)
     proc_param.value = np.array(proc)
 
     T = np.max(release_date) + K*np.max(proc[0,:]) # time intervals
     print(f"T = {T}")
+
+    print(f" Memory: {memory_capacity}")
 
     # Define variables
     x = {}
@@ -138,20 +131,20 @@ def main():
                 break
         for k in range(release_date[i,my_machine]):
             if np.rint(x[i][j,k].value) == 1:
-                print("Constraint 1 is violated")
+                print(f"{utils.bcolors.FAIL}Constraint 1 is violated{utils.bcolors.ENDC}")
                 return
 
     # C2: define auxiliary variable
     # C3: all jobs interval are assigned to one only machine
     for i in range(K): #for all jobs
         if np.sum(np.rint(y[i,:].value)) != 1:
-            print("Constraint 3 is violated")
+            print(f"{utils.bcolors.FAIL}Constraint 3 is violated{utils.bcolors.ENDC}")
             return
 
     # C4: memory constraint
     for j in range(H): #for all devices
         if np.sum(np.rint(y[:,j].value))*utils.max_memory_demand > memory_capacity[j]:
-            print("Constraint 4 is violated")
+            print(f"{utils.bcolors.FAIL}Constraint 4 is violated{utils.bcolors.ENDC}")
             return
 
     # C5: job should be processed entirely once
@@ -165,7 +158,7 @@ def main():
         for k in range(T):
             sum += np.rint(x[i][my_machine,k].value)
         if sum != proc_param[i, my_machine].value:
-            print("Constraint 5 is violated")
+            print(f"{utils.bcolors.FAIL}Constraint 5 is violated{utils.bcolors.ENDC}")
             return
 
     # C6: machine processes only a single job at each interval
@@ -175,7 +168,7 @@ def main():
             for key in x:
                 temp += np.rint(x[key][j,t].value)
             if temp > 1:
-                print("Constraint 6 is violated")
+                print(f"{utils.bcolors.FAIL}Constraint 6 is violated{utils.bcolors.ENDC}")
                 return
 
     #C8: the completition time for each data owner
@@ -192,10 +185,10 @@ def main():
                 last_zero = k+1
         fmax = last_zero
         if fmax != f[i].value:
-            print("Constraint 8 is violated")
+            print(f"{utils.bcolors.FAIL}Constraint 8 is violated{utils.bcolors.ENDC}")
             return
 
-    print('All constraints are satisfied')
+    print(f"{utils.bcolors.OKGREEN}All constraints are satisfied{utils.bcolors.ENDC}")
 
     '''
     print("release date - shape (K,H)\n", release_date)
@@ -208,7 +201,7 @@ def main():
     end = time.time()
     print("TIME: ", end - start)
     '''
-    print('X:')
+    #print('X:')
     #for i in range(len(list(x.keys()))):
     #    print(f'Data ownwer/job {i+1}:')
     #    print(np.rint(x[i].value))

@@ -37,7 +37,7 @@ def main():
     H = 2 # number of compute nodes
     utils.file_name = 'test1.xlsx'
 
-    memory_capacity = np.array(utils.get_memory_characteristics(H))
+    memory_capacity = np.array(utils.get_memory_characteristics(H, K))
 
     # forward-propagation parameters
     release_date_fwd = np.array(utils.get_fwd_release_delays(K,H))

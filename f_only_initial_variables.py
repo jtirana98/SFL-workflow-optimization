@@ -15,7 +15,7 @@ def run():
     H = 5 # number of compute nodes
     release_date = np.array(utils.get_fwd_release_delays(K,H)) # release date - shape (K,H)
     #release_date = np.array([[3,2],[3,4],[2,2]])
-    memory_capacity = np.array(utils.get_memory_characteristics(H))
+    memory_capacity = np.array(utils.get_memory_characteristics(H, K))
     #memory_capacity = np.array([10,10])
     proc = np.array(utils.get_fwd_proc_compute_node(K, H))
     #proc=np.array([[2,3], [1,2], [3,4]])
