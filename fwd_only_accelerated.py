@@ -19,94 +19,72 @@ def main():
     # symmetric_machines
     # symmetric_data_owners
 
-
-    release_date = np.array(utils.get_fwd_release_delays(K,H)) # release date - shape (K,H)
+    release_date = np.array(utils.get_fwd_release_delays(K,H))
     memory_capacity = np.array(utils.get_memory_characteristics(H, K))
     proc = np.array(utils.get_fwd_proc_compute_node(K, H))
     proc_local = np.array(utils.get_fwd_end_local(K))
     trans_back = np.array(utils.get_trans_back(K, H))
-    proc_param = cp.Parameter((K, H))
-    trans_back_pp = cp.Parameter((K, H))
     f = cp.Parameter((K))
-    #f.value = np.zeros(K)
-    trans_back_pp.value  = np.array(trans_back)
-    proc_param.value = np.array(proc)
 
     T = np.max(release_date) + K*np.max(proc[0,:]) # time intervals
     print(f"T = {T}")
+
+    ones_H = np.ones((H,1))
+    ones_K = np.ones((K,1))
+    ones_T = np.ones((T,1))
 
     print(f" Memory: {memory_capacity}")
 
     # Define variables
     x = {}
-    for i in range(K):
-        x[i] = cp.Variable((H,T), boolean=True)
+    for i in range(H):
+        x[i] = cp.Variable((K,T), boolean=True)
 
     y = cp.Variable((K,H), boolean=True) # auxiliary variable
-    #f = cp.Variable(K, integer=True) # completition time
 
     # Define constraints
     constraints = []
 
     # C1: job cannot be assigned to a time interval before the release time
-    for i in range(K): #for all jobs
-        for j in range(H): #for all devices
+    for i in range(H): #for all devices
+        for j in range(K): #for all jobs
             for t in range(T): #for all timeslots
-                if t < release_date[i,j]: # <= ?? -- minor
-                    constraints += [x[i][j,t] == 0]
-
-    # C2: define auxiliary variable
-    for i in range(K): #for all jobs
-        for j in range(H): #for all devices
-            constraints += [cp.sum(x[i][j,:]) <= T*y[i,j]]
-
+                if t < release_date[j,i]:
+                    constraints += [ x[i][j,t] == 0 ]
+    
     # C3: all jobs interval are assigned to one only machine
-    for i in range(K): #for all jobs
-        constraints += [cp.sum(y[i,:]) == 1]
-
+    constraints += [ y @ ones_H == ones_K ]
+    
     # C4: memory constraint
-    for j in range(H): #for all devices
-        constraints += [cp.sum(y[:,j])*utils.max_memory_demand <= memory_capacity[j]]
-
-    # C5: job should be processed entirely once
-    for i in range(K): #for all jobs
-        sub_sum = []
-        for j in range(H):
-            sub_sum += [cp.sum(x[i][ j, :])/ proc_param[i, j]]
-        sum_ = cp.sum(cp.hstack(sub_sum))
-        constraints += [sum_ == 1]
-
+    constraints += [ (y.T * utils.max_memory_demand) @ ones_K <= memory_capacity.reshape(ones_H.shape) ]
+    
     # C6: machine processes only a single job at each interval
     for j in range(H): #for all devices
-        for t in range(T): #for all timeslots
-            temp = 0
-            for key in x:
-                temp += x[key][j,t]
-            constraints += [temp <= 1]
-
-    #C8: the completition time for each data owner -- NOTE: Removed it from constraints
+        constraints += [ x[j].T @ ones_K <= ones_T ]
     
+    
+    
+    # C9: new constraint - the merge of C2 and C3 (job should be process all once and only in one machine)
+    for j in range(H): #for all devices
+        for i in range(K):
+            constraints += [cp.sum(x[j][i,:]) == y[i,j]*proc[i,j]]
+        #constraints += [ x[j] @ ones_T == y[:,j]  ]
+    
+    #C8: the completition time for each data owner -- NOTE: Removed it from constraints
     f_values = []
     for i in range(K): #for all jobs
         f_interm = []
         for j in range(H): #for all machines
             for t in range(T): #for all timeslots
-                f_interm += [(t+1)*x[i][j,t]]
+                f_interm += [(t+1)*x[j][i,t]]
         f_values += [cp.max(cp.hstack(f_interm))]
 
     f = cp.hstack(f_values)
     
-    '''
-    for i in range(K): #for all jobs
-        for j in range(H): #for all machines
-            for t in range(T): #for all timeslots
-                constraints += [f[i] >= (t+1)*x[i][j,t]]
-    '''
     # Define objective function
-
     trans = []
     for i in range(K): # for each job/data owner
-        trans.append(cp.sum(trans_back_pp[i,:] * y[i,:]))
+        trans.append(cp.sum(trans_back[i,:] * y[i,:]))
 
 
     obj = cp.Minimize(cp.max( f + proc_local + cp.hstack(trans)))
@@ -118,19 +96,9 @@ def main():
     end = time.time()
     print("TIME: ", end - start)
 
-
-    '''
-    prob.solve(solver=cp.MOSEK, verbose=True,
-            mosek_params={
-                    'MSK_IPAR_NUM_THREADS': 8,
-                    },
-                #save_file = 'dump_dump.ptf',
-                )
-    '''
-
     print("status:", prob.status)
     print("optimal value", prob.value)
-    '''
+
     # C1: job cannot be assigned to a time interval before the release time
     for i in range(K): #for all jobs
         my_machine = -1
@@ -139,7 +107,7 @@ def main():
                 my_machine = j
                 break
         for k in range(release_date[i,my_machine]):
-            if np.rint(x[i][j,k].value) == 1:
+            if np.rint(x[j][i,k].value) == 1:
                 print(f"{utils.bcolors.FAIL}Constraint 1 is violated{utils.bcolors.ENDC}")
                 return
 
@@ -165,8 +133,8 @@ def main():
                 break
         sum = 0
         for k in range(T):
-            sum += np.rint(x[i][my_machine,k].value)
-        if sum != proc_param[i, my_machine].value:
+            sum += np.rint(x[my_machine][i,k].value)
+        if sum != proc[i, my_machine]:
             print(f"{utils.bcolors.FAIL}Constraint 5 is violated{utils.bcolors.ENDC}")
             return
 
@@ -174,8 +142,8 @@ def main():
     for j in range(H): #for all devices
         for t in range(T): #for all timeslots
             temp = 0
-            for key in x:
-                temp += np.rint(x[key][j,t].value)
+            for i in range(K):
+                temp += np.rint(x[j][i,t].value)
             if temp > 1:
                 print(f"{utils.bcolors.FAIL}Constraint 6 is violated{utils.bcolors.ENDC}")
                 return
@@ -190,7 +158,7 @@ def main():
         
         last_zero = -1
         for k in range(T):
-            if np.rint(x[i][my_machine,k].value) >= 1:
+            if np.rint(x[my_machine][i,k].value) >= 1:
                 last_zero = k+1
         fmax = last_zero
         if fmax != f[i].value:
@@ -198,18 +166,7 @@ def main():
             return
 
     print(f"{utils.bcolors.OKGREEN}All constraints are satisfied{utils.bcolors.ENDC}")
-    '''
-    '''
-    print("release date - shape (K,H)\n", release_date)
-    print("memory capacity\n", memory_capacity)
-    print("proc. times\n", proc)
-    print("send back\n", trans_back)
-    print("fwd last local\n", proc_local)
-    print("--------------------------------")
-    print("optimal time allocation:")
-    end = time.time()
-    print("TIME: ", end - start)
-    '''
+
     #print('X:')
     #for i in range(len(list(x.keys()))):
     #    print(f'Data ownwer/job {i+1}:')
@@ -223,14 +180,13 @@ def main():
     #print("optimal end time")
     #print(f.value)
 
-    '''
     print("--------Machine allocation--------")
 
     for i in range(H):
         for k in range(T):
             at_least = 0
             for j in range(K):
-                if(np.rint(x[j][i,k].value) <= 0):
+                if(np.rint(x[i][j,k].value) <= 0):
                     continue
                 else:
                     print(f'{j+1}', end='\t')
@@ -251,7 +207,6 @@ def main():
                 break
         C += proc_local[i] + trans_back[i,my_machine]
         print(f'C{i+1}: {C}')
-        '''
     return (x,y)
 
 if __name__ == '__main__':
