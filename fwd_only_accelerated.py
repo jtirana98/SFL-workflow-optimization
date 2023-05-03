@@ -44,7 +44,13 @@ def main():
 
     # Define constraints
     constraints = []
+    '''
+    for j in range(H): #for all devices
+        constraints += [ x[j]<= 1 ]
 
+   
+    #constraints += [ y <= 1 ]
+    ''''
     # C1: job cannot be assigned to a time interval before the release time
     for i in range(H): #for all devices
         for j in range(K): #for all jobs
@@ -62,13 +68,9 @@ def main():
     for j in range(H): #for all devices
         constraints += [ x[j].T @ ones_K <= ones_T ]
     
-    
-    
     # C9: new constraint - the merge of C2 and C3 (job should be process all once and only in one machine)
-    for j in range(H): #for all devices
-        for i in range(K):
-            constraints += [cp.sum(x[j][i,:]) == y[i,j]*proc[i,j]]
-        #constraints += [ x[j] @ ones_T == y[:,j]  ]
+    for j in range(H): #for all machines
+        constraints += [cp.sum(x[j],axis=1) == cp.multiply(y,proc).T[j,:]]
     
     #C8: the completition time for each data owner -- NOTE: Removed it from constraints
     f_values = []
@@ -98,7 +100,7 @@ def main():
 
     print("status:", prob.status)
     print("optimal value", prob.value)
-
+    
     # C1: job cannot be assigned to a time interval before the release time
     for i in range(K): #for all jobs
         my_machine = -1
@@ -166,15 +168,15 @@ def main():
             return
 
     print(f"{utils.bcolors.OKGREEN}All constraints are satisfied{utils.bcolors.ENDC}")
+    
+    print('X:')
+    for i in range(len(list(x.keys()))):
+        print(f'Data ownwer/job {i+1}:')
+        print(x[i].value)
 
-    #print('X:')
-    #for i in range(len(list(x.keys()))):
-    #    print(f'Data ownwer/job {i+1}:')
-    #    print(np.rint(x[i].value))
-
-    #print("--------------------------------")
-    #print("optimal device allocation (Y)")
-    #print(np.rint(y.value))
+    print("--------------------------------")
+    print("optimal device allocation (Y)")
+    print(y.value)
 
     #print("--------------------------------")
     #print("optimal end time")
