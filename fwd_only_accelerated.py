@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 
 
 def main():
-    K = 100 # number of data owners
+    K = 20 # number of data owners
     H = 5 # number of compute nodes
     utils.file_name = 'fully_symmetric.xlsx'
 
@@ -50,7 +50,7 @@ def main():
 
    
     #constraints += [ y <= 1 ]
-    ''''
+    '''
     # C1: job cannot be assigned to a time interval before the release time
     for i in range(H): #for all devices
         for j in range(K): #for all jobs
@@ -149,7 +149,7 @@ def main():
             if temp > 1:
                 print(f"{utils.bcolors.FAIL}Constraint 6 is violated{utils.bcolors.ENDC}")
                 return
-
+    print('---------------------------------------------')
     #C8: the completition time for each data owner
     for i in range(K): #for all jobs
         my_machine = 0
@@ -163,10 +163,11 @@ def main():
             if np.rint(x[my_machine][i,k].value) >= 1:
                 last_zero = k+1
         fmax = last_zero
+        print(fmax)
         if fmax != f[i].value:
             print(f"{utils.bcolors.FAIL}Constraint 8 is violated{utils.bcolors.ENDC}")
             return
-
+        print('---------------------------------------------')
     print(f"{utils.bcolors.OKGREEN}All constraints are satisfied{utils.bcolors.ENDC}")
     
     print('X:')
