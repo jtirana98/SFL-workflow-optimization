@@ -11,9 +11,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-    K = 200 # number of data owners
+    K = 100 # number of data owners
     H = 5 # number of compute nodes
-    utils.file_name = 'fully_symmetric.xlsx'
+    utils.file_name = 'fully_heterogeneous.xlsx'
 
     release_date = np.array(utils.get_fwd_release_delays(K,H))
     memory_capacity = np.array(utils.get_memory_characteristics(H, K))
@@ -28,7 +28,7 @@ def main():
     ones_K = np.ones((K,1))
     ones_T = np.ones((T,1))
 
-    m = gp.Model("mip1")
+    m = gp.Model("fwd_only")
 
     # define variables
     x = m.addMVar(shape = (H,K,T), vtype=GRB.BINARY, name="x")
