@@ -1,0 +1,38 @@
+[Command: python -u C:\Users\dtsigkari\Documents\splitting_code\scheduling-jobs\feasibility_pump_cvx.py]
+T = 327
+ Memory: [12 24 39]
+Set parameter Username
+Academic license - for non-commercial use only - expires 2024-04-17
+The solution of the CONTINUOUS problem is: 10.121680554385941 optimal
+Delta is equal to: 8.894603472845114 at iteration: 0
+-----------calling the rounding function 0
+objective function value for INTEGER problem is: 13.0
+Delta is equal to: 5.475377664823309 at iteration: 1
+-----------calling the flipping function 1
+flipping number: 146
+objective function value for INTEGER problem is: 326.0
+Delta is equal to: 3.58754983497869 at iteration: 2
+-----------calling the rounding function 2
+objective function value for INTEGER problem is: 335.0
+Delta is equal to: 3.1254705063205335 at iteration: 3
+-----------calling the rounding function 3
+objective function value for INTEGER problem is: 335.0
+Delta is equal to: 3.1254705063205317 at iteration: 4
+-----------calling the flipping function 4
+flipping number: 151
+objective function value for INTEGER problem is: 330.0
+Delta is equal to: 1.4852299528301902 at iteration: 5
+-----------calling the rounding function 5
+objective function value for INTEGER problem is: 330.0
+Delta is equal to: 1.185170373499135 at iteration: 6
+-----------calling the flipping function 6
+flipping number: 144
+objective function value for INTEGER problem is: 335.0
+Delta is equal to: 1.2492510371767351 at iteration: 7
+-----------calling the flipping function 7
+flipping number: 163
+objective function value for INTEGER problem is: 335.0
+Delta is equal to: 0.7479891636141716 at iteration: 8
+------------Done at iteration:  8
+objective function value for INTEGER problem is: 335.0
+[Finished in 45.832s]
