@@ -110,7 +110,7 @@ def get_bwd_end_local(K):
     temp = df.values.tolist()
 
     df_list = []
-    for i in  K:#range(len(temp)):
+    for i in range(K):#range(len(temp)):
         df_list.append(temp[i][0])
 
     return df_list
