@@ -11,9 +11,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-    K = 100 # number of data owners
-    H = 5 # number of compute nodes
-    utils.file_name = 'fully_heterogeneous.xlsx'
+    K = 5 # number of data owners
+    H = 2 # number of compute nodes
+    utils.file_name = 'fully_symmetric.xlsx'
 
     release_date = np.array(utils.get_fwd_release_delays(K,H))
     memory_capacity = np.array(utils.get_memory_characteristics(H, K))
@@ -37,7 +37,13 @@ def main():
     maxobj = m.addMVar(shape=(1),vtype=GRB.INTEGER, name="maxobj")
     comp = m.addMVar(shape=(K),vtype=GRB.INTEGER, name="comp")
 
-
+    '''
+    x = m.addMVar(shape = (H,K,T), lb=0, ub=1, vtype=GRB.CONTINUOUS, name="x")
+    y = m.addMVar(shape=(K,H), lb=0, ub=1, vtype=GRB.CONTINUOUS, name="y")
+    f = m.addMVar(shape=(K), lb=0, vtype=GRB.CONTINUOUS, name="f")
+    maxobj = m.addMVar(shape=(1),lb=0, vtype=GRB.CONTINUOUS, name="maxobj")
+    comp = m.addMVar(shape=(K),lb=0, vtype=GRB.CONTINUOUS, name="comp")
+    '''
     start = time.time()
     # define constraints
     # C1: job cannot be assigned to a time interval before the release time
@@ -86,10 +92,130 @@ def main():
     end = time.time()
     print(f'problem solver: {end-start}')
     print(f'TOTAL: {(end-start) + time1}')
-    #for v in m.getVars():
-    #    print('%s %g' % (v.VarName, v.X))
 
+    
+    #print('%s %g' % (v.VarName, v.X))
     print('Obj: %g' % m.ObjVal)
+
+    # Checking if constraints are satisfied
+    print("checking if constraints are satisfied")
+
+    
+    # C1: job cannot be assigned to a time interval before the release time
+    for i in range(K): #for all jobs
+        my_machine = -1
+        for j in range(H):
+            if y[i,j].X == 1:
+                my_machine = j
+                break
+        for k in range(release_date[i,my_machine]):
+            if x[my_machine,i,k].X == 1:
+                print(f"{utils.bcolors.FAIL}Constraint 1 is violated{utils.bcolors.ENDC}")
+                return
+
+    # C3: all jobs interval are assigned to one only machine
+    for i in range(K): #for all jobs
+        if np.sum([y[i,j].X for j in range(H)]) != 1:
+            print(f"{utils.bcolors.FAIL}Constraint 3 is violated{utils.bcolors.ENDC}")
+            return
+
+    # C4: memory constraint
+    for j in range(H): #for all devices
+        if np.sum([y[i,j].X for j in range(H)])*utils.max_memory_demand > memory_capacity[j]:
+            print(f"{utils.bcolors.FAIL}Constraint 4 is violated{utils.bcolors.ENDC}")
+            return
+
+    
+    # C5: job should be processed entirely once
+    for i in range(K):
+        my_machine = 0
+        for j in range(H):
+            if np.rint(y[i,j].X)  == 1:
+                my_machine = j
+                break
+        
+        sum = 0
+        for k in range(T):
+            sum += np.rint(x[my_machine,i,k].X)
+        if sum != proc[i, my_machine]:
+            print(f"{utils.bcolors.FAIL}Constraint 5 is violated{utils.bcolors.ENDC}")
+            #return
+
+    # C6: machine processes only a single job at each interval
+    for j in range(H): #for all devices
+        for t in range(T): #for all timeslots
+            temp = 0
+            for key in range(K):
+                temp += np.rint(x[j,key,t].X)
+            if temp > 1:
+                print(f"{utils.bcolors.FAIL}Constraint 6 is violated{utils.bcolors.ENDC}")
+                return
+
+    #C8: the completition time for each data owner
+    '''
+    for i in range(K): #for all jobs
+        my_machine = 0
+        for j in range(H):
+            if np.rint(y[i,j].X) == 1:
+                my_machine = j
+                break
+        print("NEW")
+        last_zero = -1
+        for k in range(T):
+            print(f'{x[my_machine,i,k].X} {k}')
+            if np.rint(x[my_machine,i,k].X) >= 1:
+                last_zero = k+1
+        fmax = last_zero
+        if fmax != f[i].X:
+            print(fmax)
+            print(f[i].X)
+            print(f"{utils.bcolors.FAIL}Constraint 8 is violated{utils.bcolors.ENDC}")
+            return
+    '''
+
+    print(f"{utils.bcolors.OKGREEN}All constraints are satisfied{utils.bcolors.ENDC}")
+
+    print("--------Machine allocation--------")
+
+    for i in range(H):
+        for k in range(T):
+            at_least = 0
+            for j in range(K):
+                if(np.rint(x[i,j,k].X) <= 0):
+                    continue
+                else:
+                    print(f'{j+1}', end='\t')
+                    at_least = 1
+                    break
+            if(at_least == 0):
+                print(f'0', end='\t')
+        print('')
+
+    print("--------Completition time--------")
+    '''
+    for i in range(K):
+        C = np.rint(f[i].X)
+        my_machine = 0
+        for j in range(H):
+            if np.rint(y[i,j].value) == 1:
+                my_machine = j
+                break
+        C += proc_local[i] + trans_back[i,my_machine]
+        print(f'C{i+1}: {C}')
+    '''
+    for i in range(K): #for all jobs
+        my_machine = 0
+        for j in range(H):
+            if np.rint(y[i,j].X) == 1:
+                my_machine = j
+                break
+        last_zero = -1
+        for k in range(T):
+            if np.rint(x[my_machine,i,k].X) >= 1:
+                last_zero = k+1
+        fmax = last_zero
+        C = fmax + proc_local[i] + trans_back[i,my_machine]
+        print(f'C{i+1}: {C}')
 
 
 if __name__ == '__main__':
