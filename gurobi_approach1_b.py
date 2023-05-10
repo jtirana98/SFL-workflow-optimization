@@ -69,7 +69,7 @@ def main():
     m2.addConstr(f >=  np.min(release_date) + np.min(proc[0,:]))
     m2.addConstr(w <= T + np.max(trans_back) + np.max(proc_local))
     m2.addConstr(w >= np.min(release_date) + np.min(proc[0,:]) + np.min(trans_back[0,:]) + np.min(proc_local))
-
+    
     # C1: job cannot be assigned to a time interval before the release time
     for i in range(H): #for all devices
         for j in range(K): #for all jobs
@@ -101,7 +101,7 @@ def main():
     obj1 = []
     obj2 = []
     cool = True
-    while step<3:
+    while step<5:
         m1.setObjective(qsum(-lala[i,j] * y[i,j] * T for i in range(K) for j in range(H)) + qsum(mama[i] * qsum(y[i,j] * trans_back[i,j] for j in range(H)) for i in range(K) ), GRB.MINIMIZE)    
         m1.update()
         m2.setObjective(w + qsum(qsum(x[i,j,t] for t in range(T))*lala[j,i] for i in range(H) for j in range(K)) + qsum(mama[i]*(proc_local[i] + f[i] - w) for i in range(K)), GRB.MINIMIZE)
@@ -181,6 +181,7 @@ def main():
 
         print("--------Completition time--------")
         cs = []
+        reserved = [0 for i in range(H)]
         for i in range(K): #for all jobs
             my_machine = 0
             my_super_machine = 0
@@ -195,7 +196,8 @@ def main():
             C = fmax + proc_local[i] + trans_back[i,my_machine]
             cs.append(C)
             print(f'C{i+1}: {C} - {my_super_machine} {y[i,:].X}')
-
+            reserved[my_super_machine] += 1
+                     
         print(f'max is: {max(cs)}')
         print("check other constraints")
         for i in range(K): #for all jobs
@@ -216,18 +218,32 @@ def main():
             if np.sum([y[i,j].X for j in range(H)])*utils.max_memory_demand > memory_capacity[j]:
                 print(f"{utils.bcolors.FAIL}Constraint 4 is violated{utils.bcolors.ENDC}")
 
+            occupied = reserved[j]*utils.max_memory_demand
+            if occupied > memory_capacity[j]:
+                print(f"{utils.bcolors.FAIL}Constraint 4 is violated for machine {j}{utils.bcolors.ENDC}")
+
+        
         for i in range(K):
             my_machine = 0
             #for j in range(H):
             #    if np.rint(y[i,j].X)  == 1:
             #        my_machine = j
             #        break
+            at_least = 0
             for my_machine in range(H):
                 sum_ = 0
                 for k in range(T):
                     sum_ += np.rint(x[my_machine,i,k].X)
                 if sum_ != 0 and sum_ != proc[i, my_machine] :
                     print(f"{utils.bcolors.FAIL}Constraint 5 is violated {i+1}{utils.bcolors.ENDC}")
+                else:
+                    if sum_ != 0:
+                        at_least += 1
+            if at_least == 0:
+                print(f"{utils.bcolors.FAIL}Constraint 5 is violated job not assigned {i+1}{utils.bcolors.ENDC}")
+            if at_least > 1:
+                print(f"{utils.bcolors.FAIL}Constraint 5 is violated job assigned more tmes {i+1}{utils.bcolors.ENDC}")
+            
 
         for j in range(H): #for all devices
             for t in range(T): #for all timeslots

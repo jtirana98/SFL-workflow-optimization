@@ -11,16 +11,17 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-    K = 5 # number of data owners
+    K = 10 # number of data owners
     H = 2 # number of compute nodes
-    utils.file_name = 'fully_symmetric.xlsx'
-
+    utils.file_name = 'fully_heterogeneous.xlsx'
+    #fully_heterogeneous
+    #fully_symmetric
     release_date = np.array(utils.get_fwd_release_delays(K,H))
     memory_capacity = np.array(utils.get_memory_characteristics(H, K))
     proc = np.array(utils.get_fwd_proc_compute_node(K, H))
     proc_local = np.array(utils.get_fwd_end_local(K))
     trans_back = np.array(utils.get_trans_back(K, H))
-
+    memory_capacity = np.array([9,21])
     T = np.max(release_date) + K*np.max(proc[0,:]) # time intervals
     print(f"T = {T}")
 
@@ -31,6 +32,7 @@ def main():
     m = gp.Model("fwd_only")
 
     # define variables
+    print(f" Memory: {memory_capacity}")
     x = m.addMVar(shape = (H,K,T), vtype=GRB.BINARY, name="x")
     y = m.addMVar(shape=(K,H), vtype=GRB.BINARY, name="y")
     f = m.addMVar(shape=(K), vtype=GRB.INTEGER, name="f")
@@ -40,6 +42,7 @@ def main():
     '''
     x = m.addMVar(shape = (H,K,T), lb=0, ub=1, vtype=GRB.CONTINUOUS, name="x")
     y = m.addMVar(shape=(K,H), lb=0, ub=1, vtype=GRB.CONTINUOUS, name="y")
+    y = m.addMVar(shape=(K,H), vtype=GRB.BINARY, name="y")
     f = m.addMVar(shape=(K), lb=0, vtype=GRB.CONTINUOUS, name="f")
     maxobj = m.addMVar(shape=(1),lb=0, vtype=GRB.CONTINUOUS, name="maxobj")
     comp = m.addMVar(shape=(K),lb=0, vtype=GRB.CONTINUOUS, name="comp")
@@ -215,7 +218,7 @@ def main():
                 last_zero = k+1
         fmax = last_zero
         C = fmax + proc_local[i] + trans_back[i,my_machine]
-        print(f'C{i+1}: {C}')
+        print(f'C{i+1}: {C} - {my_machine}')
 
 
 if __name__ == '__main__':

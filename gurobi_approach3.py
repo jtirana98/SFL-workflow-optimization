@@ -13,9 +13,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-    K = 10 # number of data owners
-    H = 2 # number of compute nodes
-    utils.file_name = 'fully_heterogeneous.xlsx'
+    K = 100 # number of data owners
+    H = 5 # number of compute nodes
+    utils.file_name = 'fully_symmetric.xlsx'
     #fully_heterogeneous
     #fully_symmetric
     release_date = np.array(utils.get_fwd_release_delays(K,H))
@@ -23,7 +23,7 @@ def main():
     proc = np.array(utils.get_fwd_proc_compute_node(K, H))
     proc_local = np.array(utils.get_fwd_end_local(K))
     trans_back = np.array(utils.get_trans_back(K, H))
-    memory_capacity = np.array([9,21])
+    #memory_capacity = np.array([9,21])
     T = np.max(release_date) + K*np.max(proc[0,:]) # time intervals
     print(f"T = {T}")
 
@@ -34,28 +34,34 @@ def main():
     m1 = gp.Model("relax_approach_1_p1")
     m2 = gp.Model("relax_approach_1_p2")
 
-
+    rho = 2
     # define variables - problem 1
     
     y = m1.addMVar(shape=(K,H), vtype=GRB.BINARY, name="y")
     f = m1.addMVar(shape=(K), vtype=GRB.INTEGER, name="f")
     w = m1.addMVar(shape=(1),vtype=GRB.INTEGER, name="w")
     comp = m1.addMVar(shape=(K),vtype=GRB.INTEGER, name="comp")
+    s = m1.addMVar(shape=(H,K,T), vtype=GRB.BINARY, name="s")
+
+    x_ = np.zeros((H,K,T))
 
     # define variables - problem 2
     x = m2.addMVar(shape = (H,K,T), vtype=GRB.BINARY, name="x")
+    y_ = np.zeros((K,H))
+    f_ = np.zeros((K))
+    w_ = np.zeros((1))
+    s_ = np.zeros((H,K,T))
 
     # dual variables
 
     lala = np.ones((K,H)) # lamda variable
     mama = np.ones((H,T,K)) # m variable
-    #lala = np.random.normal(0,4, size=(K,H))
-    #mama = np.random.normal(0,4, size=(H,T,K))
-
+    
     # Define constraints for problem 1
     print(f"max-f: {T - np.min(trans_back[0,:]) - np.min(proc_local)} min-f: {np.min(release_date) + np.min(proc[0,:])}")
     print(f"min-w: {np.min(release_date) + np.min(proc[0,:]) + np.min(trans_back[0,:]) + np.min(proc_local)}")
     
+
     m1.addConstr(f <= T)
     m1.addConstr(f >=  np.min(release_date) + np.min(proc[0,:]))
     m1.addConstr(w <= T + np.max(trans_back) + np.max(proc_local))
@@ -99,14 +105,17 @@ def main():
     ws = []
     obj1 = []
     obj2 = []
-    while step<50:
-        #- qsum(qsum(mama[j]@f) for j in range(H)
-        m1.setObjective(w - qsum(lala[i,j] * y[i,j] * T - qsum(f[i]*mama[j,t,i] for t in range(T)) for i in range(K) for j in range(H)) , GRB.MINIMIZE)    
-        m1.update()
-        m2.setObjective(qsum(x[i,j,t]*(mama[i,t,j]*(t+1) + lala[j,i]) for i in range(H) for j in range(K) for t in range(T)), GRB.MINIMIZE)
-        
-          
+    while step<5:
         print(f"{utils.bcolors.OKBLUE}-------------{step}------------{utils.bcolors.ENDC}")
+
+        m1.setObjective(w + qsum(qsum(mama[j,t,i]*(f[i] - s[j,i,t] + x_[j,i,t]*(t+1)) \
+                        - lala[i,j]*x_[j,i,t] for t in range(T)) - lala[i,j] * y[i,j] * T\
+                         for i in range(K) for j in range(H)) \
+                         + (rho/2)*qsum((T*y[i,j] - qsum(x_[j,i,t] for t in range(K))) for i in range(K) for j in range(H)) \
+                         +  (rho/2)*qsum((f[i] - s[j,i,t] + x_[j,i,t]*(t+1)) for t in range(T) for i in range(K) for j in range(H))
+                         , GRB.MINIMIZE)
+        m1.update()
+
         # solve P1:
         start = time.time()
         m1.optimize()
@@ -115,13 +124,25 @@ def main():
         print(f'{utils.bcolors.OKBLUE}Obj1: {m1.ObjVal}{utils.bcolors.ENDC}')
 
 
-        if step<3:
-            m2.setParam('MIPGap', 0.10) # 5%
-        else:
-            m2.setParam('MIPGap', 0.0001)
+        # pass results to second problem
+        y_ = np.array(y.X)
+        f_ = np.array(f.X)
+        w_ = np.array(w.X)
+        s_ = np.array(s.X)
+
+        m2.setObjective(w_ + qsum(qsum(mama[j,t,i]*(f_[i] - s_[j,i,t] + x[j,i,t]*(t+1)) \
+                        - lala[i,j]*x[j,i,t] for t in range(T)) - lala[i,j] * y_[i,j] * T\
+                         for i in range(K) for j in range(H)) \
+                         + (rho/2)*qsum((T*y_[i,j] - qsum(x[j,i,t] for t in range(K))) for i in range(K) for j in range(H)) \
+                         +  (rho/2)*qsum((f_[i] - s_[j,i,t] + x[j,i,t]*(t+1)) for t in range(T) for i in range(K) for j in range(H))
+                         , GRB.MINIMIZE) 
         m2.update()
 
-
+        if step<3:
+            m2.setParam('MIPGap', 0.05) # 5%
+        else:
+            m2.setParam('MIPGap', 0.0001)
+        
         start = time.time()
         m2.optimize()
         end = time.time()
@@ -130,12 +151,17 @@ def main():
         
         obj1 += [m1.ObjVal]
         obj2 += [m2.ObjVal]
+
+        # pass results to first problem
+        x_ = np.array(x.X)
+
+
         # update dual variables
         for i in range(H):
             for j in range(K):
-                lala[j,i] = max(lala[j,i] + alpha*(-y[j,i].X*T + sum([x[i,j,k].X for k in range(T)])), 0)
+                lala[j,i] = lala[j,i] + rho*(sum([x[i,j,k].X for k in range(T)]) - y[j,i].X*T)
                 for t in range(T):
-                    mama[i,t,j] = max(mama[i,t,j] + bhta*(x[i,j,t].X*(t+1) - f[j].X), 0)
+                    mama[i,t,j] = mama[i,t,j] + rho*(f[j].X - s[i,j,t].X + x[i,j,t].X*(t+1))
                     
         step = step + 1
         alpha = 1/math.sqrt(step+1)
@@ -260,6 +286,8 @@ def main():
 
     print(f'optimal:  {ws}')
     print(f'violations: {violations}')
+
+
     #for v in m2.getVars():
     #    print('%s %g' % (v.VarName, v.X))
       

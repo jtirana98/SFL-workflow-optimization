@@ -13,19 +13,21 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-    K = 5 # number of data owners
+    K = 10 # number of data owners
     H = 2 # number of compute nodes
     utils.file_name = 'fully_heterogeneous.xlsx'
+
+    #fully_heterogeneous
+    #fully_symmetric
 
     release_date = np.array(utils.get_fwd_release_delays(K,H))
     memory_capacity = np.array(utils.get_memory_characteristics(H, K))
     proc = np.array(utils.get_fwd_proc_compute_node(K, H))
     proc_local = np.array(utils.get_fwd_end_local(K))
     trans_back = np.array(utils.get_trans_back(K, H))
-    memory_capacity = np.array([45,15])
+    memory_capacity = np.array([9,21])
     T = np.max(release_date) + K*np.max(proc[0,:]) # time intervals
     print(f"T = {T}")
-    memory_capacity = np.array([9,6])
     ones_H = np.ones((H,1))
     ones_K = np.ones((K,1))
     ones_T = np.ones((T,1))
@@ -109,12 +111,17 @@ def main():
     obj1 = []
     obj2 = []
     cool = True
-    while step<20:
+    while step<100:
 
         m1.setObjective(w_1 - qsum(lala[i,j] * y[i,j] * T for i in range(K) for j in range(H)) , GRB.MINIMIZE)    
         m1.update()
         m2.setObjective(w_2 + qsum(qsum(x[i,j,t] for t in range(T))*lala[j,i] for i in range(H) for j in range(K)), GRB.MINIMIZE)
         m2.update()
+
+        if step<3:
+            m2.setParam('MIPGap', 0.10) # 7%
+        else:
+            m2.setParam('MIPGap', 0.0001)
           
         print(f"{utils.bcolors.OKBLUE}-------------{step}------------{utils.bcolors.ENDC}")
         # solve P1:
@@ -182,28 +189,87 @@ def main():
                         continue
                     else:
                         print(f'{j+1}', end='\t')
-                        at_least = 1
+                        at_least += 1
                         break
                 if(at_least == 0):
                     print(f'0', end='\t')
             print('')
 
         print("--------Completition time--------")
-    
+        cs = []
+        reserved = [0 for i in range(H)]
         for i in range(K): #for all jobs
             my_machine = 0
-            for j in range(H):
-                if np.rint(y[i,j].X) == 1:
-                    my_machine = j
-                    break
+            my_super_machine = 0
             last_zero = -1
-            for k in range(T):
-                if np.rint(x[my_machine,i,k].X) >= 1:
-                    last_zero = k+1
+            for my_machine in range(H):
+                for k in range(T):
+                    if np.rint(x[my_machine,i,k].X) >= 1:
+                        if last_zero < k+1:
+                            last_zero = k+1
+                            my_super_machine = my_machine
             fmax = last_zero
             C = fmax + proc_local[i] + trans_back[i,my_machine]
-            print(f'C{i+1}: {C}')
+            cs.append(C)
+            print(f'C{i+1}: {C} - {my_super_machine} {y[i,:].X}')
+            reserved[my_super_machine] += 1
+        
+                     
 
+        print(f'max is: {max(cs)}')
+        print("check other constraints")
+        for i in range(K): #for all jobs
+            my_machine = -1
+            for j in range(H):
+                if y[i,j].X == 1:
+                    my_machine = j
+                    break
+            for k in range(release_date[i,my_machine]):
+                if x[my_machine,i,k].X == 1:
+                    print(f"{utils.bcolors.FAIL}Constraint 1 is violated{utils.bcolors.ENDC}")
+
+        for i in range(K): #for all jobs
+            if np.sum([y[i,j].X for j in range(H)]) != 1:
+                print(f"{utils.bcolors.FAIL}Constraint 3 is violated{utils.bcolors.ENDC}")
+
+        for j in range(H): #for all devices
+            if np.sum([y[i,j].X for j in range(H)])*utils.max_memory_demand > memory_capacity[j]:
+                print(f"{utils.bcolors.FAIL}Constraint 4 is violated{utils.bcolors.ENDC}")
+
+            occupied = reserved[j]*utils.max_memory_demand
+            if occupied > memory_capacity[j]:
+                print(f"{utils.bcolors.FAIL}Constraint 4 is violated for machine {j}{utils.bcolors.ENDC}")
+
+        
+        for i in range(K):
+            my_machine = 0
+            #for j in range(H):
+            #    if np.rint(y[i,j].X)  == 1:
+            #        my_machine = j
+            #        break
+            at_least = 0
+            for my_machine in range(H):
+                sum_ = 0
+                for k in range(T):
+                    sum_ += np.rint(x[my_machine,i,k].X)
+                if sum_ != 0 and sum_ != proc[i, my_machine] :
+                    print(f"{utils.bcolors.FAIL}Constraint 5 is violated {i+1}{utils.bcolors.ENDC}")
+                else:
+                    if sum_ != 0:
+                        at_least += 1
+            if at_least == 0:
+                print(f"{utils.bcolors.FAIL}Constraint 5 is violated job not assigned {i+1}{utils.bcolors.ENDC}")
+            if at_least > 1:
+                print(f"{utils.bcolors.FAIL}Constraint 5 is violated job assigned more tmes {i+1}{utils.bcolors.ENDC}")
+            
+
+        for j in range(H): #for all devices
+            for t in range(T): #for all timeslots
+                temp = 0
+                for key in range(K):
+                    temp += np.rint(x[j,key,t].X)
+                if temp > 1:
+                    print(f"{utils.bcolors.FAIL}Constraint 6 is violated{utils.bcolors.ENDC}")
     print(f'optimal:  {ws}')
     print(f'violations: {violations}')
     #for v in m2.getVars():
