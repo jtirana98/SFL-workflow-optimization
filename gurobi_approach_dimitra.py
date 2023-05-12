@@ -13,9 +13,9 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def main():
-    K = 10 # number of data owners
+    K = 100 # number of data owners
     H = 2 # number of compute nodes
-    utils.file_name = 'fully_heterogeneous.xlsx'
+    utils.file_name = 'fully_symmetric.xlsx'
 
     #fully_heterogeneous
     #fully_symmetric
@@ -25,7 +25,7 @@ def main():
     proc = np.array(utils.get_fwd_proc_compute_node(K, H))
     proc_local = np.array(utils.get_fwd_end_local(K))
     trans_back = np.array(utils.get_trans_back(K, H))
-    memory_capacity = np.array([9,21])
+    #memory_capacity = np.array([189,117])
     T = np.max(release_date) + K*np.max(proc[0,:]) # time intervals
     print(f"T = {T}")
     ones_H = np.ones((H,1))

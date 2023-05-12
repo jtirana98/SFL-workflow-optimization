@@ -10,18 +10,33 @@ import time
 import warnings
 warnings.filterwarnings("ignore")
 
-def main():
-    K = 10 # number of data owners
-    H = 2 # number of compute nodes
-    utils.file_name = 'fully_heterogeneous.xlsx'
+K = 10 # number of data owners
+H = 2 # number of compute nodes
+utils.file_name = 'fully_symmetric.xlsx'
+
+def run(filename='', testcase='fully_symmetric'):
     #fully_heterogeneous
     #fully_symmetric
+
+    if testcase == 'fully_symmetric':
+        utils.file_name = 'fully_symmetric.xlsx'
+    else:
+        utils.file_name = 'fully_heterogeneous.xlsx'
+
     release_date = np.array(utils.get_fwd_release_delays(K,H))
-    memory_capacity = np.array(utils.get_memory_characteristics(H, K))
     proc = np.array(utils.get_fwd_proc_compute_node(K, H))
     proc_local = np.array(utils.get_fwd_end_local(K))
     trans_back = np.array(utils.get_trans_back(K, H))
-    memory_capacity = np.array([9,21])
+
+    if utils.file_name == 'fully_symmetric.xlsx':
+        memory_capacity = np.array(utils.get_memory_characteristics(H, K))
+    else:
+        if K == 50:
+            memory_capacity = np.array([30,120])
+        else:
+            memory_capacity = np.array([105,195])
+
+
     T = np.max(release_date) + K*np.max(proc[0,:]) # time intervals
     print(f"T = {T}")
 
@@ -86,22 +101,22 @@ def main():
     m.setObjective(maxobj, GRB.MINIMIZE)
     end = time.time()
     time1 = end-start
-    print(f'problem formulation: {time1}')
+    #print(f'problem formulation: {time1}')
 
 
     start = time.time()
     # Optimize model
     m.optimize()
     end = time.time()
-    print(f'problem solver: {end-start}')
-    print(f'TOTAL: {(end-start) + time1}')
+    #print(f'problem solver: {end-start}')
+    #print(f'TOTAL: {(end-start) + time1}')
 
     
     #print('%s %g' % (v.VarName, v.X))
     print('Obj: %g' % m.ObjVal)
 
     # Checking if constraints are satisfied
-    print("checking if constraints are satisfied")
+    #print("checking if constraints are satisfied")
 
     
     # C1: job cannot be assigned to a time interval before the release time
@@ -154,31 +169,11 @@ def main():
                 print(f"{utils.bcolors.FAIL}Constraint 6 is violated{utils.bcolors.ENDC}")
                 return
 
-    #C8: the completition time for each data owner
-    '''
-    for i in range(K): #for all jobs
-        my_machine = 0
-        for j in range(H):
-            if np.rint(y[i,j].X) == 1:
-                my_machine = j
-                break
-        print("NEW")
-        last_zero = -1
-        for k in range(T):
-            print(f'{x[my_machine,i,k].X} {k}')
-            if np.rint(x[my_machine,i,k].X) >= 1:
-                last_zero = k+1
-        fmax = last_zero
-        if fmax != f[i].X:
-            print(fmax)
-            print(f[i].X)
-            print(f"{utils.bcolors.FAIL}Constraint 8 is violated{utils.bcolors.ENDC}")
-            return
-    '''
-
-    print(f"{utils.bcolors.OKGREEN}All constraints are satisfied{utils.bcolors.ENDC}")
-
-    print("--------Machine allocation--------")
+    #print(f"{utils.bcolors.OKGREEN}All constraints are satisfied{utils.bcolors.ENDC}")
+    if filename != '':
+        f = open(filename, "a")
+        f.write("Original:\n")
+    f.write("--------Machine allocation--------\n")
 
     for i in range(H):
         for k in range(T):
@@ -187,25 +182,17 @@ def main():
                 if(np.rint(x[i,j,k].X) <= 0):
                     continue
                 else:
-                    print(f'{j+1}', end='\t')
+                    #print(f'{j+1}', end='\t')
+                    f.write(f'{j+1}\t')
                     at_least = 1
                     break
             if(at_least == 0):
-                print(f'0', end='\t')
-        print('')
+                #print(f'0', end='\t')
+                f.write(f'0\t')
+        #print('')
+        f.write('\n')
 
-    print("--------Completition time--------")
-    '''
-    for i in range(K):
-        C = np.rint(f[i].X)
-        my_machine = 0
-        for j in range(H):
-            if np.rint(y[i,j].value) == 1:
-                my_machine = j
-                break
-        C += proc_local[i] + trans_back[i,my_machine]
-        print(f'C{i+1}: {C}')
-    '''
+    f.write("--------Completition time--------\n")
     for i in range(K): #for all jobs
         my_machine = 0
         for j in range(H):
@@ -218,8 +205,14 @@ def main():
                 last_zero = k+1
         fmax = last_zero
         C = fmax + proc_local[i] + trans_back[i,my_machine]
-        print(f'C{i+1}: {C} - {my_machine}')
+        #print(f'C{i+1}: {C} - {my_machine}')
+        f.write(f'C{i+1}: {C} - {my_machine}\n')
+    f.write(f'objective function: {m.ObjVal}\n')
 
+    f.close()
+    #print 'runtime is',m.Runtime
+
+    return(m.ObjVal)
 
 if __name__ == '__main__':
-    main()
+    run()

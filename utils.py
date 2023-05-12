@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import random
+import matplotlib.pyplot as plt
 
 class bcolors:
     HEADER = '\033[95m'
@@ -198,6 +199,15 @@ def get_memory_characteristics(H, K=10):
         
         for i in range(H):
             df_list[i] = df_list[i] * max_memory_demand
-        
-
     return df_list
+
+
+def plot_approach(w_start, w_approach, constraints):
+    x_ticks = [i+1 for i in range(len(w_approach))]
+    print(x_ticks)
+    plt.plot(x_ticks, [w_start for i in range(len(x_ticks))], linestyle='dashed', linewidth = 2, marker='o', markersize=12, label = "Optimal value")
+    plt.plot(x_ticks, w_approach, linestyle='dashed', linewidth = 2, marker='o', markersize=12, label = "W-hat")
+    plt.plot(x_ticks, constraints, linestyle='dashed', linewidth = 2, marker='o', markersize=12, label = "constraint-violation (%)")
+    plt.xlim(0.9,len(w_approach))
+    plt.legend()
+    plt.show()
