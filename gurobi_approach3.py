@@ -62,11 +62,16 @@ def run(filename='', testcase='fully_symmetric'):
     w = m1.addMVar(shape=(1),vtype=GRB.INTEGER, name="w")
     comp = m1.addMVar(shape=(K),vtype=GRB.INTEGER, name="comp")
     s = m1.addMVar(shape=(H,K,T), vtype=GRB.BINARY, name="s")
+    contr1_add_1 = m1.addMVar(shape=(K,H), vtype=GRB.INTEGER, name="contr1_add_1")
+    contr1_abs_1 = m1.addMVar(shape=(K,H), vtype=GRB.INTEGER, name="contr1_abs_1")
 
-    x_ = np.zeros((H,K,T))
+    x_ = np.ones((H,K,T))
 
     # define variables - problem 2
     x = m2.addMVar(shape = (H,K,T), vtype=GRB.BINARY, name="x")
+    contr1_add_2 = m2.addMVar(shape=(K,H), vtype=GRB.INTEGER, name="contr1_add_2")
+    contr1_abs_2 = m2.addMVar(shape=(K,H), vtype=GRB.INTEGER, name="contr1_abs_2")
+
     y_ = np.zeros((K,H))
     f_ = np.zeros((K))
     w_ = np.zeros((1))
@@ -109,7 +114,7 @@ def run(filename='', testcase='fully_symmetric'):
     # C6: machine processes only a single job at each interval
     for j in range(H): #for all devices
         m2.addConstr( x[j,:,:].T @ ones_K <= ones_T )
-    
+
 
     # forgoten constraint
     # C5: job should be processed entirely once
@@ -130,28 +135,55 @@ def run(filename='', testcase='fully_symmetric'):
     obj2 = []
     max_ = T
     add = False
-    aux_abs = m1.addMVar(shape=1, vtype=GRB.BINARY, name="aux_abs")
-
+    my_ds = []
     while step<5:
         print(f"{utils.bcolors.OKBLUE}-------------{step}------------{utils.bcolors.ENDC}")
         f_log.write(f"-------------{step}------------\n")
         
+        print(x_)
+        len_c = len(m1.getConstrs())
+
         
+        if step>=1:
+            for d in my_ds:
+                m1.remove(d)
+            my_ds = []
+        
+
+        ll = np.sum(x_, axis=2)
+        for i in range(K):
+            for j in range(H):
+                if step>=1:
+                    c = m1.getConstrByName(f'const1add-{i}-{j}')
+                    m1.remove(c)
+
+                    #c = m1.getConstrByName(f'const1ab-{i}-{j}')
+                    #m1.remove(c)
+            
+                d = m1.addConstr(contr1_add_1[i,j] == ll[j,i] - y[i,j]*proc[i,j], name=f'const1add-{i}-{j}')
+                my_ds.append(m1.addConstr(contr1_abs_1[i,j] == gp.abs_(contr1_add_1[i,j]), name=f'const1ab-{i}-{j}'))
+
+
         
         #m1.addConstr(aux_abs == gp.norm((qsum(x_[:,:,t] for t in range(K))) - proc.T*y.T,1))         
         m1.setObjective(w + qsum(qsum(mama[j,t,i]*(f[i] - s[j,i,t] - x_[j,i,t]*(t+1)) \
                           + lala[i,j]*x_[j,i,t] for t in range(T)) - lala[i,j] * y[i,j] * proc[i,j]\
                           for i in range(K) for j in range(H)) \
                           #+ (rho/2)*qsum((qsum(x_[j,i,t] for t in range(K)) - proc[i,j]*y[i,j]) for i in range(K) for j in range(H)) \
-                          + (rho/2)*qsum(gp.abs_((qsum(x_[j,i,t] for t in range(K)))) for i in range(K) for j in range(H)) \
+                          #+ (rho/2)*qsum(gp.abs_((qsum(x_[j,i,t] for t in range(K)))) for i in range(K) for j in range(H)) \
+                          + (rho/2)*qsum(contr1_abs_1[i,j] for i in range(K) for j in range(H))  \
                           + (rho/2)*qsum((f[i] - s[j,i,t] - x_[j,i,t]*(t+1)) for t in range(T) for i in range(K) for j in range(H))
                           , GRB.MINIMIZE)
-        
+        '''
         if add:
             m1.addConstr(f <= max_)
-        
-        m1.reset()
+        '''
+
         m1.update()
+
+        print('---------------------------------------------------')
+        print(len(m1.getConstrs()))
+        print('---------------------------------------------------')
 
         # solve P1:
         start = time.time()
@@ -181,18 +213,22 @@ def run(filename='', testcase='fully_symmetric'):
 
 
         # pass results to second problem
-        y_ = np.array(y.X)
-        f_ = np.array(f.X)
-        w_ = np.array(w.X)
-        s_ = np.array(s.X)
+        y_ = np.copy(np.array(y.X))
+        f_ = np.copy(np.array(f.X))
+        w_ = np.copy(np.array(w.X))
+        s_ = np.copy(np.array(s.X))
+
+        
+        m2.addConstrs(contr1_add_2[i,j] == qsum(x[j,i,t] for t in range(T)) - y_[i,j]*proc[i,j] for i in range(K) for j in range(H))
+        m2.addConstrs(contr1_abs_2[i,j] == gp.abs_(contr1_add_2[i,j]) for i in range(K) for j in range(H))
 
         m2.setObjective(w_ + qsum(qsum(mama[j,t,i]*(f_[i] - s_[j,i,t] - x[j,i,t]*(t+1)) \
                            + lala[i,j]*x[j,i,t] for t in range(T)) - lala[i,j] * y_[i,j] * proc[i,j]\
                            for i in range(K) for j in range(H)) \
-                           + (rho/2)*qsum((qsum(x[j,i,t] for t in range(K)) - proc[i,j]*y_[i,j]) for i in range(K) for j in range(H)) \
+                           #+ (rho/2)*qsum((qsum(x[j,i,t] for t in range(K)) - proc[i,j]*y_[i,j]) for i in range(K) for j in range(H)) \
+                           + (rho/2)*qsum(contr1_abs_2[i,j] for i in range(K) for j in range(H))  \
                            + (rho/2)*qsum((f_[i] - s_[j,i,t] - x[j,i,t]*(t+1)) for t in range(T) for i in range(K) for j in range(H))
                            , GRB.MINIMIZE) 
-        m2.reset()
         m2.update()
 
         if step<3:
@@ -210,7 +246,7 @@ def run(filename='', testcase='fully_symmetric'):
         obj2 += [m2.ObjVal]
 
         # pass results to first problem
-        x_ = np.array(x.X)
+        x_ = np.copy(np.array(x.X))
 
 
         # update dual variables
