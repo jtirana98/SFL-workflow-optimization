@@ -32,13 +32,17 @@ def run(filename='', testcase='fully_symmetric'):
     proc_local = np.array(utils.get_fwd_end_local(K))
     trans_back = np.array(utils.get_trans_back(K, H))
 
-    if utils.file_name == 'fully_symmetric.xlsx':
-        memory_capacity = np.array(utils.get_memory_characteristics(H, K))
-    else:
-        if K == 50:
-            memory_capacity = np.array([30,120])
-        else:
-            memory_capacity = np.array([105,195])
+    memory_capacity = np.array(utils.get_memory_characteristics(H, K))
+    if utils.file_name != 'fully_symmetric.xlsx':
+        if H == 2:
+            if K == 50:
+                memory_capacity = np.array([30,120])
+            else:
+                memory_capacity = np.array([105,195])
+
+        if H == 5:
+            if K == 50:
+                memory_capacity = np.array([63, 48,  9, 21, 24])
     
     if filename != '':
         f_log = open(filename, "a")
@@ -100,6 +104,7 @@ def run(filename='', testcase='fully_symmetric'):
     m1.addConstr(w <= T + np.max(trans_back) + np.max(proc_local))
     m1.addConstr(w >= np.min(release_date) + np.min(proc[0,:]) + np.min(trans_back[0,:]) + np.min(proc_local))
     '''
+
     # C3: each job is assigned to one and only machine
     m1.addConstr( y @ ones_H == ones_K )
 
@@ -145,7 +150,7 @@ def run(filename='', testcase='fully_symmetric'):
     my_ds2 = []
     stable = 0
     stop = False
-    while step<20 or stop:
+    while step<10 or stop:
         print(f"{utils.bcolors.OKBLUE}-------------{step}------------{utils.bcolors.ENDC}")
         f_log.write(f"-------------{step}------------\n")
 
@@ -161,9 +166,14 @@ def run(filename='', testcase='fully_symmetric'):
         
 
         ll = np.sum(x_, axis=2)
+        #if step>=1:
+        #    w[i].Start = w_
         for i in range(K):
+            #if step>=1:
+                #f[i].Start = f_[i]
             for j in range(H):
                 if step>=1:
+                    #y[j, j].Start = y_[i,j]
                     c = m1.getConstrByName(f'const1add-{i}-{j}')
                     m1.remove(c)
             
@@ -174,6 +184,8 @@ def run(filename='', testcase='fully_symmetric'):
                     if step>=1:
                         c = m1.getConstrByName(f'const2add-{i}-{j}-{t}')
                         m1.remove(c)
+
+                        #s[j,i,t].Start = s_[j,i,t]
 
                     m1.addConstr(contr2_add_1[j,i,t] == f[i] - s[j,i,t] - x_[j,i,t]*(t+1), name=f'const2add-{i}-{j}-{t}')
                     my_ds1.append(m1.addConstr(contr2_abs_1[j,i,t] == gp.abs_(contr2_add_1[j,i,t]), name=f'const2ab-{i}-{j}-{t}'))
@@ -227,7 +239,6 @@ def run(filename='', testcase='fully_symmetric'):
         else:
             add = False
         '''
-        #print(f'!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! {(rho/2)*qsum(contr2_abs_1[j,i,t].X for t in range(T) for i in range(K) for j in range(H))}')
         # pass results to second problem
         if LA.norm(y_ - np.array(y.X)) == 0:
             print(f"Y variable did not change {stable}")
@@ -256,6 +267,7 @@ def run(filename='', testcase='fully_symmetric'):
 
                 for t in range(T):
                     if step>=1:
+                        #x[j,i,t].Start = x_[j,i,t]
                         c = m2.getConstrByName(f'const2add-{i}-{j}-{t}')
                         m2.remove(c)
 
@@ -333,7 +345,7 @@ def run(filename='', testcase='fully_symmetric'):
                     temp += np.abs(np.rint(x[i,j,t].X))
                 
                 if temp < np.abs(np.rint(y[j,i].X)*proc[j,i]):
-                    print(f"{utils.bcolors.FAIL}Constraint 1 is violated expected larger than: {y[j,i].X*proc[j,i]} got:{temp} {utils.bcolors.ENDC}")
+                    #print(f"{utils.bcolors.FAIL}Constraint 1 is violated expected larger than: {y[j,i].X*proc[j,i]} got:{temp} {utils.bcolors.ENDC}")
                     counter += 1
                 total_counter += 1
         
