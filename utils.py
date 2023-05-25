@@ -202,32 +202,32 @@ def get_memory_characteristics(H, K=10):
     return df_list
 
 
-def plot_approach(w_start, w_approach, constraints_1, constraints_2=[], maxC=[], violation=[]):
-    fig,ax = plt.subplots()
-    ax2=ax.twinx()
-
+def plot_approach(w_star, w_approach, constraints_1, constraints_2=[], maxC=[], violation=[]):
+    fig, (ax1, ax2) = plt.subplots(2)
     x_ticks = [i+1 for i in range(len(w_approach))]
     print(x_ticks)
-    ax.plot(x_ticks, [w_start for i in range(len(x_ticks))], linewidth = 2, marker='o', markersize=12, color="green", label = "Optimal value")
-    ax.plot(x_ticks, w_approach, linestyle='dashed', linewidth = 2, marker='o', markersize=12, color="orange", label = "W-approx.")
-    
+    ax1.plot(x_ticks, [w_star for i in range(len(x_ticks))], linewidth = 2, marker='o', markersize=2, color="green", label = "Optimal value")
+    ax1.plot(x_ticks, w_approach, linestyle='dashed', linewidth = 2, marker='o', markersize=5, color="orange", label = "W-approx.")
+
     if len(maxC) != 0:
-        ax.plot(x_ticks, maxC, linestyle='dashed', color="black", linewidth = 2, marker='o', markersize=12, label = "max - C")
-        ax2.plot(x_ticks, violation, linestyle = 'None', color="red", marker='+', markersize=12, label = "Violation (T/F)")
+        ax1.plot(x_ticks, maxC, linestyle='dashed', color="black", linewidth = 2, marker='o', markersize=5, label = "max - C")
+        #ax2.plot(x_ticks, violation, linestyle = 'None', color="red", marker='+', markersize=12, label = "Violation (T/F)")
 
 
-    ax2.plot(x_ticks, constraints_1, linestyle = 'None', color="magenta", marker='*', markersize=12, label = "constraint-1-violation (%)")
+    ax2.plot(x_ticks, constraints_1, linestyle = 'dashed', linewidth = 2, color="brown", marker='*', markersize=7, label = "constraint-1-violation (%)")
     if len(constraints_2) != 0:
-        ax2.plot(x_ticks, constraints_2, linestyle = 'None', color="magenta", marker='o', markersize=12, label = "constraint-2-violation (%)")
+        ax2.plot(x_ticks, constraints_2, linestyle = 'None', color="magenta", marker='o', markersize=5, label = "constraint-2-violation (%)")
 
-    
-    ax2.set_ylabel("Violations")
+    ax1.set_ylabel("w value")
+    ax2.set_ylabel("Violations(%)")
     plt.xlim(0.9,len(w_approach))
-    #ax.legend(loc=0)
-    #ax2.legend(loc=2)
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
-          fancybox=True, shadow=True, ncol=5)
-    
-    ax2.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
-          ncol=3, fancybox=True, shadow=True)
+
+    ax1.legend()
+    ax2.legend()
+
+    #ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
+    #        fancybox=True, shadow=True, ncol=5)
+
+    #ax2.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
+    #        ncol=3, fancybox=True, shadow=True)
     plt.show()

@@ -10,14 +10,15 @@ import time
 import warnings
 warnings.filterwarnings("ignore")
 
-K = 10 # number of data owners
-H = 2 # number of compute nodes
+K = 50 # number of data owners
+H = 5 # number of compute nodes
 utils.file_name = 'fully_symmetric.xlsx'
 
-def run(filename='', testcase='fully_symmetric'):
+
+def run(filename='', testcase='fully_heterogeneous'):
     #fully_heterogeneous
     #fully_symmetric
-
+    
     if testcase == 'fully_symmetric':
         utils.file_name = 'fully_symmetric.xlsx'
     else:
@@ -28,16 +29,22 @@ def run(filename='', testcase='fully_symmetric'):
     proc_local = np.array(utils.get_fwd_end_local(K))
     trans_back = np.array(utils.get_trans_back(K, H))
 
-    if utils.file_name == 'fully_symmetric.xlsx':
-        memory_capacity = np.array(utils.get_memory_characteristics(H, K))
-    else:
-        if K == 50:
-            memory_capacity = np.array([30,120])
-        else:
-            memory_capacity = np.array([105,195])
+    #if utils.file_name == 'fully_symmetric.xlsx':
+    start = time.time()
+    memory_capacity = np.array(utils.get_memory_characteristics(H, K))
+    if utils.file_name != 'fully_symmetric.xlsx':
+        if H == 2:
+            if K == 50:
+                memory_capacity = np.array([30,120])
+            else:
+                memory_capacity = np.array([105,195])
 
+        if H == 5:
+            if K == 50:
+                memory_capacity = np.array([63, 48,  9, 21, 24])
 
-    T = np.max(release_date) + K*np.max(proc[0,:]) # time intervals
+    
+    T = np.max(release_date) + K*np.max(proc) # time intervals
     print(f"T = {T}")
 
     ones_H = np.ones((H,1))
@@ -48,6 +55,7 @@ def run(filename='', testcase='fully_symmetric'):
 
     # define variables
     print(f" Memory: {memory_capacity}")
+    
     x = m.addMVar(shape = (H,K,T), vtype=GRB.BINARY, name="x")
     y = m.addMVar(shape=(K,H), vtype=GRB.BINARY, name="y")
     f = m.addMVar(shape=(K), vtype=GRB.INTEGER, name="f")
@@ -57,12 +65,10 @@ def run(filename='', testcase='fully_symmetric'):
     '''
     x = m.addMVar(shape = (H,K,T), lb=0, ub=1, vtype=GRB.CONTINUOUS, name="x")
     y = m.addMVar(shape=(K,H), lb=0, ub=1, vtype=GRB.CONTINUOUS, name="y")
-    y = m.addMVar(shape=(K,H), vtype=GRB.BINARY, name="y")
     f = m.addMVar(shape=(K), lb=0, vtype=GRB.CONTINUOUS, name="f")
     maxobj = m.addMVar(shape=(1),lb=0, vtype=GRB.CONTINUOUS, name="maxobj")
     comp = m.addMVar(shape=(K),lb=0, vtype=GRB.CONTINUOUS, name="comp")
     '''
-    start = time.time()
     # define constraints
     # C1: job cannot be assigned to a time interval before the release time
     for i in range(H): #for all devices
@@ -99,19 +105,23 @@ def run(filename='', testcase='fully_symmetric'):
     max_constr = m.addConstr(maxobj == gp.max_(comp[i] for i in range(K)))
     
     m.setObjective(maxobj, GRB.MINIMIZE)
-    end = time.time()
-    time1 = end-start
+    m.setParam('MIPGap', 0.02) # 5%
     #print(f'problem formulation: {time1}')
-
-
+    
+    m.update()
+    end = time.time()
+    print(f'{utils.bcolors.OKBLUE}build took: {end-start}{utils.bcolors.ENDC}')
     start = time.time()
     # Optimize model
     m.optimize()
     end = time.time()
-    #print(f'problem solver: {end-start}')
+    print(f'{utils.bcolors.OKBLUE}P took: {end-start}{utils.bcolors.ENDC}')
+    print(f'{utils.bcolors.OKBLUE}P took: {m.Runtime}{utils.bcolors.ENDC}')
     #print(f'TOTAL: {(end-start) + time1}')
 
-    
+    #print(y.X)
+    #print(comp.X)
+    #print(f.X)
     #print('%s %g' % (v.VarName, v.X))
     print('Obj: %g' % m.ObjVal)
 
@@ -171,9 +181,11 @@ def run(filename='', testcase='fully_symmetric'):
 
     #print(f"{utils.bcolors.OKGREEN}All constraints are satisfied{utils.bcolors.ENDC}")
     if filename != '':
-        f = open(filename, "a")
-        f.write("Original:\n")
-    f.write("--------Machine allocation--------\n")
+        f_ = open(filename, "a")
+        f_.write("Original:\n")
+    else:
+        f_ = open("my_test", "w")
+    f_.write("--------Machine allocation--------\n")
 
     for i in range(H):
         for k in range(T):
@@ -183,16 +195,16 @@ def run(filename='', testcase='fully_symmetric'):
                     continue
                 else:
                     #print(f'{j+1}', end='\t')
-                    f.write(f'{j+1}\t')
+                    f_.write(f'{j+1}\t')
                     at_least = 1
                     break
             if(at_least == 0):
                 #print(f'0', end='\t')
-                f.write(f'0\t')
+                f_.write(f'0\t')
         #print('')
-        f.write('\n')
+        f_.write('\n')
 
-    f.write("--------Completition time--------\n")
+    f_.write("--------Completition time--------\n")
     for i in range(K): #for all jobs
         my_machine = 0
         for j in range(H):
@@ -206,10 +218,10 @@ def run(filename='', testcase='fully_symmetric'):
         fmax = last_zero
         C = fmax + proc_local[i] + trans_back[i,my_machine]
         #print(f'C{i+1}: {C} - {my_machine}')
-        f.write(f'C{i+1}: {C} - {my_machine}\n')
-    f.write(f'objective function: {m.ObjVal}\n')
+        f_.write(f'C{i+1}: {C} - {my_machine} - {fmax} {f[my_machine].X}\n')
+    f_.write(f'objective function: {m.ObjVal}\n')
 
-    f.close()
+    f_.close()
     #print 'runtime is',m.Runtime
 
     return(m.ObjVal)

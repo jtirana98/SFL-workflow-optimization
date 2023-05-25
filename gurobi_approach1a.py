@@ -13,7 +13,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 K = 10 # number of data owners
-H = 2 # number of compute nodes
+H = 5 # number of compute nodes
 utils.file_name = 'fully_symmetric.xlsx'
 
 def run(filename='', testcase='fully_symmetric'):
@@ -24,19 +24,23 @@ def run(filename='', testcase='fully_symmetric'):
         utils.file_name = 'fully_symmetric.xlsx'
     else:
         utils.file_name = 'fully_heterogeneous.xlsx'
+        
 
     release_date = np.array(utils.get_fwd_release_delays(K,H))
     proc = np.array(utils.get_fwd_proc_compute_node(K, H))
     proc_local = np.array(utils.get_fwd_end_local(K))
     trans_back = np.array(utils.get_trans_back(K, H))
 
-    if utils.file_name == 'fully_symmetric.xlsx':
-        memory_capacity = np.array(utils.get_memory_characteristics(H, K))
-    else:
-        if K == 50:
-            memory_capacity = np.array([30,120])
-        else:
-            memory_capacity = np.array([105,195])
+    if utils.file_name != 'fully_symmetric.xlsx':
+        if H == 2:
+            if K == 50:
+                memory_capacity = np.array([30,120])
+            else:
+                memory_capacity = np.array([105,195])
+
+        if H == 5:
+            if K == 50:
+                memory_capacity = np.array([63, 48,  9, 21, 24])
     
     if filename != '':
         f_ = open(filename, "a")
@@ -75,6 +79,7 @@ def run(filename='', testcase='fully_symmetric'):
     # Define constraints for problem 1
     print(f"max-f: {T - np.min(trans_back[0,:]) - np.min(proc_local)} min-f: {np.min(release_date) + np.min(proc[0,:])}")
     print(f"min-w: {np.min(release_date) + np.min(proc[0,:]) + np.min(trans_back[0,:]) + np.min(proc_local)}")
+    
     
     m1.addConstr(f <= T)
     m1.addConstr(f >=  np.min(release_date) + np.min(proc[0,:]))
@@ -115,18 +120,24 @@ def run(filename='', testcase='fully_symmetric'):
     alpha = 0
     bhta = 0
 
-    violations = []
+    violations_1 = []
+    violations_2 = []
+    max_c = []
+    accepted = []
     ws = []
     obj1 = []
     obj2 = []
-    max_ = 0
-    while step<3:
+    max_ = T
+    add = False
+    while step<10:
         
         m1.setObjective(w + qsum(lala[i,j] * y[i,j] * proc[i,j] - qsum(f[i]*mama[j,t,i] for t in range(T)) for i in range(K) for j in range(H)) , GRB.MINIMIZE)    
-        m1.update()
         
-        #if step >= 1:
-        #    m1.addConstr(w <= max_)
+        
+        if step >= 1 and add:
+            m1.addConstr(f <= max_)
+
+        m1.update()
         
         m2.setObjective(qsum(x[i,j,t]*(mama[i,t,j]*(t+1) - lala[j,i]) for i in range(H) for j in range(K) for t in range(T)), GRB.MINIMIZE)
         
@@ -137,12 +148,32 @@ def run(filename='', testcase='fully_symmetric'):
         start = time.time()
         m1.optimize()
         end = time.time()
+        
+        max_new = 0
+        for i in range(H):
+            max_rel = 0
+            sum_ = 0
+            for j in range(K):
+                if abs(np.rint(y[j,i].X)) == 1:
+                    sum_ += 1
+                    if max_rel < release_date[j,i]:
+                        max_rel = release_date[j,i]
+            temp = sum_*proc[0,i] + max_rel
+            if temp > max_new:
+                max_new = temp
+                add = True
+        
+        if max_new < max_:
+            max_ = max_new
+            add = True
+        else:
+            add = False
         #print(f'{utils.bcolors.OKBLUE}P1 took: {end-start}{utils.bcolors.ENDC}')
         #print(f'{utils.bcolors.OKBLUE}Obj1: {m1.ObjVal}{utils.bcolors.ENDC}')
 
 
         if step<3:
-            m2.setParam('MIPGap', 0.10) # 5%
+            m2.setParam('MIPGap', 0.12) # 5%
         else:
             m2.setParam('MIPGap', 0.0001)
         m2.update()
@@ -157,11 +188,11 @@ def run(filename='', testcase='fully_symmetric'):
         obj1 += [m1.ObjVal]
         obj2 += [m2.ObjVal]
         # update dual variables
-        print('-------------------------------------')
+        
         for i in range(H):
             for j in range(K):
                 lala[j,i] = max(lala[j,i] + alpha*(abs(y[j,i].X)*proc[j,i] - sum([abs(x[i,j,k].X) for k in range(T)])), 0)
-                print(f'{lala[j,i]} - {j}')
+                #print(f'{lala[j,i]} - {j}')
                 for t in range(T):
                     mama[i,t,j] = max(mama[i,t,j] + bhta*(abs(x[i,j,t].X)*(t+1) - abs(f[j].X)), 0)
         
@@ -182,14 +213,17 @@ def run(filename='', testcase='fully_symmetric'):
             for i in range(H):
                 for t in range(T):
                     if abs(np.int(f[j].X)) < abs(np.int(x[i,j,t].X))*(t+1):
-                        print(f"{utils.bcolors.FAIL}Constraint 8 is violated expected larger than: {x[i,j,t].X*(t+1)} got:{f[i].X} {utils.bcolors.ENDC}")
-                        print(mama[i,t,j])
+                        #print(f"{utils.bcolors.FAIL}Constraint 8 is violated expected larger than: {x[i,j,t].X*(t+1)} got:{f[i].X} {utils.bcolors.ENDC}")
                         counter += 1
                     #else:
-                     #   print(f"{utils.bcolors.FAIL}OKK expected larger than: {abs(np.rint(x[i,j,t].X))*(t+1)} got:{f[i].X} {utils.bcolors.ENDC}")
+                       #print(f"{utils.bcolors.OKBLUE}OKK expected larger than: {abs(np.rint(x[i,j,t].X))*(t+1)} got:{f[i].X} {utils.bcolors.ENDC}")
                     total_counter += 1
-        print(f"1--- {counter}")
+        print(f"Violations 1 --- {counter} from {total_counter}")
+        violations_1 += [counter/total_counter]
         #print(f'{utils.bcolors.OKBLUE}C1{utils.bcolors.ENDC}')
+        
+        counter = 0
+        total_counter = 0
         for i in range(H):
             for j in range(K):
                 temp = 0
@@ -197,13 +231,14 @@ def run(filename='', testcase='fully_symmetric'):
                     temp += np.rint(x[i,j,t].X)
                 
                 if temp < abs(np.rint(y[j,i].X))*proc[j,i]:
-                    print(f"{utils.bcolors.FAIL}Constraint 1 is violated expected larger than: {y[j,i].X*proc[j,i]} got:{temp} {utils.bcolors.ENDC}")
+                    #print(f"{utils.bcolors.FAIL}Constraint 1 is violated expected larger than: {y[j,i].X*proc[j,i]} got:{temp} {utils.bcolors.ENDC}")
                     counter += 1
                 total_counter += 1
-        
+
+        violations_2 += [counter/total_counter]
         #print(f'{utils.bcolors.OKBLUE}constraints violated: {counter}{utils.bcolors.ENDC}')
-        violations += [counter]
-        print(f"--- {counter} {total_counter}")
+        
+        print(f"Violations 2 --- {counter} from {total_counter}")
         f_.write("--------Machine allocation--------\n")
 
         for i in range(H):
@@ -240,11 +275,12 @@ def run(filename='', testcase='fully_symmetric'):
             C = fmax + proc_local[i] + trans_back[i,my_machine]
             cs.append(C)
             #print(f'C{i+1}: {C} - {my_machine}')
-            f_.write(f'C{i+1}: {C} - {my_super_machine} {y[i,:].X}\n')
+            f_.write(f'C{i+1}: {C} - {my_super_machine} {y[i,:].X} - {f[i].X}\n')
             reserved[my_super_machine] += 1
         
         f_.write(f'max is: {max(cs)}\n')
-        max_ = max(cs)         
+        #max_ = max(cs)         
+        max_c.append(max(cs))
         #print(f'max is: {max(cs)}')
         f_.write("check other constraints\n")
         violated = False
@@ -308,16 +344,21 @@ def run(filename='', testcase='fully_symmetric'):
                 if temp > 1:
                     #print(f"{utils.bcolors.FAIL}Constraint 6 is violated{utils.bcolors.ENDC}")
                     violated = True
-
+        
         if violated:
             f_.write('VIOLATED\n')
+            #add = False
+            accepted.append(0)
         else:
             f_.write('OK\n')
+            #add = False
+            accepted.append(1)
+        
     f_.close()
     ##print(f'optimal:  {ws}')
     #print(f'violations: {violations}')
     #for v in m2.getVars():
     #    print('%s %g' % (v.VarName, v.X))
-    return (ws, violations)
+    return (ws, violations_1, violations_2, max_c, accepted)
 if __name__ == '__main__':
     run()

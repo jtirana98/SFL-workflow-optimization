@@ -69,24 +69,20 @@ def run(filename='', testcase='fully_symmetric'):
     comp = m1.addMVar(shape=(K),vtype=GRB.INTEGER, name="comp")
     s = m1.addMVar(shape=(H,K,T), vtype=GRB.BINARY, name="s")
     
-    #contr1_add_1 = m1.addMVar(shape=(K,H), lb=-GRB.INFINITY, vtype=GRB.INTEGER, name="contr1_add_1")
-    contr1_add_1 = m1.addMVar(shape=(K,H), vtype=GRB.INTEGER, name="contr1_add_1")
-    contr1_abs_1 = m1.addMVar(shape=(K,H), vtype=GRB.INTEGER, name="contr1_abs_1")
-    #contr2_add_1 = m1.addMVar(shape=(H,K,T), lb=-GRB.INFINITY, vtype=GRB.INTEGER, name="contr2_add_1")
-    contr2_add_1 = m1.addMVar(shape=(H,K,T), vtype=GRB.INTEGER, name="contr2_add_1")
-    contr2_abs_1 = m1.addMVar(shape=(H,K,T), vtype=GRB.INTEGER, name="contr2_abs_1")
+    contr1_add_1 = m1.addMVar(shape=(K,H), lb=-GRB.INFINITY, vtype=GRB.INTEGER, name="contr1_add_1")
+    contr1_abs_1 = m1.addMVar(shape=(K,H), lb=-GRB.INFINITY, vtype=GRB.INTEGER, name="contr1_abs_1")
+    contr2_add_1 = m1.addMVar(shape=(H,K,T), lb=-GRB.INFINITY, vtype=GRB.INTEGER, name="contr2_add_1")
+    contr2_abs_1 = m1.addMVar(shape=(H,K,T), lb=-GRB.INFINITY, vtype=GRB.INTEGER, name="contr2_abs_1")
 
-    x_ = np.ones((H,K,T))
+    x_ = np.zeros((H,K,T))
 
     # define variables - problem 2
     x = m2.addMVar(shape = (H,K,T), vtype=GRB.BINARY, name="x")
 
-    #contr1_add_2 = m2.addMVar(shape=(K,H), lb=-GRB.INFINITY, vtype=GRB.INTEGER, name="contr1_add_2")
-    contr1_add_2 = m2.addMVar(shape=(K,H), vtype=GRB.INTEGER, name="contr1_add_2")
-    contr1_abs_2 = m2.addMVar(shape=(K,H), vtype=GRB.INTEGER, name="contr1_abs_2")
-    #contr2_add_2 = m2.addMVar(shape=(H,K,T), lb=-GRB.INFINITY, vtype=GRB.INTEGER, name="contr2_add_2")
-    contr2_add_2 = m2.addMVar(shape=(H,K,T), vtype=GRB.INTEGER, name="contr2_add_2")
-    contr2_abs_2 = m2.addMVar(shape=(H,K,T), vtype=GRB.INTEGER, name="contr2_abs_2")
+    contr1_add_2 = m2.addMVar(shape=(K,H), lb=-GRB.INFINITY, vtype=GRB.INTEGER, name="contr1_add_2")
+    contr1_abs_2 = m2.addMVar(shape=(K,H), lb=-GRB.INFINITY, vtype=GRB.INTEGER, name="contr1_abs_2")
+    contr2_add_2 = m2.addMVar(shape=(H,K,T), lb=-GRB.INFINITY, vtype=GRB.INTEGER, name="contr2_add_2")
+    contr2_abs_2 = m2.addMVar(shape=(H,K,T), lb=-GRB.INFINITY, vtype=GRB.INTEGER, name="contr2_abs_2")
 
     y_ = np.zeros((K,H))
     f_ = np.zeros((K))
@@ -154,9 +150,56 @@ def run(filename='', testcase='fully_symmetric'):
     my_ds2 = []
     stable = 0
     stop = False
-    while step<10 or stop:
+    while step<15 or stop:
         print(f"{utils.bcolors.OKBLUE}-------------{step}------------{utils.bcolors.ENDC}")
         f_log.write(f"-------------{step}------------\n")
+
+        for i in range(K):
+            for j in range(H):
+                if step>=1:
+                    c = m2.getConstrByName(f'const1add-{i}-{j}')
+                    m2.remove(c)
+
+                m2.addConstr(contr1_add_2[i,j] == qsum(x[j,i,t] for t in range(T)) - y_[i,j]*proc[i,j], name=f'const1add-{i}-{j}')
+                my_ds2.append(m2.addConstr(contr1_abs_2[i,j] == gp.abs_(contr1_add_2[i,j]), name=f'const1ab-{i}-{j}'))
+
+
+                for t in range(T):
+                    if step>=1:
+                        #x[j,i,t].Start = x_[j,i,t]
+                        c = m2.getConstrByName(f'const2add-{i}-{j}-{t}')
+                        m2.remove(c)
+                    
+                    m2.addConstr(contr2_add_2[j,i,t] == f_[i] - s_[j,i,t] - x[j,i,t]*(t+1), name=f'const2add-{i}-{j}-{t}')
+                    my_ds2.append(m2.addConstr(contr2_abs_2[j,i,t] == gp.abs_(contr2_add_2[j,i,t]), name=f'const2ab-{i}-{j}-{t}'))
+
+
+        
+        m2.setObjective(w_ + qsum(qsum(mama[j,t,i]*(f_[i] - s_[j,i,t] - x[j,i,t]*(t+1)) \
+                            + lala[i,j]*x[j,i,t] for t in range(T)) - lala[i,j] * y_[i,j] * proc[i,j]\
+                            for i in range(K) for j in range(H)) \
+                            + (rho/2)*qsum(contr1_abs_2[i,j] for i in range(K) for j in range(H))  \
+                            + (rho/2)*qsum(contr2_abs_2[j,i,t] for t in range(T) for i in range(K) for j in range(H)) \
+                            , GRB.MINIMIZE) 
+        m2.reset()
+        m2.update()
+
+        '''
+        if step<3:
+            m2.setParam('MIPGap', 0.12) # 5%
+        else:
+            m2.setParam('MIPGap', 0.0001)
+        '''
+        
+        start = time.time()
+        m2.optimize()
+        end = time.time()
+        print(f'{utils.bcolors.OKBLUE}P2 took: {end-start}{utils.bcolors.ENDC}')
+        print(f'{utils.bcolors.OKBLUE}Obj2: {m2.ObjVal}{utils.bcolors.ENDC}')
+        
+        # pass results to first problem
+        if step>=1:
+            x_ = np.copy(np.array(x.X))
 
         
         if step>=1:
@@ -181,9 +224,8 @@ def run(filename='', testcase='fully_symmetric'):
                     c = m1.getConstrByName(f'const1add-{i}-{j}')
                     m1.remove(c)
             
-                m1.addConstr(contr1_add_1[i,j] ==  ll[j,i] - y[i,j]*proc[i,j], name=f'const1add-{i}-{j}')
+                m1.addConstr(contr1_add_1[i,j] == ll[j,i] - y[i,j]*proc[i,j], name=f'const1add-{i}-{j}')
                 my_ds1.append(m1.addConstr(contr1_abs_1[i,j] == gp.abs_(contr1_add_1[i,j]), name=f'const1ab-{i}-{j}'))
-                
 
                 for t in range(T):
                     if step>=1:
@@ -196,12 +238,14 @@ def run(filename='', testcase='fully_symmetric'):
                     my_ds1.append(m1.addConstr(contr2_abs_1[j,i,t] == gp.abs_(contr2_add_1[j,i,t]), name=f'const2ab-{i}-{j}-{t}'))
 
 
+
         
         #m1.addConstr(aux_abs == gp.norm((qsum(x_[:,:,t] for t in range(K))) - proc.T*y.T,1))         
         m1.setObjective(w + qsum(qsum(mama[j,t,i]*(f[i] - s[j,i,t] - x_[j,i,t]*(t+1)) \
                           + lala[i,j]*x_[j,i,t] for t in range(T)) - lala[i,j] * y[i,j] * proc[i,j]\
                           for i in range(K) for j in range(H)) \
                           + (rho/2)*qsum(contr1_abs_1[i,j] for i in range(K) for j in range(H))  \
+                          + (rho/2)*qsum((f[i] - s[j,i,t] - x_[j,i,t]*(t+1)) for t in range(T) for i in range(K) for j in range(H))
                           + (rho/2)*qsum(contr2_abs_1[j,i,t] for t in range(T) for i in range(K) for j in range(H))
                           , GRB.MINIMIZE)
         '''
@@ -221,7 +265,6 @@ def run(filename='', testcase='fully_symmetric'):
         end = time.time()
         print(f'{utils.bcolors.OKBLUE}P1 took: {end-start}{utils.bcolors.ENDC}')
         print(f'{utils.bcolors.OKBLUE}Obj1: {m1.ObjVal}{utils.bcolors.ENDC}')
-
         
         '''
         max_new = 0
@@ -253,67 +296,17 @@ def run(filename='', testcase='fully_symmetric'):
         #if stable == 4:
         #    f_log.write("Will stop because y is the same!")
         #    stop = True
-        '''
-        print(contr1_add_1.X)
-        print('@@@@@')
-        print(contr1_abs_1.X)
-        print('@@@@')
-        print(f.X)
-        '''
+
         y_ = np.copy(np.array(y.X))
         f_ = np.copy(np.array(f.X))
         w_ = np.copy(np.array(w.X))
         s_ = np.copy(np.array(s.X))
 
-        for i in range(K):
-            for j in range(H):
-                if step>=1:
-                    c = m2.getConstrByName(f'const1add-{i}-{j}')
-                    m2.remove(c)
-            
-                m2.addConstr(contr1_add_2[i,j] == qsum(x[j,i,t] for t in range(T)) - y_[i,j]*proc[i,j], name=f'const1add-{i}-{j}')
-                my_ds2.append(m2.addConstr(contr1_abs_2[i,j] == gp.abs_(contr1_add_2[i,j]), name=f'const1ab-{i}-{j}'))
 
-
-                for t in range(T):
-                    if step>=1:
-                        #x[j,i,t].Start = x_[j,i,t]
-                        c = m2.getConstrByName(f'const2add-{i}-{j}-{t}')
-                        m2.remove(c)
-
-                    m2.addConstr(contr2_add_2[j,i,t] == f_[i] - s_[j,i,t] - x[j,i,t]*(t+1), name=f'const2add-{i}-{j}-{t}')
-                    my_ds2.append(m2.addConstr(contr2_abs_2[j,i,t] == gp.abs_(contr2_add_2[j,i,t]), name=f'const2ab-{i}-{j}-{t}'))
-
-
-
-
-        m2.setObjective(w_ + qsum(qsum(mama[j,t,i]*(f_[i] - s_[j,i,t] - x[j,i,t]*(t+1)) \
-                           + lala[i,j]*x[j,i,t] for t in range(T)) - lala[i,j] * y_[i,j] * proc[i,j]\
-                           for i in range(K) for j in range(H)) \
-                           + (rho/2)*qsum(contr1_abs_2[i,j] for i in range(K) for j in range(H))  \
-                           + (rho/2)*qsum(contr2_abs_2[j,i,t] for t in range(T) for i in range(K) for j in range(H)) \
-                           , GRB.MINIMIZE) 
-        m2.reset()
-        m2.update()
-
-        '''
-        if step<3:
-            m2.setParam('MIPGap', 0.12) # 5%
-        else:
-            m2.setParam('MIPGap', 0.0001)
-        '''
-        
-        start = time.time()
-        m2.optimize()
-        end = time.time()
-        print(f'{utils.bcolors.OKBLUE}P2 took: {end-start}{utils.bcolors.ENDC}')
-        print(f'{utils.bcolors.OKBLUE}Obj2: {m2.ObjVal}{utils.bcolors.ENDC}')
-        
         obj1 += [m1.ObjVal]
         obj2 += [m2.ObjVal]
 
-        # pass results to first problem
-        x_ = np.copy(np.array(x.X))
+        
 
 
         # update dual variables
@@ -354,7 +347,7 @@ def run(filename='', testcase='fully_symmetric'):
                     temp += np.abs(np.rint(x[i,j,t].X))
                 
                 if temp < np.abs(np.rint(y[j,i].X)*proc[j,i]):
-                    #print(f"{utils.bcolors.FAIL}Constraint 1 is violated expected larger than: {y[j,i].X*proc[j,i]} got:{temp} {utils.bcolors.ENDC}")
+                    print(f"{utils.bcolors.FAIL}Constraint 1 is violated expected larger than: {y[j,i].X*proc[j,i]} got:{temp} {utils.bcolors.ENDC}")
                     counter += 1
                 total_counter += 1
         
@@ -362,35 +355,8 @@ def run(filename='', testcase='fully_symmetric'):
         violations_2 += [(counter/total_counter)*100]
 
         print(f"Violations 2 --- {counter} from {total_counter}")
-        
-
-        for i in range(H):
-            k = 0
-            last_zero = -1
-            while(True): #go through time
-                at_least = -1
-                for j in range(K):
-                    if(x_[i,j,k] <= 0):
-                        continue
-                    else:
-                        at_least = j
-                        if last_zero != -1:
-                            if release_date[j,i] <= last_zero:
-                                x_[i,j,last_zero] = 1
-                                x_[i,j,k] = 0
-                            k = last_zero
-                            last_zero = -1
-                        break
-                if (at_least == -1 and last_zero == -1):
-                    last_zero = k
-                else:
-                    if at_least != -1:
-                        last_zero = -1
-                k = k + 1
-                if k == T:
-                    break
-
         f_log.write("--------Machine allocation--------\n")
+
         for i in range(H):
             for k in range(T):
                 at_least = 0
@@ -427,55 +393,11 @@ def run(filename='', testcase='fully_symmetric'):
             #print(f'C{i+1}: {C} - {my_machine}')
             f_log.write(f'C{i+1}: {C} - {my_super_machine} {y[i,:].X} - {f[i].X}\n')
             reserved[my_super_machine] += 1
-        
-        max_c.append(max(cs))             
+                     
         f_log.write(f'max is: {max(cs)}\n')
         print(f'{utils.bcolors.OKBLUE}max is: {max(cs)}{utils.bcolors.ENDC}')
-        
-        f_log.write("--------NEW Machine allocation--------\n")
-        for i in range(H):
-            for k in range(T):
-                at_least = 0
-                for j in range(K):
-                    if(np.rint(x_[i,j,k]) <= 0):
-                        continue
-                    else:
-                        #print(f'{j+1}', end='\t')
-                        f_log.write(f'{j+1}\t')
-                        at_least += 1
-                        break
-                if(at_least == 0):
-                    #print(f'0', end='\t')
-                    f_log.write(f'0\t')
-            #print('')
-            f_log.write('\n')
-
-        f_log.write("--------New Completition time--------\n")
-        cs = []
-        reserved = [0 for i in range(H)]
-        for i in range(K): #for all jobs
-            my_machine = 0
-            my_super_machine = 0
-            last_zero = -1
-            for my_machine in range(H):
-                for k in range(T):
-                    if np.rint(x_[my_machine,i,k]) >= 1:
-                        if last_zero < k+1:
-                            last_zero = k+1
-                            my_super_machine = my_machine
-            fmax = last_zero
-            #f_[i] = last_zero
-            C = fmax + proc_local[i] + trans_back[i,my_machine]
-            cs.append(C)
-            #print(f'C{i+1}: {C} - {my_machine}')
-            f_log.write(f'C{i+1}: {C} - {my_super_machine} {y[i,:].X} - {f[i].X}\n')
-            reserved[my_super_machine] += 1
-                     
-        f_log.write(f'NEW max is: {max(cs)}\n')
-        print(f'{utils.bcolors.OKBLUE}NEW max is: {max(cs)}{utils.bcolors.ENDC}')
-        #w_ =
-                
-        
+        #max_ = max(cs)         
+        max_c.append(max(cs))
         #print(f'max is: {max(cs)}')
         f_log.write("check other constraints\n")
         violated = False
