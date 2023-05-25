@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore")
 def main():
     # Problem input
 
-    K = 50 # number of data owners
+    K = 30 # number of data owners
     H = 2 # number of compute nodes
     utils.file_name = 'fully_heterogeneous.xlsx'
 
@@ -101,7 +101,6 @@ def main():
     for i in range(K): # for each job/data owner
         constraints1 += [w >= f[i] + proc_local[i] + trans[i]]
    
-    
 
     # Define constraints problem 2
     constraints2 = []
@@ -159,19 +158,19 @@ def main():
         for i in range(H):
             for j in range(K):
                 for t in range(T):
-                    term_mu += f[j] - s[i][j,t] + (t+1)*x_[i][j,t]
+                    term_mu += f[j] - s[i][j,t] - (t+1)*x_[i][j,t]
 
         term_mu_abs = 0
         for i in range(H):
             for j in range(K):
                 for t in range(T):
-                    term_mu_abs += (rho/2)*cp.abs(f[j] - s[i][j,t] + (t+1)*x_[i][j,t])
+                    term_mu_abs += (rho/2)*cp.abs(f[j] - s[i][j,t] - (t+1)*x_[i][j,t])
 
 
         obj1_ = cp.Minimize(  w   
-                        + cp.sum(cp.multiply(lala,y*T) - cp.multiply(lala,term_lu_x_param)) 
+                        + cp.sum(cp.multiply(lala,term_lu_x_param) - cp.multiply(lala,cp.multiply(y,proc))) 
                         + term_mu 
-                        + (rho)*cp.sum(cp.abs(cp.multiply(lala,y*T) - cp.multiply(lala,term_lu_x_param)))
+                        + (rho)*cp.sum(cp.abs(cp.multiply(lala,term_lu_x_param)) - cp.multiply(lala,cp.multiply(y,proc)))
                         + term_mu_abs)
 
 
@@ -209,18 +208,18 @@ def main():
         for i in range(H):
             for j in range(K):
                 for t in range(T):
-                    term_mu += f_[j] - s_[i][j,t] + (t+1)*x[i][j,t]
+                    term_mu += f_[j] - s_[i][j,t] - (t+1)*x[i][j,t]
 
         term_mu_abs = 0
         for i in range(H):
             for j in range(K):
                 for t in range(T):
-                    term_mu_abs += (rho/2)*cp.abs(f_[j] - s_[i][j,t] + (t+1)*x[i][j,t])
+                    term_mu_abs += (rho/2)*cp.abs(f_[j] - s_[i][j,t] - (t+1)*x[i][j,t])
 
         obj2_ = cp.Minimize(  w_   
-                        + cp.sum(cp.multiply(lala,y_*T) - cp.multiply(lala,term_lu_x_param)) 
+                        + cp.sum(cp.multiply(lala,term_lu_x_param) - cp.multiply(lala,cp.multiply(y_,proc))) 
                         + term_mu 
-                        + (rho)*cp.sum(cp.abs(cp.multiply(lala,y_*T) - cp.multiply(lala,term_lu_x_param)))
+                        + (rho)*cp.sum(cp.abs(cp.multiply(lala,term_lu_x_param) - cp.multiply(lala,cp.multiply(y,proc))))
                         + term_mu_abs)
 
         if step<3:

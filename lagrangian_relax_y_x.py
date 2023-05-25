@@ -18,9 +18,9 @@ def main():
     def step_func(u):
         return 1/np.sqrt(u+2)
 
-    K = 10 # number of data owners
-    H = 3 # number of compute nodes
-    utils.file_name = 'fully_heterogeneous.xlsx'
+    K = 5 # number of data owners
+    H = 2 # number of compute nodes
+    utils.file_name = 'fully_symmetric.xlsx'
 
     # fully_symmetric
     # fully_heterogeneous
@@ -106,7 +106,7 @@ def main():
     # wrap the formula to a Problem
     prob1 = cp.Problem(obj1, constraints1)
 
-
+    
     # P2 next (x,f)
 
     musum = 0
@@ -123,6 +123,11 @@ def main():
         if iter == 0:
             mu.value = np.ones((K,H))
             subgradient.value = np.ones((K,H))
+        
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print(mu.value)
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+
 
         prob1.solve(solver=cp.GUROBI, verbose=True)
 
@@ -154,6 +159,23 @@ def main():
                 # print(sum(x[j][i,:].value))
                 subgradient.value[i,j] = sum(x[j][i,:].value) - T*y.value[i,j]
                 mu.value[i,j] = max(0, mu.value[i,j] + step*subgradient.value[i,j])
+
+        print("--------Machine allocation--------")
+
+        for i in range(H):
+            for k in range(T):
+                at_least = 0
+                for j in range(K):
+                    if(np.rint(x[i][j,k].value) <= 0):
+                        continue
+                    else:
+                        print(f'{j+1}', end='\t')
+                        at_least = 1
+                        break
+                if(at_least == 0):
+                    print(f'0', end='\t')
+            print('')
+
 
     print("optimal value per iter.", opt_iter)
 

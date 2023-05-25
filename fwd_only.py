@@ -10,8 +10,8 @@ warnings.filterwarnings("ignore")
 
 
 def main():
-    K = 100 # number of data owners
-    H = 5 # number of compute nodes
+    K = 10 # number of data owners
+    H = 2 # number of compute nodes
     utils.file_name = 'fully_symmetric.xlsx'
 
     # fully_symmetric
@@ -31,7 +31,7 @@ def main():
     #f.value = np.zeros(K)
     trans_back_pp.value  = np.array(trans_back)
     proc_param.value = np.array(proc)
-
+    #memory_capacity = np.array([18,27,18])
     T = np.max(release_date) + K*np.max(proc[0,:]) # time intervals
     print(f"T = {T}")
 
@@ -130,7 +130,7 @@ def main():
 
     print("status:", prob.status)
     print("optimal value", prob.value)
-    '''
+    
     # C1: job cannot be assigned to a time interval before the release time
     for i in range(K): #for all jobs
         my_machine = -1
@@ -161,10 +161,12 @@ def main():
         my_machine = 0
         for j in range(H):
             if np.rint(y[i,j].value) == 1:
+                print(f'!!! {np.rint(y[i,j].value)} {i} {j}')
                 my_machine = j
                 break
         sum = 0
         for k in range(T):
+            print(np.rint(x[i][my_machine,k].value))
             sum += np.rint(x[i][my_machine,k].value)
         if sum != proc_param[i, my_machine].value:
             print(f"{utils.bcolors.FAIL}Constraint 5 is violated{utils.bcolors.ENDC}")
@@ -198,7 +200,7 @@ def main():
             return
 
     print(f"{utils.bcolors.OKGREEN}All constraints are satisfied{utils.bcolors.ENDC}")
-    '''
+    
     '''
     print("release date - shape (K,H)\n", release_date)
     print("memory capacity\n", memory_capacity)

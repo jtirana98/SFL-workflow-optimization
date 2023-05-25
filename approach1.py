@@ -13,7 +13,7 @@ def main():
 
 # Problem input
 
-    K = 20 # number of data owners
+    K = 50 # number of data owners
     H = 5 # number of compute nodes
     utils.file_name = 'fully_symmetric.xlsx'
 
@@ -41,29 +41,37 @@ def main():
     print(f" Memory: {memory_capacity}")
 
 
-
+    # problem 1
     y = cp.Variable((K,H), boolean=True) # auxiliary variable
     f = cp.Variable(K, integer=True) # finish time
     w = cp.Variable(integer=True) # completion time
+
+    # problem 2
+    
+    x = {}
+    for i in range(H):
+        x[i] = cp.Variable((K,T), boolean=True)
 
     # Dual variables (parameters)
 
     lala = cp.Parameter((K,H), value=np.ones((K,H)))
     mama = {}
     for i in range(H):
-        #mama[i] = cp.Parameter((T,K), value=np.ones((T,K)))
-        mama[i] = cp.Parameter((T,K), value=np.random.randint(0,5, size=(T, K)))
+        mama[i] = cp.Parameter((T,K), value=np.zeros((T,K)))
+        #mama[i] = cp.Parameter((T,K), value=np.random.randint(0,5, size=(T, K)))
+        #mama[i] = cp.Parameter((T,K), value=np.random.normal(0,1, size=(T, K)))
     #mama[0]=np.ones((T,K))*20
 
 
 
-    # Define constraints
+    # Define constraints problem 1
+
     constraints1 = []
     # constraints o to restrict the values of f and  w
-    constraints1 += [f <= 26]
-    constraints1 += [f >= 0]
-    constraints1 += [w <= 29]
-    constraints1 += [w >= 0]
+    constraints1 += [f <= T - np.min(trans_back[0,:].value) - np.min(proc_local.value)]
+    constraints1 += [f >=  np.min(release_date.value) + np.min(proc[0,:].value)]
+    constraints1 += [w <= T]
+    constraints1 += [w >= np.min(release_date.value) + np.min(proc[0,:].value) + np.min(trans_back[0,:].value) + np.min(proc_local.value)]
 
 
     # C3: each job is assigned to one and only machine
@@ -87,9 +95,27 @@ def main():
         term_mu_f += cp.sum(mama[j]@f)
         # term_mu_f += cp.sum(mama[j])
 
-
+    #constraints1 += [w + cp.sum(cp.multiply(cp.multiply(lala, y), proc.value)) >= term_mu_f]
     obj1 = cp.Minimize(w + cp.sum(cp.multiply(cp.multiply(lala, y), proc.value)) - term_mu_f)
     ### ATTENTION, make sure we don't need two cp.sum here!!!
+    
+
+    # Define constraints problem 2
+    constraints2 = []
+    # C1: job cannot be assigned to a time interval before the release time
+    for i in range(H): #for all devices
+        for j in range(K): #for all jobs
+            for t in range(T): #for all timeslots
+                if t < release_date[j,i]:
+                    constraints += [ x[i][j,t] == 0 ]
+
+
+    # C6: machine processes only a single job at each interval
+    for j in range(H): #for all devices
+        constraints += [ x[j].T @ ones_K <= ones_T ]
+
+    obj2 = cp.Minimize()
+    
     # wrap the formula to a Problem
     prob1 = cp.Problem(obj1, constraints1)
     start = time.time()
@@ -100,6 +126,12 @@ def main():
     print("status:", prob1.status)
     print("optimal value", prob1.value)
     print(f.value)
+    print("-------")
+    print(y.value)
+
+    
+    print("-------")
+    print(w.value)
 
 if __name__ == '__main__':
     main()

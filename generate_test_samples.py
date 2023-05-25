@@ -8,16 +8,16 @@ H = 5
 # symmetric_machines
 # symmetric_data_owners
 
-fwd_compute_node = [6, 9]
-back_compute_node = [7, 10]
+fwd_compute_node = [9, 16]
+back_compute_node = [10, 20]
 
-release_fwd = [2, 4]
-release_back = [3, 5]
+release_fwd = [4, 7]
+release_back = [4, 8]
 
 fwd_last = [1, 3]
 bac_last = [2, 4]
 
-trans_act = [1, 2]
+trans_act = [3, 6]
 trans_grad = [3, 5]
 
 data_owners = []
