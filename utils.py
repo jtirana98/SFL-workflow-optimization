@@ -175,7 +175,7 @@ def get_memory_characteristics(H, K=10):
             df_list = [minimum_avail*max_memory_demand for i in range(H)]
         else:
             df_list = [minimum_avail*max_memory_demand for i in range(H-1)]
-            df_list.append((minimum_avail+1)*max_memory_demand)
+            df_list.append((minimum_avail+(K-H*minimum_avail))*max_memory_demand)
     else: # choose from a distribution but in the end all data owners should be served
         end = int(K/H)
         first_round = False
@@ -196,28 +196,34 @@ def get_memory_characteristics(H, K=10):
                 end = K - mysum(df_list)
             else:  
                 break
-        
         for i in range(H):
             df_list[i] = df_list[i] * max_memory_demand
     return df_list
 
 
-def plot_approach(w_star, w_approach, constraints_1, constraints_2=[], maxC=[], violation=[]):
+def plot_approach(w_star, w_approach, constraints_1, constraints_2=[], maxC=[], violations=[]):
     fig, (ax1, ax2) = plt.subplots(2)
     x_ticks = [i+1 for i in range(len(w_approach))]
-    print(x_ticks)
+    #print(w_approach)
+    
     ax1.plot(x_ticks, [w_star for i in range(len(x_ticks))], linewidth = 2, marker='o', markersize=2, color="green", label = "Optimal value")
-    ax1.plot(x_ticks, w_approach, linestyle='dashed', linewidth = 2, marker='o', markersize=5, color="orange", label = "W-approx.")
+    
+    if len(w_approach):
+        ax1.plot(x_ticks, w_approach, linestyle='dashed', linewidth = 2, marker='o', markersize=5, color="orange", label = "W-approx.")
 
     if len(maxC) != 0:
         ax1.plot(x_ticks, maxC, linestyle='dashed', color="black", linewidth = 2, marker='o', markersize=5, label = "max - C")
         #ax2.plot(x_ticks, violation, linestyle = 'None', color="red", marker='+', markersize=12, label = "Violation (T/F)")
 
-
-    ax2.plot(x_ticks, constraints_1, linestyle = 'dashed', linewidth = 2, color="brown", marker='*', markersize=7, label = "constraint-1-violation (%)")
+    if len(constraints_1) != 0:
+        ax2.plot(x_ticks, constraints_1, linestyle = 'dashed', linewidth = 2, color="brown", marker='*', markersize=7, label = "constraint-1-violation (%)")
     if len(constraints_2) != 0:
         ax2.plot(x_ticks, constraints_2, linestyle = 'None', color="magenta", marker='o', markersize=5, label = "constraint-2-violation (%)")
-
+    
+    if len(violations) != 0:
+        #for i in range(len(violations)):
+        ax2.plot(x_ticks, violations, linestyle = 'dashed', color="brown", marker='o', markersize=5, label = f"constraint-1-with max-violation (%)") 
+    
     ax1.set_ylabel("w value")
     ax2.set_ylabel("Violations(%)")
     plt.xlim(0.9,len(w_approach))

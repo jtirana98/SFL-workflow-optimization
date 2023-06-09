@@ -11,50 +11,24 @@ import warnings
 warnings.filterwarnings("ignore")
 
 K = 50 # number of data owners
-H = 5 # number of compute nodes
+H = 2 # number of compute nodes
 utils.file_name = 'fully_symmetric.xlsx'
 
 
-def run(filename='', testcase='fully_heterogeneous'):
-    #fully_heterogeneous
-    #fully_symmetric
-    
-    if testcase == 'fully_symmetric':
-        utils.file_name = 'fully_symmetric.xlsx'
-    else:
-        utils.file_name = 'fully_heterogeneous.xlsx'
-
-    release_date = np.array(utils.get_fwd_release_delays(K,H))
-    proc = np.array(utils.get_fwd_proc_compute_node(K, H))
-    proc_local = np.array(utils.get_fwd_end_local(K))
-    trans_back = np.array(utils.get_trans_back(K, H))
-
-    #if utils.file_name == 'fully_symmetric.xlsx':
+def run(release_date, proc, proc_local, trans_back, memory_capacity, filename=''):
     start = time.time()
-    memory_capacity = np.array(utils.get_memory_characteristics(H, K))
-    if utils.file_name != 'fully_symmetric.xlsx':
-        if H == 2:
-            if K == 50:
-                memory_capacity = np.array([30,120])
-            else:
-                memory_capacity = np.array([105,195])
-
-        if H == 5:
-            if K == 50:
-                memory_capacity = np.array([63, 48,  9, 21, 24])
-
     
     T = np.max(release_date) + K*np.max(proc) # time intervals
     print(f"T = {T}")
+    print(f" Memory: {memory_capacity}")
 
     ones_H = np.ones((H,1))
     ones_K = np.ones((K,1))
     ones_T = np.ones((T,1))
 
     m = gp.Model("fwd_only")
-
+    
     # define variables
-    print(f" Memory: {memory_capacity}")
     
     x = m.addMVar(shape = (H,K,T), vtype=GRB.BINARY, name="x")
     y = m.addMVar(shape=(K,H), vtype=GRB.BINARY, name="y")
@@ -62,13 +36,6 @@ def run(filename='', testcase='fully_heterogeneous'):
     maxobj = m.addMVar(shape=(1),vtype=GRB.INTEGER, name="maxobj")
     comp = m.addMVar(shape=(K),vtype=GRB.INTEGER, name="comp")
 
-    '''
-    x = m.addMVar(shape = (H,K,T), lb=0, ub=1, vtype=GRB.CONTINUOUS, name="x")
-    y = m.addMVar(shape=(K,H), lb=0, ub=1, vtype=GRB.CONTINUOUS, name="y")
-    f = m.addMVar(shape=(K), lb=0, vtype=GRB.CONTINUOUS, name="f")
-    maxobj = m.addMVar(shape=(1),lb=0, vtype=GRB.CONTINUOUS, name="maxobj")
-    comp = m.addMVar(shape=(K),lb=0, vtype=GRB.CONTINUOUS, name="comp")
-    '''
     # define constraints
     # C1: job cannot be assigned to a time interval before the release time
     for i in range(H): #for all devices
@@ -102,33 +69,28 @@ def run(filename='', testcase='fully_heterogeneous'):
     m.addConstrs(comp[i] == qsum(trans_back[i,:] * y[i,:]) + f[i] + proc_local[i] for i in range(K))
        
     
-    max_constr = m.addConstr(maxobj == gp.max_(comp[i] for i in range(K)))
+    m.addConstr(maxobj == gp.max_(comp[i] for i in range(K)))
     
     m.setObjective(maxobj, GRB.MINIMIZE)
-    m.setParam('MIPGap', 0.02) # 5%
+    #m.setParam('MIPGap', 0.23) # 5%
     #print(f'problem formulation: {time1}')
     
     m.update()
     end = time.time()
+    build_time = end-start
     print(f'{utils.bcolors.OKBLUE}build took: {end-start}{utils.bcolors.ENDC}')
     start = time.time()
+    
     # Optimize model
     m.optimize()
     end = time.time()
-    print(f'{utils.bcolors.OKBLUE}P took: {end-start}{utils.bcolors.ENDC}')
-    print(f'{utils.bcolors.OKBLUE}P took: {m.Runtime}{utils.bcolors.ENDC}')
-    #print(f'TOTAL: {(end-start) + time1}')
-
-    #print(y.X)
-    #print(comp.X)
-    #print(f.X)
-    #print('%s %g' % (v.VarName, v.X))
-    print('Obj: %g' % m.ObjVal)
+    
+    print(f'{utils.bcolors.OKBLUE}optimize took: {m.Runtime}{utils.bcolors.ENDC}')
+    print(f'{utils.bcolors.OKBLUE}TOTAL TIME: {(end-start) + build_time}{utils.bcolors.ENDC}')
+    print(f'{utils.bcolors.OKBLUE}Objective is: {m.ObjVal}{utils.bcolors.ENDC}')
 
     # Checking if constraints are satisfied
-    #print("checking if constraints are satisfied")
-
-    
+   
     # C1: job cannot be assigned to a time interval before the release time
     for i in range(K): #for all jobs
         my_machine = -1
@@ -185,8 +147,8 @@ def run(filename='', testcase='fully_heterogeneous'):
         f_.write("Original:\n")
     else:
         f_ = open("my_test", "w")
+        
     f_.write("--------Machine allocation--------\n")
-
     for i in range(H):
         for k in range(T):
             at_least = 0
