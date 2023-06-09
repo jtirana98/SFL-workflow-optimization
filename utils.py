@@ -169,7 +169,7 @@ def get_memory_characteristics(H, K=10):
     df_list = []
     
     total_demand = max_memory_demand * K
-    if file_name == 'fully_symmetric.xlsx' or file_name == 'symmetric_machines.xlsx': # all the same
+    if False: # all the same
         minimum_avail = int(K/H)
         if K % H == 0:
             df_list = [minimum_avail*max_memory_demand for i in range(H)]

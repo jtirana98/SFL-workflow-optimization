@@ -169,7 +169,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
             m1.setParam('MIPGap', 0.10)
         """
         if iter < 7:
-            m1.setParam('MIPGap', 0.20)
+            m1.setParam('MIPGap', 0.30)
         else:
             m1.setParam('MIPGap', 0.15)
 
@@ -253,13 +253,13 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
 
         y_par = np.copy(np.array(y.X))
 
-        if aaa <= 0:
+        if changes_y <= 0:
             stable += 1
         else:
             stable = 0
 
         # call sub-problems
-        if stable >3 or iter == MAX_ITER - 1:
+        if iter == 1:#stable >3 or iter == MAX_ITER - 1:
             flag = -2
             print(f'{utils.bcolors.OKBLUE}Calling the subproblems {iter}{utils.bcolors.ENDC}')
             # Call subproblem
