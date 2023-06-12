@@ -21,8 +21,10 @@ H = 2 # number of compute nodes
 utils.file_name = 'fully_symmetric.xlsx'
 
 
-def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_demand, filename=''):
-    start = time.time()
+def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_demand, 
+        release_date_back=[], proc_back=[], proc_local_back=[], trans_back_gradients=[], 
+        back_flag=False, filename=''):
+    
     stable = 0
     T = np.max(release_date) + K*np.max(proc) # time intervals
     print(f"T = {T}")
@@ -58,23 +60,31 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
     comp_x_fixed = m2.addMVar(shape=(K), name="comp_x_fixed") # completion time
     w_x_fixed = m2.addMVar(shape=(1), name="w_x_fixed")  # min of compl. times
     
+    
     # Auxiliary
     contr1_add_1 = m1.addMVar(shape=(K,H), lb=-GRB.INFINITY,name="contr1_add_1")
     contr1_abs_1 = m1.addMVar(shape=(K,H), lb=-GRB.INFINITY,name="contr1_abs_1")  # auxiliary for abs value
 
     contr2_add_1 = m2.addMVar(shape=(K,H), lb=-GRB.INFINITY, name="contr2_add_1")
     contr2_abs_1 = m2.addMVar(shape=(K,H), lb=-GRB.INFINITY,name="contr2_abs_1")   # auxiliary for abs value
-
+    
+    
     # "Parameters"
     x_par = np.zeros((H,K,T))
     y_par = np.zeros((K,H))
+    if back_flag:
+        T_back = np.max(release_date) + K*np.max(proc[0,:]) + np.max(release_date_back) + K*np.max(proc_back[0,:]) \
+                        + np.max(proc_local) + np.max(proc_local_back) \
+                        + np.max(np.max(trans_back)) + np.max(np.max(trans_back_gradients))
+
+        z_par = np.zeros((H,K,T_back))
 
     # dual variables
     mu = np.zeros((K,H)) # dual variable
     
-    end = time.time()
     
-    first_build = end-start
+    
+    
 
     start = time.time()
     # C3: each job is assigned to one and only machine
@@ -82,7 +92,10 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
 
     # C4: memory constraint
     m2.addConstr(memory_demand @ y<= memory_capacity)
+    end = time.time()
+    first_build = end-start
 
+    start = time.time()
     # completition time definition
     m1.addConstrs(f[i] >= (t+1)*x[j, i, t] for i in range(K) for j in range(H) for t in range(T))
 
@@ -107,6 +120,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
         m1.addConstr(qsum(qsum(x[j,i,t] for t in range(T))/proc[i,j] for j in range(H)) == 1)
         #m1.addConstr(qsum(qsum(x[j,i,t] for t in range(T)) for j in range(H)) >= min(proc[i,:]))
     end = time.time()
+    
     second_build = end-start
     time_stamps = []
 
@@ -169,7 +183,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
             m1.setParam('MIPGap', 0.10)
         """
         if iter < 7:
-            m1.setParam('MIPGap', 0.30)
+            m1.setParam('MIPGap', 0.20)
         else:
             m1.setParam('MIPGap', 0.15)
 
@@ -241,8 +255,8 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
         print(f'{utils.bcolors.OKBLUE}Obj2: {m2.ObjVal}{utils.bcolors.ENDC}', iter)
         time_stamps.append(end-start)
         
-        print(obj_per_iter)
-        print(y.X)
+        #print(obj_per_iter)
+        #print(y.X)
 
         aaa = LA.norm((np.array(y.X)-np.copy(y_par)), 'fro')**2
         changes_y = 0
@@ -275,21 +289,61 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
                     continue
                 
                 procx = np.copy(proc[Kx, i])  # this is a row-vector
-                
                 release_datex = np.copy(release_date[Kx, i])
                 proc_localx = np.copy(proc_local[Kx])
                 trans_backx = np.copy(trans_back[Kx, i])
                 Tx = np.max(release_datex) + len(Kx)*np.max(procx)  # to constrain the T
                 start_sub = time.time()
-                x__ = sub.for_each_machine(len(Kx), release_datex,procx, proc_localx, trans_backx, memory_capacity[i], Tx)
+                x__ = sub.for_each_machine(len(Kx), release_datex, procx, proc_localx, trans_backx, memory_capacity[i], Tx)
                 end_sub = time.time()
-                all_time.append(end_sub-start_sub)
+
+                machine_time = end_sub-start_sub
+
+                if back_flag:
+                    f_temp = np.zeros((len(Kx)))
+
+                    for kk in range(len(Kx)):
+                        for t in range(Tx):
+                            if f_temp[kk] < (t+1)*x__[0,kk,t]:
+                                f_temp[kk] = (t+1)*x__[0,kk,t]
+                    
+                    min_f = min(f_temp)
+                    
+                    procz = np.copy(proc_back[Kx, i])  # this is a row-vector
+                    release_datez = np.copy(release_date_back[Kx, i])
+                    proc_localz = np.copy(proc_local_back[Kx])
+                    trans_backz = np.copy(trans_back_gradients[Kx, i])
+
+                    for kk in range(len(Kx)):
+                        release_datez[kk] += (f_temp[kk] - min_f) + proc_localx[kk] + trans_backx[kk]
+                    
+                    Tz = np.max(release_datez) + len(Kx)*np.max(procz)  # to constrain the T
+
+                    start_sub = time.time()
+                    z__ = sub.for_each_machine(len(Kx), release_datez, procz, proc_localz, trans_backz, memory_capacity[i], Tz)
+                    end_sub = time.time()
+
+                    machine_time += end_sub - start_sub
+
+                    jj = 0
+                    for j in Kx:
+                        for t in range(Tz):
+                            
+                            if int(min_f)+t >= T_back:
+                                break
+
+                            z_par[i,j,int(min_f)+t] = z__[0,jj,t]
+                        jj += 1
+                
+                all_time.append(machine_time)
                 
                 jj = 0
                 for j in Kx:
                     for t in range(Tx):
                         x_par[i,j,t] = x__[0,jj,t]
                     jj += 1
+                    
+
             print(f'Parallel machines longest time {max(all_time)}')
             time_stamps.append(max(all_time))
 
@@ -325,7 +379,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
             for i in range(K):
                 if np.all(np.abs(np.rint(ll[j,i])) != proc[i,j]*np.abs(np.rint(y_par[i,j]))):
                     violated_constraints += 1
-                    print(np.abs(np.rint(ll[j,i])), proc[i,j]*np.abs(np.rint(y_par[i,j])))
+                    #print(np.abs(np.rint(ll[j,i])), proc[i,j]*np.abs(np.rint(y_par[i,j])))
                 total_constraints += 1
         
         violations.append((violated_constraints/total_constraints)*100)
@@ -335,6 +389,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
         print("-----------------------------------------------------objective equals to:", iter, max(calc_obj), changes_y, aaa, violated_constraints, primal_residual)
         #DT = np.append(DT, np.array([[iter, max(calc_obj), changes_y, aaa, violated_constraints, primal_residual]]), axis=0)
 
+        
         f_.write("--------Machine allocation--------\n")
 
         for i in range(H):
@@ -356,7 +411,9 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
 
         f_.write("--------Completition time--------\n")
         cs = []
+        cs_back = []
         reserved = [0 for i in range(H)]
+        f_m = np.zeros(K)
         for i in range(K): #for all jobs
             my_machine = 0
             my_super_machine = 0
@@ -368,6 +425,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
                             last_zero = k+1
                             my_super_machine = my_machine
             fmax = last_zero
+            f_m[i] = fmax
             C = fmax + proc_local[i] + trans_back[i,my_machine]
             cs.append(C)
             #print(f'C{i+1}: {C} - {my_machine}')
@@ -376,9 +434,29 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
         
         f_.write(f'max is: {max(cs)}\n')
         print(f'max is: {max(cs)}')
+
+        if back_flag and flag == -2:
+            for i in range(K): #for all jobs
+                my_machine = 0
+                my_super_machine = 0
+                last_zero = -1
+                for my_machine in range(H):
+                    for k in range(T_back):
+                        if np.rint(z_par[my_machine,i,k]) >= 1:
+                            if last_zero < k+1:
+                                last_zero = k+1
+                                my_super_machine = my_machine
+                fmax = last_zero
+                C = fmax + proc_local_back[i] + trans_back_gradients[i,my_machine]
+                cs_back.append(C)
+
+            print(f'BACK max is: {max(cs_back)}')
        
         if flag == -2:
-            obj_per_iter += [max(cs)]
+            if back_flag:
+                obj_per_iter += [max(cs_back)]
+            else:
+                obj_per_iter += [max(cs)]
 
         f_.write("check other constraints\n")
         violated = False
@@ -392,7 +470,14 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
                 if x_par[my_machine,i,k] == 1:
                     #print(f"{utils.bcolors.FAIL}Constraint 1 is violated{utils.bcolors.ENDC}")
                     violated = True
+            
+            if back_flag:
+                for k in range(int(release_date_back[i,my_machine] + trans_back[i,my_machine] + f_m[i])):
+                    if z_par[my_machine,i,k] == 1:
+                        #print(f"{utils.bcolors.FAIL}Constraint 1 is violated{utils.bcolors.ENDC}")
+                        violated = True
 
+                    
         for i in range(K): #for all jobs
             if np.sum([y[i,j].X for j in range(H)]) != 1:
                 #print(f"{utils.bcolors.FAIL}Constraint 3 is violated{utils.bcolors.ENDC}")
@@ -426,12 +511,21 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
                 else:
                     if sum_ != 0:
                         at_least += 1
+                        
             if at_least == 0:
                 #print(f"{utils.bcolors.FAIL}Constraint 5 is violated job not assigned {i+1}{utils.bcolors.ENDC}")
                 violated = True
             if at_least > 1:
                 #print(f"{utils.bcolors.FAIL}Constraint 5 is violated job assigned more tmes {i+1}{utils.bcolors.ENDC}")
                 violated = True
+            
+            if back_flag:
+                sum_z = 0
+                for k in range(T_back):
+                    sum_z += np.rint(z_par[my_machine,i,k])
+                if sum_z != 0 and sum_ != proc_back[i, my_machine] :
+                    #print(f"{utils.bcolors.FAIL}Constraint 5 is violated {i+1}{utils.bcolors.ENDC}")
+                    violated = True
             
 
         for j in range(H): #for all devices
@@ -442,16 +536,26 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
                 if temp > 1:
                     #print(f"{utils.bcolors.FAIL}Constraint 6 is violated{utils.bcolors.ENDC}")
                     violated = True
+            
+            if back_flag:
+                for t in range(T_back): #for all timeslots
+                    temp = 0
+                    for key in range(K):
+                        temp += np.rint(z_par[j,key,t])
+                    if temp > 1:
+                        #print(f"{utils.bcolors.FAIL}Constraint 6 is violated{utils.bcolors.ENDC}")
+                        violated = True
         
         if violated:
             f_.write('VIOLATED\n')
         else:
             f_.write('OK\n')
-
+    
     f_.close()
 
     total_time = 0
     for t in time_stamps:
+        print(t)
         total_time += t
 
     print(f"{utils.bcolors.FAIL}Total time {total_time}{utils.bcolors.ENDC}")

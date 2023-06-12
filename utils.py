@@ -155,6 +155,8 @@ return np an numpy array of shape(H,1) with the memory capacity of each
 helper node
 '''
 def get_memory_characteristics(H, K=10):
+    # random seed 
+    random.seed(42)
     '''
     df = pd.read_excel(io=file_name, sheet_name='get_memory_characteristics', header=None)
     temp = df.values.tolist()

@@ -10,19 +10,30 @@ import time
 import warnings
 warnings.filterwarnings("ignore")
 
-K = 50 # number of data owners
-H = 2 # number of compute nodes
-utils.file_name = 'fully_symmetric.xlsx'
+def main():
+    K = 20 # number of data owners
+    H = 2 # number of compute nodes
+    utils.file_name = 'fully_symmetric.xlsx'
 
-def run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, memory_capacity, 
-        release_date_back, proc_bck, proc_local_back, trans_back_gradients, filename=''):
-    start = time.time()
+    memory_capacity = np.array(utils.get_memory_characteristics(H, K))
 
+    # forward-propagation parameters
+    release_date_fwd = np.array(utils.get_fwd_release_delays(K,H))
+    proc_fwd = np.array(utils.get_fwd_proc_compute_node(K, H))
+    proc_local_fwd = np.array(utils.get_fwd_end_local(K))
+    trans_back_activations = np.array(utils.get_trans_back(K, H))
+
+    # back-propagation parameters
+    release_date_back = np.array(utils.get_bwd_release_delays(K,H))
+    proc_bck = np.array(utils.get_bwd_proc_compute_node(K,H))
+    proc_local_back = np.array(utils.get_bwd_end_local(K))
+    trans_back_gradients = np.array(utils.get_grad_trans_back(K,H))
+
+    
     T = np.max(release_date_fwd) + K*np.max(proc_fwd[0,:]) + np.max(release_date_back) + K*np.max(proc_bck[0,:]) \
-                        + np.max(proc_local_fwd) + np.max(proc_local_back)\
+                        + np.max(proc_local_fwd) + np.max(proc_local_back) \
                         + np.max(np.max(trans_back_activations)) + np.max(np.max(trans_back_gradients))
     print(f"T = {T}")
-    print(f" Memory: {memory_capacity}")
 
     ones_H = np.ones((H,1))
     ones_K = np.ones((K,1))
@@ -39,6 +50,9 @@ def run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, memo
     f = m.addMVar(shape=(K), vtype=GRB.INTEGER, name="f")
     maxobj = m.addMVar(shape=(1),vtype=GRB.INTEGER, name="maxobj")
     comp = m.addMVar(shape=(K),vtype=GRB.INTEGER, name="comp")
+
+
+    start = time.time()
     
     # define constraints FORWARD
 
@@ -112,19 +126,21 @@ def run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, memo
     
     m.setObjective(maxobj, GRB.MINIMIZE)
     end = time.time()
-    build_time = end-start
-    print(f'{utils.bcolors.OKBLUE}build took: {end-start}{utils.bcolors.ENDC}')
+    time1 = end-start
+    print(f'problem formulation: {time1}')
+
 
     start = time.time()
     # Optimize model
     m.optimize()
     end = time.time()
-   
-    print(f'{utils.bcolors.OKBLUE}optimize took: {m.Runtime}{utils.bcolors.ENDC}')
-    print(f'{utils.bcolors.OKBLUE}TOTAL TIME: {(end-start) + build_time}{utils.bcolors.ENDC}')
-    print(f'{utils.bcolors.OKBLUE}Objective is: {m.ObjVal}{utils.bcolors.ENDC}')
+    print(f'problem solver: {end-start}')
+    print(f'TOTAL: {(end-start) + time1}')
+    for v in m.getVars():
+        print('%s %g' % (v.VarName, v.X))
 
-    return(m.ObjVal)
+    print('Obj: %g' % m.ObjVal)
+
 
 if __name__ == '__main__':
-    run()
+    main()
