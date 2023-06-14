@@ -22,8 +22,7 @@ def for_each_machine(K, release_date, proc, proc_local, trans_back, memory_capac
 
     # define variables
     print(f" Memory: {memory_capacity}")
-    print(utils.max_memory_demand)
-    print(T)
+    print(f"T: {T}")
     x = m.addMVar(shape = (H,K,T), vtype=GRB.BINARY, name="x")
     y = m.addMVar(shape=(K,H), vtype=GRB.BINARY, name="y")
     f = m.addMVar(shape=(K), vtype=GRB.INTEGER, name="f")
@@ -67,7 +66,7 @@ def for_each_machine(K, release_date, proc, proc_local, trans_back, memory_capac
     max_constr = m.addConstr(maxobj == gp.max_(comp[i] for i in range(K)))
     
     m.setObjective(maxobj, GRB.MINIMIZE)
-    m.setParam('MIPGap', 0.02) # 5%
+    #m.setParam('MIPGap', 0.02) # 5%
     #print(f'problem formulation: {time1}')
     
     m.update()

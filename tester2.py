@@ -19,7 +19,7 @@ def get_args():
     parser.add_argument('--splitting_points', '-S', type=str, default='5,33', help='give an input in the form of s1,s2')
     parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
     parser.add_argument('--repeat', '-r', type=str, default='', help='avoid generating input include file')
-    parser.add_argument('--back', '-b', type=int, default=1, help='include backpropagation')
+    parser.add_argument('--back', '-b', type=int, default=0, help='include backpropagation')
     #parser.add_argument('--approach', type=str, default='approach3', help='select one of the approaches: approach1a/approach1aFreeze/approach2/approach3')
     args = parser.parse_args()
     return args
@@ -154,7 +154,16 @@ if __name__ == '__main__':
         machine_devices = np.zeros((H))
         for i in range(H):
             machine_devices[i] = random.randint(0,1)
-        
+
+        #machine_devices[3] = 0
+        '''
+        machine_devices[0] = 0
+        machine_devices[1] = 0
+        machine_devices[2] = 1
+        machine_devices[3] = 1
+        machine_devices[4] = 1
+        '''
+
         # data owner device type 
         # we have:
         # 0 for d1
@@ -219,6 +228,13 @@ if __name__ == '__main__':
         for i in range(len(memory_capacity)):
             memory_capacity[i] = int(memory_capacity[i])
 
+        '''
+        memory_capacity[0] = 1430
+        memory_capacity[1] = 4576
+        memory_capacity[2] = 2860
+        memory_capacity[3] = 4576
+        memory_capacity[4] = 2284
+        '''
         unique_friends = []
         unique_friends_back = []
         
@@ -262,8 +278,8 @@ if __name__ == '__main__':
         print(min(unique_friends))
         
         # Re-difine parameters
-        max_slot = 30
-        max_slot_back = 30
+        max_slot = 50
+        max_slot_back = 50
         for j in range(K):
             for i in range(H):
                 
@@ -280,14 +296,14 @@ if __name__ == '__main__':
                 proc[j,i] =  np.rint((proc[j,i]*max_slot)/max_value).astype(int)
                 proc_bck[j,i] =  np.rint((proc_bck[j,i]*max_slot_back)/max_value_back).astype(int)
 
-        '''
+        
         print('                                             NEW')
         print('proc')
         for i in range(H):
             print(f'{proc[0,i]}', end='\t')
-            print(f'{proc_bck[0,i]} --- {machine_devices[i]}', end='\t')
+            #print(f'{proc_bck[0,i]} --- {machine_devices[i]}', end='\t')
         print('')
-
+        '''
         print('release date')
         for j in range(K):
             for i in range(H):
@@ -313,12 +329,15 @@ if __name__ == '__main__':
             print('Calling the original approach. -- BACK')
             gurobi_fwd_back.K = args.data_owners
             gurobi_fwd_back.H = args.compute_nodes
+            
             w_start = gurobi_fwd_back.run(release_date.astype(int), proc.astype(int), 
                                           proc_local.astype(int), trans_back.astype(int), 
                                           memory_capacity.astype(int), 
                                           release_date_back.astype(int), proc_bck.astype(int), 
                                           proc_local_back.astype(int), trans_back_gradients.astype(int), 
                                           args.log)
+            
+
         else:
             print('Calling the original approach.')
             gurobi_solver.K = args.data_owners
@@ -327,7 +346,7 @@ if __name__ == '__main__':
                                         proc_local.astype(int), trans_back.astype(int), 
                                         memory_capacity.astype(int), 
                                         args.log)
-
+      
     # TODO: save parameters into file
 
     else: # get parameters from file   

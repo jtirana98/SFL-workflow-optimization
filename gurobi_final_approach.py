@@ -81,10 +81,6 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
 
     # dual variables
     mu = np.zeros((K,H)) # dual variable
-    
-    
-    
-    
 
     start = time.time()
     # C3: each job is assigned to one and only machine
@@ -98,9 +94,6 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
     start = time.time()
     # completition time definition
     m1.addConstrs(f[i] >= (t+1)*x[j, i, t] for i in range(K) for j in range(H) for t in range(T))
-
-    #m2.addConstrs(comp_x_fixed[i] == qsum(trans_back[i,:]*y[i,:]) + f_par[i] + proc_local[i] for i in range(K))
-    #max_constr_x_fixed = m2.addConstrs(w_x_fixed >= comp_x_fixed[i] for i in range(K))
 
     # C1: job cannot be assigned to a time interval before the release time
     for i in range(H): #for all devices
@@ -123,11 +116,14 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
     
     second_build = end-start
     time_stamps = []
+    time_stamps_nobuild = []
 
     if second_build > first_build:
         time_stamps.append(second_build)
+        time_stamps_nobuild.append(second_build)
     else:
         time_stamps.append(first_build)
+        time_stamps_nobuild.append(first_build)
 
     # Iterative algorithm
     my_ds2 = []
@@ -135,10 +131,12 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
     obj_per_iter =[]
     violations = []
     
-    flag = -1
+    flag_exit = False
     for iter in range(MAX_ITER):
-        if flag == -2:
-            break
+        
+        if flag_exit: # in previous iteration we called sub-problems 
+            break # exit;
+
         start = time.time()
         if iter >= 1:
             for d in my_ds:
@@ -162,13 +160,8 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
 
             m1.addConstr(comp[i] == np.sum(np.multiply(trans_back[i,:], y_par[i,:])) + f[i] + proc_local[i], name=f'const1f-{i}')
             my_ds.append(m1.addConstr(w >= comp[i], name=f'const1fw-{i}'))
-            #m1.addConstr(qsum(qsum(x[j,i,t] for t in range(T))/proc[i,j] for j in range(H)) == 1, name=f'constpij-{i}')
-
-        #if iter >= 2:
-            #m1.addConstr(qsum(qsum(x[j,i,t] for t in range(T))/proc[i,j] for j in range(H)) == 1)
-
+           
         m1.setObjective(w + (rho/2)*qsum(contr1_abs_1[i,j] for i in range(K) for j in range(H)), GRB.MINIMIZE)
-
 
         # m1.reset()
         m1.update()
@@ -183,17 +176,19 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
             m1.setParam('MIPGap', 0.10)
         """
         if iter < 7:
-            m1.setParam('MIPGap', 0.20)
+            m1.setParam('MIPGap', 0.10)
         else:
             m1.setParam('MIPGap', 0.15)
 
 
         # solve P1:
+        start_opt = time.time()
         m1.optimize()
         end = time.time()
         time_stamps.append(end-start)
+        time_stamps_nobuild.append(end-start_opt)
         print(f'{utils.bcolors.OKBLUE}P1 took: {end-start}{utils.bcolors.ENDC}')
-        print(f'{utils.bcolors.OKBLUE}Obj1: {m1.ObjVal}{utils.bcolors.ENDC}', iter)
+        #print(f'{utils.bcolors.OKBLUE}Obj1: {m1.ObjVal}{utils.bcolors.ENDC}', iter)
         
         x_par = np.copy(np.array(x.X))
         # f_par = np.copy(np.array(f.X)) # f are variables and not calculated correctly
@@ -246,18 +241,17 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
         """
         m2.setObjective(w_x_fixed + (rho/2)*qsum(contr2_abs_1[i,j] for i in range(K) for j in range(H)), GRB.MINIMIZE)
 
-        #m2.setObjective((rho/2)*qsum(contr2_abs_1[i,j] for i in range(K) for j in range(H)), GRB.MINIMIZE)
-
+    
         m2.update()
+        start_opt = time.time()
         m2.optimize()
         end = time.time()
         print(f'{utils.bcolors.OKBLUE}P2 took: {end-start}{utils.bcolors.ENDC}')
-        print(f'{utils.bcolors.OKBLUE}Obj2: {m2.ObjVal}{utils.bcolors.ENDC}', iter)
-        time_stamps.append(end-start)
+        #print(f'{utils.bcolors.OKBLUE}Obj2: {m2.ObjVal}{utils.bcolors.ENDC}', iter)
         
-        #print(obj_per_iter)
-        #print(y.X)
-
+        time_stamps.append(end-start)
+        #time_stamps_nobuild.append(end-start_opt)
+        
         aaa = LA.norm((np.array(y.X)-np.copy(y_par)), 'fro')**2
         changes_y = 0
         for j in range(K):
@@ -267,24 +261,69 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
 
         y_par = np.copy(np.array(y.X))
 
+
+        # update dual variables
+        temp_mu = np.zeros((K,H))  # just making sure I don't make a mistake
+        for j in range(H):
+            for i in range(K):
+                temp_sum = []
+                for t in range(T):
+                    temp_sum += [x[j,i,t].X]
+                temp_mu[i,j] = np.copy(mu[i,j] + (sum(temp_sum)-(y[i,j].X*proc[i,j])))
+
+        # diff_mu = LA.norm((mu-temp_mu), 'fro')**2
+
+        mu = np.copy(temp_mu)
+
+        # Calculate original objective function:
+
+        calc_obj = np.zeros(K)
+        temptemp = np.multiply(y.X, trans_back)
+        for i in range(K):
+            calc_obj[i] = g_values[i] + np.sum(temptemp[i,:]) + proc_local[i]
+        # print(w_x_fixed.X)
+        
+        
+        obj_per_iter += [max(calc_obj)]
+
+        violated_constraints = 0
+        total_constraints = 0
+        for j in range(H):
+            for i in range(K):
+                if np.all(np.abs(np.rint(ll[j,i])) != proc[i,j]*np.abs(np.rint(y_par[i,j]))):
+                    violated_constraints += 1
+                    #print(np.abs(np.rint(ll[j,i])), proc[i,j]*np.abs(np.rint(y_par[i,j])))
+                total_constraints += 1
+        
+        violations.append((violated_constraints/total_constraints)*100)
+
+        primal_residual = LA.norm((ll.T - np.multiply(y_par, proc)), 'fro')**2
+    
+        print(f"-----------------------------------------------------" +\
+                f"IN iteration {iter} objective equals to: {max(calc_obj)}, violated " +\
+                f"constrains: {violated_constraints}, changes_y {changes_y}," +\
+                f"primal_residual {primal_residual} norm diff(aaa) {aaa} ")
+        #DT = np.append(DT, np.array([[iter, max(calc_obj), changes_y, aaa, violated_constraints, primal_residual]]), axis=0)
+
+
         if changes_y <= 0:
             stable += 1
         else:
             stable = 0
 
         # call sub-problems
-        if iter == 1:#stable >3 or iter == MAX_ITER - 1:
-            flag = -2
+        if iter == 1: #stable >3 or iter == MAX_ITER - 1:
+            flag_exit = True # mark t that we reached the end
+            
             print(f'{utils.bcolors.OKBLUE}Calling the subproblems {iter}{utils.bcolors.ENDC}')
-            # Call subproblem
-            do_it = False
-            x_ = np.zeros((H,K,T))
+            
+            # Call subproblem forward
             x_par = np.zeros((H,K,T))
             y_ = y_par
             all_time = []
             for i in range(H):
                 Kx = list(np.transpose(np.argwhere(y_[:,i]==1))[0]) # finds which data owners are assigned to the machine i
-                print(Kx)
+                print(f'For machine {i+1} I have allocatedd: {Kx}')
                 if len(Kx) == 0:
                     continue
                 
@@ -299,7 +338,14 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
 
                 machine_time = end_sub-start_sub
 
-                if back_flag:
+                jj = 0
+                for j in Kx:
+                    for t in range(Tx):
+                        x_par[i,j,t] = x__[0,jj,t]
+                    jj += 1
+
+
+                if back_flag: # Call sub-problems for back
                     f_temp = np.zeros((len(Kx)))
 
                     for kk in range(len(Kx)):
@@ -336,59 +382,13 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
                         jj += 1
                 
                 all_time.append(machine_time)
-                
-                jj = 0
-                for j in Kx:
-                    for t in range(Tx):
-                        x_par[i,j,t] = x__[0,jj,t]
-                    jj += 1
                     
 
             print(f'Parallel machines longest time {max(all_time)}')
             time_stamps.append(max(all_time))
-
         # END OF IF
 
-        # update dual variables
-        temp_mu = np.zeros((K,H))  # just making sure I don't make a mistake
-        for j in range(H):
-            for i in range(K):
-                temp_sum = []
-                for t in range(T):
-                    temp_sum += [x[j,i,t].X]
-                temp_mu[i,j] = np.copy(mu[i,j] + (sum(temp_sum)-(y[i,j].X*proc[i,j])))
-
-        # diff_mu = LA.norm((mu-temp_mu), 'fro')**2
-
-        mu = np.copy(temp_mu)
-
-        # Calculate original objective function:
-
-        calc_obj = np.zeros(K)
-        temptemp = np.multiply(y.X, trans_back)
-        for i in range(K):
-            calc_obj[i] = g_values[i] + np.sum(temptemp[i,:]) + proc_local[i]
-        # print(w_x_fixed.X)
-        
-        if flag != -2:
-            obj_per_iter += [max(calc_obj)]
-
-        violated_constraints = 0
-        total_constraints = 0
-        for j in range(H):
-            for i in range(K):
-                if np.all(np.abs(np.rint(ll[j,i])) != proc[i,j]*np.abs(np.rint(y_par[i,j]))):
-                    violated_constraints += 1
-                    #print(np.abs(np.rint(ll[j,i])), proc[i,j]*np.abs(np.rint(y_par[i,j])))
-                total_constraints += 1
-        
-        violations.append((violated_constraints/total_constraints)*100)
-
-        primal_residual = LA.norm((ll.T - np.multiply(y_par, proc)), 'fro')**2
-    
-        print("-----------------------------------------------------objective equals to:", iter, max(calc_obj), changes_y, aaa, violated_constraints, primal_residual)
-        #DT = np.append(DT, np.array([[iter, max(calc_obj), changes_y, aaa, violated_constraints, primal_residual]]), axis=0)
-
+    # ------------------------------------------  KEEP STATE ----------------------------------
         
         f_.write("--------Machine allocation--------\n")
 
@@ -432,10 +432,10 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
             f_.write(f'C{i+1}: {C} - {my_super_machine} {y[i,:].X} - {f[i].X}\n')
             reserved[my_super_machine] += 1
         
-        f_.write(f'max is: {max(cs)}\n')
-        print(f'max is: {max(cs)}')
+        f_.write(f'max only forward is: {max(cs)}\n')
+        print(f'{utils.bcolors.FAIL}max only forward is: {max(cs)}{utils.bcolors.ENDC}')
 
-        if back_flag and flag == -2:
+        if back_flag and flag_exit: # we are at the end, and have solved backward() as well
             for i in range(K): #for all jobs
                 my_machine = 0
                 my_super_machine = 0
@@ -450,9 +450,9 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
                 C = fmax + proc_local_back[i] + trans_back_gradients[i,my_machine]
                 cs_back.append(C)
 
-            print(f'BACK max is: {max(cs_back)}')
+            print(f'{utils.bcolors.FAIL}BACK max is: {max(cs_back)}{utils.bcolors.ENDC}')
        
-        if flag == -2:
+        if flag_exit:
             if back_flag:
                 obj_per_iter += [max(cs_back)]
             else:
@@ -547,19 +547,34 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
                         violated = True
         
         if violated:
-            f_.write('VIOLATED\n')
+            print('VIOLATED')
+            if flag_exit:
+                violations.append(100)
         else:
             f_.write('OK\n')
+            if flag_exit:
+                violations.append(0)
     
     f_.close()
 
     total_time = 0
+    #print("All intermediate time durations:")
     for t in time_stamps:
-        print(t)
+        #print(t)
         total_time += t
 
     print(f"{utils.bcolors.FAIL}Total time {total_time}{utils.bcolors.ENDC}")
 
+    '''
+    total_time = 0
+    for t in time_stamps_nobuild:
+        print(t)
+        total_time += t
+
+    print(f"{utils.bcolors.FAIL}Total time without all buildings: {total_time}{utils.bcolors.ENDC}")
+    '''
+    print(violations)
+    print(obj_per_iter)
     return(violations, obj_per_iter)
     
 
