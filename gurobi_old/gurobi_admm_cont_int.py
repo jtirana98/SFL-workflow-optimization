@@ -15,7 +15,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 K = 50 # number of data owners
-H = 2 # number of compute nodes
+H = 5 # number of compute nodes
 utils.file_name = 'fully_symmetric.xlsx'
 
 def run(filename='', testcase='fully_heterogeneous'):
@@ -59,7 +59,7 @@ def run(filename='', testcase='fully_heterogeneous'):
 
     m1 = gp.Model("cont_prob")
     m2 = gp.Model("int_prob")
-
+    m2.setParam('MIPGap', 0.20) # 5%
     rho = 1
     
     # define variables - problem 1
@@ -136,7 +136,7 @@ def run(filename='', testcase='fully_heterogeneous'):
     for j in range(H): #for all machines
         for i in range(K):
             m1.addConstr( qsum(x_cont[j,i,:]) == y_cont[i,j]*proc[i,j])
-    '''
+    
     # K6
     for j in range(H): #for all machines
         for i in range(K):
@@ -145,7 +145,7 @@ def run(filename='', testcase='fully_heterogeneous'):
     # K7
     for i in range(K):
          m1.addConstrs( w_cont >= qsum(trans_back[i,:] * y_cont[i,:]) + f_cont[i] + proc_local[i] for i in range(K))
-    '''
+    
     
     # SECOND PROM CONSTRAINTS
     
@@ -185,7 +185,11 @@ def run(filename='', testcase='fully_heterogeneous'):
     my_ds1 = []
     my_ds2 = []
     step = 0
-    while step<20:
+    violations_x = []
+    violations_y = []
+    violations_f = []
+    violations_w = []
+    while step<2:
         print(f"{utils.bcolors.OKBLUE}-------------{step}------------{utils.bcolors.ENDC}")
         f_log.write(f"-------------{step}------------\n")
 
@@ -258,18 +262,7 @@ def run(filename='', testcase='fully_heterogeneous'):
                           + (rho/2)*qsum(contr2_abs_x[j,i,t] for t in range(T) for i in range(K) for j in range(H))
                           , GRB.MINIMIZE)
 
-        #m2.setParam('MIPGap', 0.30) # 5%
-        '''
-        if step == 3:
-            # K6 
-            for j in range(H): #for all machines
-                for i in range(K):
-                    m2.addConstrs( f_int[i] >= (t+1)*x_int[j,i,t] for t in range(T))
-            # K7
-            for i in range(K):
-                m2.addConstrs( w_int >= qsum(trans_back[i,:] * y_int[i,:]) + f_int[i] + proc_local[i] for i in range(K))
-            #m2.setParam('MIPGap', 0.30) 
-        '''
+        
         m2.reset()
         m2.update()
 
@@ -284,10 +277,6 @@ def run(filename='', testcase='fully_heterogeneous'):
         y_int_par = np.copy(np.array(y_int.X))
         f_int_par = np.copy(np.array(f_int.X))
         w_int_par = w_int.X
-
-        print('--------------- SHOW 2 ---------------')
-        print(f_int.X)
-        print(y_int.X)
 
         # update dual variables
         w_dual = w_dual + np.abs(w_cont.X - w_int.X)
@@ -307,11 +296,18 @@ def run(filename='', testcase='fully_heterogeneous'):
 
         print(f'{utils.bcolors.OKBLUE}OPTIMAL VALUE: {w_int.X}{utils.bcolors.ENDC}')
         f_log.write((f'OPTIMAL VALUE: {w_int.X}\n'))
-        ws.append(w_int[0].X)
+
 
         # count violations?
 
-        
+        # variable x
+        violations_x.append(100*LA.norm(np.array(x_int.X) - np.array(x_cont.X))/np.array(x_int.X))
+        # variable y
+        violations_y.append(100*LA.norm(np.array(y_int.X) - np.array(y_cont.X))/np.array(y_int.X))
+        # variable f
+        violations_f.append(100*LA.norm(np.array(f_int.X) - np.array(f_cont.X))/np.array(f_int.X))
+        # variable w
+        violations_w.append(100*LA.norm(np.array(w_int.X) - np.array(w_cont.X))/np.array(w_int.X))
 
         f_log.write("--------Machine allocation--------\n")
         for i in range(H):
@@ -352,11 +348,11 @@ def run(filename='', testcase='fully_heterogeneous'):
             f_log.write(f'C{i+1}: {C} - {my_super_machine} {y_int[i,:].X} - {f_int[i].X}\n')
             reserved[my_super_machine] += 1
         
-        #max_c.append(max(cs))
+        max_c.append(max(cs))
         w_int_par =  max(cs)      
         f_log.write(f'max is: {max(cs)}\n')
         print(f'{utils.bcolors.OKBLUE}max is: {max(cs)}{utils.bcolors.ENDC}')
-
+        ws.append(w_int.X)
         f_log.write("check other constraints\n")
         violated = False
         for i in range(K): #for all jobs
@@ -428,7 +424,9 @@ def run(filename='', testcase='fully_heterogeneous'):
 
     f_log.close()
     print(max_c)
-    return #(ws, violations_1, violations_2, max_c, accepted)
+    
+    
+    return (ws, (violations_x,violations_y, violations_f, violations_w), max_c)
 
 if __name__ == '__main__':
     run()

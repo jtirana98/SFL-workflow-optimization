@@ -21,7 +21,7 @@ utils.file_name = 'fully_symmetric.xlsx'
 def run(filename='', testcase='fully_symmetric'):
     #fully_heterogeneous
     #fully_symmetric
-
+    start = time.time()
     if testcase == 'fully_symmetric':
         utils.file_name = 'fully_symmetric.xlsx'
     else:
@@ -154,10 +154,13 @@ def run(filename='', testcase='fully_symmetric'):
     my_ds2 = []
     stable = 0
     stop = False
-    while step<10 or stop:
+    time_stamps = []
+    while step<4 or stop:
         print(f"{utils.bcolors.OKBLUE}-------------{step}------------{utils.bcolors.ENDC}")
         f_log.write(f"-------------{step}------------\n")
 
+        if step >=1:
+            start = time.time()
         
         if step>=1:
             for d in my_ds1:
@@ -211,14 +214,21 @@ def run(filename='', testcase='fully_symmetric'):
         m1.reset()
         m1.update()
 
+        if step == 0:
+            end = time.time()
+            time_stamps.append(end-start)
+            start = time.time()
+
         #print('---------------------------------------------------')
         #print(len(m1.getConstrs()))
         #print('---------------------------------------------------')
 
         # solve P1:
-        start = time.time()
+        
         m1.optimize()
         end = time.time()
+        time_stamps.append(end-start)
+
         print(f'{utils.bcolors.OKBLUE}P1 took: {end-start}{utils.bcolors.ENDC}')
         print(f'{utils.bcolors.OKBLUE}Obj1: {m1.ObjVal}{utils.bcolors.ENDC}')
 
@@ -264,7 +274,7 @@ def run(filename='', testcase='fully_symmetric'):
         f_ = np.copy(np.array(f.X))
         w_ = np.copy(np.array(w.X))
         s_ = np.copy(np.array(s.X))
-
+        start = time.time()
         for i in range(K):
             for j in range(H):
                 if step>=1:
@@ -303,9 +313,10 @@ def run(filename='', testcase='fully_symmetric'):
             m2.setParam('MIPGap', 0.0001)
         '''
         
-        start = time.time()
+        
         m2.optimize()
         end = time.time()
+        time_stamps.append(end-start)
         print(f'{utils.bcolors.OKBLUE}P2 took: {end-start}{utils.bcolors.ENDC}')
         print(f'{utils.bcolors.OKBLUE}Obj2: {m2.ObjVal}{utils.bcolors.ENDC}')
         
@@ -363,7 +374,7 @@ def run(filename='', testcase='fully_symmetric'):
 
         print(f"Violations 2 --- {counter} from {total_counter}")
         
-
+        start = time.time()
         for i in range(H):
             k = 0
             last_zero = -1
@@ -389,6 +400,10 @@ def run(filename='', testcase='fully_symmetric'):
                 k = k + 1
                 if k == T:
                     break
+
+        end = time.time()
+        time_stamps.append(end-start)  
+
 
         f_log.write("--------Machine allocation--------\n")
         for i in range(H):
@@ -554,6 +569,11 @@ def run(filename='', testcase='fully_symmetric'):
     #print(f'violations: {violations}')
     #for v in m2.getVars():
     #    print('%s %g' % (v.VarName, v.X))
+
+    print('TIME PERIODS')
+    for t in time_stamps:
+        print(f'{t}', end='\t')
+
     return (ws, violations_1, violations_2, max_c, accepted)
       
 if __name__ == '__main__':

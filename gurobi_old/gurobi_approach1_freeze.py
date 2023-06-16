@@ -35,15 +35,15 @@ def run(filename='', testcase='fully_symmetric'):
     if utils.file_name != 'fully_symmetric.xlsx':
         if H == 2:
             if K == 50:
-                memory_capacity = np.array([30,120])
+                memory_capacity = np.array([120,120])
             else:
-                memory_capacity = np.array([105,195])
+                memory_capacity = np.array([270,270])
 
         if H == 5:
             if K == 50:
-                memory_capacity = np.array([63, 48,  9, 21, 24])
-            if K == 10:
-                memory_capacity = np.array([12, 12, 3,  6,  3])
+                memory_capacity = np.array([21, 150,  150, 21, 150])
+            if K == 100:
+                memory_capacity = np.array([21, 300, 300,  21,  300])
     
     if filename != '':
         f_ = open(filename, "a")
@@ -61,7 +61,7 @@ def run(filename='', testcase='fully_symmetric'):
     m1 = gp.Model("relax_approach_1_p1")
     m2 = gp.Model("relax_approach_1_p2")
 
-    m2.setParam('MIPGap', 0.12) 
+    
     # define variables - problem 1
     
     y = m1.addMVar(shape=(K,H), vtype=GRB.BINARY, name="y")
@@ -153,8 +153,6 @@ def run(filename='', testcase='fully_symmetric'):
 
         m1.update()
         
-        m2.setObjective(qsum(x[i,j,t]*(mama[i,t,j]*(t+1) - lala[j,i]) for i in range(H) for j in range(K) for t in range(T)), GRB.MINIMIZE)
-        m2.update()
         
         if step == 0:
             end = time.time()
@@ -178,6 +176,7 @@ def run(filename='', testcase='fully_symmetric'):
             print(f'IT IS THE SAME {stable}')
         else:
             print(f'NOT THE SAME {w_prev}')
+            stable = 0
 
         w_prev = int(w[0].X)
 
@@ -189,7 +188,7 @@ def run(filename='', testcase='fully_symmetric'):
         print("-------------------------------")
 
         ws.append(w[0].X)
-        if stable > 3:
+        if stable >= 3:
             print(f'{utils.bcolors.OKBLUE}Calling the subproblems{utils.bcolors.ENDC}')
             # Call subproblem
             do_it = False
@@ -201,6 +200,9 @@ def run(filename='', testcase='fully_symmetric'):
             for i in range(H):
                 Kx = list(np.transpose(np.argwhere(y_[:,i]==1))[0]) # finds which data owners are assigned to the machine i
                 print(Kx)
+                if len(Kx) == 0:
+                    continue
+                
                 procx = np.copy(proc[Kx, i])  # this is a row-vector
                 
                 release_datex = np.copy(release_date[Kx, i])
@@ -263,7 +265,7 @@ def run(filename='', testcase='fully_symmetric'):
             f_.write(f'max is: {max(cs)}\n')
             #max_ = max(cs)         
             max_c.append(max(cs))
-            #print(f'max is: {max(cs)}')
+            print(f'FINAL max is: {max(cs)}')
             f_.write("check other constraints\n")
             violated = False
             for i in range(K): #for all jobs
@@ -345,7 +347,7 @@ def run(filename='', testcase='fully_symmetric'):
             for t in time_stamps:
                 print(f'{t}', end='\t')
                 total += t
-            print(f'Total time {t}')
+            print(f'\nTotal time {total}')
 
             print('Violations 1')
             for v in violations_3:
@@ -397,23 +399,37 @@ def run(filename='', testcase='fully_symmetric'):
                 # store the history
                 y_temp = np.copy(np.array(y.X))
                 y_history[maxCC] = y_temp
-                print(y_history[maxCC])
                 print(f'ADDING NEW ENTRY {maxCC}')
                 print(maxCC)
             else:
                 add = False
             
-            '''
+            
             if step<3:
-                m2.setParam('MIPGap', 0.12) # 5%
+                m2.setParam('MIPGap', 0.532) # 5%
             else:
-                m2.setParam('MIPGap', 0.0001)
+                m2.setParam('MIPGap', 0.256)
 
-            '''
-            m2.update()
 
 
             start = time.time()
+
+           # if step == 2:
+            #    for i in range(K):
+            #        m2.addConstr(qsum(qsum(x[j,i,t] for t in range(T))/proc[i,j] for j in range(H)) == 1)
+
+
+            m2.setObjective(qsum(x[i,j,t]*(mama[i,t,j]*(t+1) - lala[j,i]) for i in range(H) for j in range(K) for t in range(T)), GRB.MINIMIZE)
+            
+            #if step == 0:
+            
+            #else:
+            #    m2.setParam('MIPGap', 0.267)
+            #m2.setParam('MIPGap', 0.123) # 5%
+            m2.update()
+
+
+            
             m2.optimize()
             end = time.time()
             
