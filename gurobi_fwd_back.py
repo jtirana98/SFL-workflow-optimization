@@ -16,6 +16,9 @@ utils.file_name = 'fully_symmetric.xlsx'
 
 def run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, memory_capacity, 
         release_date_back, proc_bck, proc_local_back, trans_back_gradients, filename=''):
+    
+    f_y = open(f'test_{K}_{H}', "w")
+
     start = time.time()
 
     T = np.max(release_date_fwd) + K*np.max(proc_fwd[0,:]) + np.max(release_date_back) + K*np.max(proc_bck[0,:]) \
@@ -124,6 +127,10 @@ def run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, memo
     print(f'{utils.bcolors.OKBLUE}TOTAL TIME: {(end-start) + build_time}{utils.bcolors.ENDC}')
     print(f'{utils.bcolors.OKBLUE}Objective is: {m.ObjVal}{utils.bcolors.ENDC}')
 
+    f_y.write(f'Optima solution\n')
+    f_y.write(f'{np.rint(y.X)}\n')
+    f_y.close()
+    
     return(m.ObjVal)
 
 if __name__ == '__main__':
