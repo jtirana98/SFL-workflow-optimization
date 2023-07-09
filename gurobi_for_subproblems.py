@@ -73,6 +73,94 @@ def for_each_machine(K, release_date, proc, proc_local, trans_back, memory_capac
 
     return(x.X)
 
+def for_each_machine_fwd_back(K, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations,
+                            release_date_back, proc_bck, proc_local_back, trans_back_gradients, memory_capacity, T):
+    H = 1
+
+    ones_H = np.ones((H,1))
+    ones_K = np.ones((K,1))
+    ones_T = np.ones((T,1))
+
+    m = gp.Model("fwd_only")
+
+    # define variables
+    print(f" Memory: {memory_capacity}")
+    print(f"T: {T}")
+    
+    x = m.addMVar(shape = (H,K,T), vtype=GRB.BINARY, name="x")
+    y = m.addMVar(shape=(K,H), vtype=GRB.BINARY, name="y")
+    z = m.addMVar(shape = (H,K,T), vtype=GRB.BINARY, name="z")
+
+    f = m.addMVar(shape=(K), vtype=GRB.INTEGER, name="f")
+    
+    maxobj = m.addMVar(shape=(1),vtype=GRB.INTEGER, name="maxobj")
+    comp = m.addMVar(shape=(K),vtype=GRB.INTEGER, name="comp")
+
+
+   # C1: job cannot be assigned to a time interval before the release time
+    for i in range(H): #for all devices
+        for j in range(K): #for all jobs
+            for t in range(T): #for all timeslots
+                if t < release_date_fwd[j]:
+                    m.addConstr(x[i,j,t] == 0)   
+    
+    # C3: all jobs interval are assigned to one only machine
+    m.addConstr( y @ ones_H == ones_K )
+
+    # C4: memory constraint
+    m.addConstr((y.T * utils.max_memory_demand) @ ones_K <= memory_capacity.reshape(ones_H.shape))
+    
+    # C6: machine processes only a single job at each interval
+    for j in range(H): #for all devices
+        m.addConstr( x[j,:,:].T @ ones_K <= ones_T )
+
+    # C9: new constraint - the merge of C2 and C3 (job should be process all once and only in one machine)
+    for j in range(H): #for all machines
+        for i in range(K):
+            m.addConstr( qsum(x[j,i,:]) == y[i,j]*proc_fwd[j])
+
+    for i in range(K): #for all jobs
+        for j in range(H):
+            temp = proc_local_fwd[i] + trans_back_activations[i] + release_date_back[j]
+
+            for t in range(temp):
+                m.addConstr(z[j,i,t] == 0)
+
+            for t in range(T):
+                if t + temp >= T:
+                    break
+                
+                m.addConstr(z[j,i,t+temp] <= qsum(x[j,i,l] for l in range(t))/proc_fwd[i])
+
+    # C10: backprop job should be processed entirely once and in the same machine as fwd
+    for i in range(K): #for all jobs
+        for j in range(H):
+            m.addConstr(qsum(z[j, i, t] for t in range(T))/ proc_bck[i] == y[i,j])
+    
+    # C11: machine processes only a single job at each interval
+    for j in range(H): #for all devices
+        m.addConstr( x[j,:,:].T + z[j,:,:].T @ ones_K <= ones_T )
+ 
+        
+    for j in range(H): #for all machines
+        for i in range(K):
+            m.addConstrs( f[i] >= (t+1)*z[j,i,t] for t in range(T))
+
+
+    # Define objective function
+    
+    m.addConstrs(comp[i] == qsum(trans_back_gradients[i] * y[i,:]) + f[i] + proc_local_back[i] for i in range(K))
+       
+    
+    max_constr = m.addConstr(maxobj == gp.max_(comp[i] for i in range(K)))
+
+
+    m.update()
+    m.optimize()
+   
+    return(x.X,z.X)
+
+
 def for_each_machine_back(K, release_date, proc, proc_local, trans_back, memory_capacity, T, x):
     H = 1
 

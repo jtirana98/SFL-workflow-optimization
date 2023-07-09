@@ -8,6 +8,8 @@ import time
 import gurobi_solver
 import gurobi_fwd_back
 import gurobi_final_approach
+import guro_fwd_back
+import heuristic
 import utils
 
 def get_args():
@@ -16,10 +18,13 @@ def get_args():
     parser.add_argument('--log', type=str, default='test1.txt', help='filename for the logging')
     parser.add_argument('--data_owners', '-K', type=int, default=50, help='the number of data owners')
     parser.add_argument('--compute_nodes', '-H', type=int, default=2, help='the number of compute nodes')
-    parser.add_argument('--splitting_points', '-S', type=str, default='3,35', help='give an input in the form of s1,s2')
-    parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
+    parser.add_argument('--splitting_points', '-S', type=str, default='3,23', help='give an input in the form of s1,s2')
+    parser.add_argument('--model', '-m', type=str, default='vgg19', help='select model resnet101/vgg19')
     parser.add_argument('--repeat', '-r', type=str, default='', help='avoid generating input include file')
-    parser.add_argument('--back', '-b', type=int, default=0, help='include backpropagation')
+    parser.add_argument('--back', '-b', type=int, default=0, help='0: only fwd, 1: include backpropagation')
+    parser.add_argument('--fifo', '-f', type=int, default=0, help='run fifo with load balancer')
+    parser.add_argument('--gap', '-g', type=int, default=0, help='run fifo with gap')
+    parser.add_argument('--scenario', '-s', type=int, default=1, help='scenario')
     #parser.add_argument('--approach', type=str, default='approach3', help='select one of the approaches: approach1a/approach1aFreeze/approach2/approach3')
     args = parser.parse_args()
     return args
@@ -38,6 +43,15 @@ if __name__ == '__main__':
     if args.back == 1:
         back_flag = True
     
+    fifo_flag = False
+    if args.fifo == 1:
+        fifo_flag = True
+    
+    gap_flag = False
+    if args.gap == 1:
+        gap_flag = True
+    
+    scenario = args.scenario
     
     splitting_points = args.splitting_points
 
@@ -54,7 +68,7 @@ if __name__ == '__main__':
         if model_type == 'resnet101':
             filename = 'real_data/resnet101_CIFAR.xlsx'
         elif model_type == 'vgg19':
-            filename = 'real_data/vgg19.xlsx'
+            filename = 'real_data/vgg19_CIFAR.xlsx'
 
 
         df_vm = pd.read_excel(io=filename, sheet_name='VM', header=None)
@@ -84,6 +98,11 @@ if __name__ == '__main__':
             laptop_proc_fwd += laptop_data[i][0]
             laptop_proc_back += laptop_data[i][1] + laptop_data[i][2]
 
+        max_proc_fwd = int(max([vm_proc_fwd, laptop_proc_fwd]))
+        min_proc_fwd = int(min([vm_proc_fwd, laptop_proc_fwd]))
+
+        max_proc_back = int(max([vm_proc_back, laptop_proc_back]))
+        min_proc_back = int(min([vm_proc_back, laptop_proc_back]))
         
         # processing time on d1
         d1_data = df_d1.values.tolist()
@@ -146,6 +165,38 @@ if __name__ == '__main__':
             d2_proc_back_last += d2_data[i][1] + d2_data[i][2]
 
 
+        print('devices time fwd first:')
+        print(f'd1: {d1_proc_fwd_first}')
+        print(f'd2: {d2_proc_fwd_first}')
+        print(f'jetson-cpu: {jetson_cpu_proc_fwd_first}')
+        print(f'gpu1: {jetson_gpu_proc_fwd_first}')
+        max_fwd_first = int(max([d1_proc_fwd_first, d2_proc_fwd_first, jetson_cpu_proc_fwd_first, jetson_gpu_proc_fwd_first]))
+        min_fwd_first = int(min([d1_proc_fwd_first, d2_proc_fwd_first, jetson_cpu_proc_fwd_first, jetson_gpu_proc_fwd_first]))
+
+        print('devices time fwd last:')
+        print(f'd1: {d1_proc_fwd_last}')
+        print(f'd2: {d2_proc_fwd_last}')
+        print(f'jetson-cpu: {jetson_cpu_proc_fwd_last}')
+        print(f'gpu1: {jetson_gpu_proc_fwd_last}')
+        max_fwd_last = int(max([d1_proc_fwd_last, d2_proc_fwd_last, jetson_cpu_proc_fwd_first, jetson_gpu_proc_fwd_last]))
+        min_fwd_last = int(min([d1_proc_fwd_last, d2_proc_fwd_last, jetson_cpu_proc_fwd_first, jetson_gpu_proc_fwd_last]))
+
+        print('devices time back first:')
+        print(f'd1: {d1_proc_back_first}')
+        print(f'd2: {d2_proc_back_first}')
+        print(f'jetson-cpu: {jetson_cpu_proc_back_first}')
+        print(f'gpu1: {jetson_gpu_proc_back_first}')
+        max_back_first = int(max([d1_proc_back_first, d2_proc_back_first, jetson_cpu_proc_back_first, jetson_gpu_proc_back_first]))
+        min_back_first = int(min([d1_proc_back_first, d2_proc_back_first, jetson_cpu_proc_back_first, jetson_gpu_proc_back_first]))
+
+        print('devices time back last:')
+        print(f'd1: {d1_proc_back_last}')
+        print(f'd2: {d2_proc_back_last}')
+        print(f'jetson-cpu: {jetson_cpu_proc_back_last}')
+        print(f'gpu1: {jetson_gpu_proc_back_last}')
+        max_back_last = int(max([d1_proc_back_last, d2_proc_back_last, jetson_cpu_proc_back_first, jetson_gpu_proc_back_last]))
+        min_back_last = int(min([d1_proc_back_last, d2_proc_back_last, jetson_cpu_proc_back_first, jetson_gpu_proc_back_last]))
+
         memory_data = df_memory.values.tolist()
         
         # travel data
@@ -163,7 +214,7 @@ if __name__ == '__main__':
         store_compute_node = 0
         for i in range(point_a, point_b):
             store_compute_node += memory_data[i][0] + memory_data[i][1]
-        store_compute_node = (store_compute_node/1024) # prefer GB
+        store_compute_node = (store_compute_node/1024) # prefer MB
 
         my_net = lambda data,bandwidth : ((data*0.000008)/bandwidth)*1000
         network_connections = [ lambda a : ((a*0.000008)/8)*1000, # 8 Mbits/sec
@@ -250,21 +301,26 @@ if __name__ == '__main__':
             completed.append(net_line)
             network_type[int(net_line/H),int(net_line%H)] = random.randint(16,20)
 
-        print(len(set(completed)))
+        #print(len(set(completed)))
 
-        for i in range(K):
-            for j in range(H):
-                print(network_type[i,j], end='\t')
-            print('')
+        #for i in range(K):
+         #   for j in range(H):
+         #       print(network_type[i,j], end='\t')
+         #   print('')
 
         # compute node device type 
         # we have:
         # 0 for vm
         # 1 for laptop
+        
+        print('MACHINES')
         machine_devices = np.zeros((H))
         for i in range(H):
             machine_devices[i] = random.randint(0,1)
+            print(f'{machine_devices[i]}', end='\t')
 
+        print(' ')
+        
         # data owner device type 
         # we have:
         # 0 for d1
@@ -274,18 +330,57 @@ if __name__ == '__main__':
         do_devices = np.zeros((K))
         for i in range(K):
             do_devices[i] = random.randint(0,3)
-
+            do_devices[i] = 0
+        do_devices[2] = 1
         # forward parameters
         release_date = np.zeros((K,H))
+        release_date_proc = np.zeros((K,H))
         proc = np.zeros((K,H))
         proc_local = np.zeros((K))
         trans_back = np.zeros((K, H))
 
         # back-propagation parameters
         release_date_back = np.zeros((K,H))
+        release_date_back_proc = np.zeros((K,H))
         proc_bck = np.zeros((K,H))
         proc_local_back =np.zeros((K))
         trans_back_gradients = np.zeros((K, H))
+
+        if scenario == 2:
+            release_date_ = np.zeros((K))
+            release_date_back_ = np.zeros((K))
+            proc_local_ = np.zeros((K))
+            proc_local_back_ = np.zeros((K))
+            
+            proc_fwd_ = np.zeros((H))
+            proc_back_ = np.zeros((H))
+        
+            for j in range(K):
+                release_date_[j] =  random.randint(min_fwd_first, max_fwd_first)
+                release_date_back_[j] = random.randint(min_back_last, max_back_last)
+                proc_local_[j] =  random.randint(min_fwd_last, max_fwd_last)
+                proc_local_back_[j] =  random.randint(min_back_first, max_back_first)
+            
+
+            release_date_.sort()
+            release_date_back_.sort()
+            proc_local_.sort()
+            proc_local_back_.sort()
+
+            for j in range(K):
+                do_devices[j] = int(random.randint(0, K-1))
+                
+
+            for i in range(H):
+                proc_fwd_[i] =  random.randint(min_proc_fwd, max_proc_fwd)
+                proc_back_[i] = random.randint(min_proc_back, max_proc_back)
+
+            proc_fwd_.sort()
+            proc_back_.sort()
+
+            for i in range(H):
+                machine_devices[i] = int(random.randint(0, H-1))
+
 
         for j in range(K):
             for i in range(H):
@@ -297,125 +392,175 @@ if __name__ == '__main__':
                 release_date_back[j,i] = my_net(activations_to_do, indx)
                 trans_back_gradients[j,i] = my_net(activations_to_cn, indx)
                 
-                if int(do_devices[j]) == 0:
-                    release_date[j,i] +=  d1_proc_fwd_first
-                    release_date_back[j,i] += d1_proc_back_last
-                elif int(do_devices[j]) == 1:
-                    release_date[j,i] +=  d2_proc_fwd_first
-                    release_date_back[j,i] += d2_proc_back_last
-                elif int(do_devices[j]) == 3:
-                    release_date[j,i] +=  jetson_cpu_proc_fwd_first
-                    release_date_back[j,i] += jetson_cpu_proc_back_last
-                elif int(do_devices[j]) == 2:
-                    release_date[j,i] +=  jetson_gpu_proc_fwd_first
-                    release_date_back[j,i] += jetson_gpu_proc_back_last
-                    
-                if i == 0:
+                if scenario == 1:
                     if int(do_devices[j]) == 0:
-                        proc_local[j] =  d1_proc_fwd_last
-                        proc_local_back[j] =  d1_proc_back_first
-                    elif int(do_devices[j]) == 1:
-                        proc_local[j] =  d2_proc_fwd_last
-                        proc_local_back[j] =  d2_proc_back_first
-                    elif int(do_devices[j]) == 2:
-                        proc_local[j] =  jetson_cpu_proc_fwd_last
-                        proc_local_back[j] =  jetson_cpu_proc_back_first
-                    elif int(do_devices[j]) == 3:
-                        proc_local[j] =  jetson_gpu_proc_fwd_last
-                        proc_local_back[j] =  jetson_gpu_proc_back_first
-                    
-                
-                if int(machine_devices[i]) == 0:
-                    proc[j,i] =  vm_proc_fwd
-                    proc_bck[j,i] =  vm_proc_back
-                elif int(machine_devices[i]) == 1:
-                    proc[j,i] = laptop_proc_fwd
-                    proc_bck[j,i] = laptop_proc_back
+                        release_date[j,i] +=  d1_proc_fwd_first
+                        release_date_proc[j,i] = d1_proc_fwd_first
+                        release_date_back[j,i] += d1_proc_back_last
 
+                        release_date_proc[j,i] = d1_proc_fwd_first
+                        release_date_back_proc[j,i] = d1_proc_back_last
+                    elif int(do_devices[j]) == 1:
+                        release_date[j,i] +=  d2_proc_fwd_first
+                        release_date_back[j,i] += d2_proc_back_last
+
+                        release_date_proc[j,i] = d2_proc_fwd_first
+                        release_date_back_proc[j,i] = d2_proc_back_last
+                    elif int(do_devices[j]) == 3:
+                        release_date[j,i] +=  jetson_cpu_proc_fwd_first
+                        release_date_back[j,i] += jetson_cpu_proc_back_last
+
+                        release_date_proc[j,i] = jetson_cpu_proc_fwd_first
+                        release_date_back_proc[j,i] = jetson_cpu_proc_back_last
+                    elif int(do_devices[j]) == 2:
+                        release_date[j,i] +=  jetson_gpu_proc_fwd_first
+                        release_date_back[j,i] += jetson_gpu_proc_back_last
+
+                        release_date_proc[j,i] = jetson_gpu_proc_fwd_first
+                        release_date_back_proc[j,i] = jetson_gpu_proc_back_last
+
+                if scenario == 2:
+                    release_date[j,i] +=  release_date_[int(do_devices[j])]
+                    release_date_back[j,i] += release_date_back_[int(do_devices[j])]
+
+                    release_date_proc[j,i] = release_date_[int(do_devices[j])]
+                    release_date_back_proc[j,i] = release_date_[int(do_devices[j])]
+
+                if i == 0:
+                    if scenario == 1:
+                        if int(do_devices[j]) == 0:
+                            proc_local[j] =  d1_proc_fwd_last
+                            proc_local_back[j] =  d1_proc_back_first
+                        elif int(do_devices[j]) == 1:
+                            proc_local[j] =  d2_proc_fwd_last
+                            proc_local_back[j] =  d2_proc_back_first
+                        elif int(do_devices[j]) == 2:
+                            proc_local[j] =  jetson_cpu_proc_fwd_last
+                            proc_local_back[j] =  jetson_cpu_proc_back_first
+                        elif int(do_devices[j]) == 3:
+                            proc_local[j] =  jetson_gpu_proc_fwd_last
+                            proc_local_back[j] =  jetson_gpu_proc_back_first
+
+                    if scenario == 2:
+                        proc_local[j] =  proc_local_[int(do_devices[j])]
+                        proc_local_back[j] =  proc_local_back[int(do_devices[j])]
+
+   
+                if scenario == 1:
+                    if int(machine_devices[i]) == 0:
+                        proc[j,i] =  vm_proc_fwd
+                        proc_bck[j,i] =  vm_proc_back
+                    elif int(machine_devices[i]) == 1:
+                        proc[j,i] = laptop_proc_fwd
+                        proc_bck[j,i] = laptop_proc_back
+
+                if scenario == 2:
+                    proc[j,i] =  proc_fwd_[int(machine_devices[i])]
+                    proc_bck[j,i] = proc_back_[int(machine_devices[i])]
+
+                        
+         
                         
         memory_demand = np.ones((K)) * store_compute_node
         for i in range(K):
             memory_demand[i] = int(math.ceil(memory_demand[i]))
 
-        print(f'Memory --- {memory_demand}')
+        #print(f'Memory --- {memory_demand}')
         utils.max_memory_demand = int(max(memory_demand))
-        
+        print("MEMORY CAPACITY")
         memory_capacity = np.array(utils.get_memory_characteristics(H, K))
         for i in range(len(memory_capacity)):
             memory_capacity[i] = int(memory_capacity[i])
-
-        unique_friends = []
-        unique_friends_back = []
+            print(f'{int(memory_capacity[i])/int(utils.max_memory_demand)}', end=',\t')
+            #memory_capacity[i] = int(max(memory_demand))*K
+        print(' ')
         
-        print('proc')
+        array_mine = [14, 0, 2, 2, 4, 0, 2, 1, 0, 0, 1, 0, 2, 1, 1]
+        
+        array_mine = [11.0,	40.0,	11.0,	50.0,	4.0]
+        
+        for i in range(len(array_mine)):
+            memory_capacity[i] = int(array_mine[i]*utils.max_memory_demand)
+            print(f'{int(memory_capacity[i])/int(utils.max_memory_demand)}', end=',\t')
+            #memory_capacity[i] = int(max(memory_demand))*K
+        print(' ')
+        
+        unique_friends = []
+        
+        #print('proc')
         for i in range(H):
-            print(f'{proc[0,i]}--{int(machine_devices[i])}', end='\t')
-            print(f'{proc_bck[0,i]}--{int(machine_devices[i])}', end='\t')
-            print('~~~~~')
+         #   print(f'{proc[0,i]}--{int(machine_devices[i])}', end='\t')
+         #   print(f'{proc_bck[0,i]}--{int(machine_devices[i])}', end='\t')
+         #   print('~~~~~')
             unique_friends.append(int(np.rint(proc[0,i])))
-            unique_friends_back.append(int(np.rint(proc_bck[0,i])))
+            unique_friends.append(int(np.rint(proc_bck[0,i])))
         #print('')
 
         #print('release date')
         for j in range(K):
             for i in range(H):
-                #print(f'{release_date[j,i]}--{int(network_type[j,i])}--{int(do_devices[j])}', end='\t')
+         #       print(f'{release_date[j,i]}--{int(network_type[j,i])}--{int(do_devices[j])}', end='\t')
                 unique_friends.append(int(np.rint(release_date[j,i])))
-                unique_friends_back.append(int(np.rint(release_date_back[j,i])))
-            #print('')
+                unique_friends.append(int(np.rint(release_date_back[j,i])))
+          #  print('')
+
+       # print('release date back')
+        for j in range(K):
+            for i in range(H):
+                print(f'{release_date_back[j,i]}', end='\t')
+        #    print('')
 
         #print('proc local: ')
         for j in range(K):
-            #print(f'{proc_local[j]}', end='\t')
+         #   print(f'{proc_local[j]}', end='\t')
             unique_friends.append(int(np.rint(proc_local[j])))
-            unique_friends_back.append(int(np.rint(proc_local_back[j])))
+            unique_friends.append(int(np.rint(proc_local_back[j])))
         #print('')
 
         #print('trans back: ')
         for j in range(K):
             for i in range(H):
-                #print(f'{trans_back[j,i]}', end='\t')
+         #       print(f'{trans_back[j,i]}', end='\t')
                 unique_friends.append(int(np.rint(trans_back[j,i])))
-                unique_friends_back.append(int(np.rint(trans_back_gradients[j,i])))
-            #print('')
+                unique_friends.append(int(np.rint(trans_back_gradients[j,i])))
+          #  print('')
         
         print('\n----------------------     max values:  -------------------\n')
-        max_value = max(max(unique_friends), max(unique_friends_back))
-        max_value_back = max(unique_friends_back)
+        max_value = max(unique_friends)
         print('-------------------')
-        print(unique_friends)
-        print(math.gcd(*unique_friends))
+        #print(unique_friends)
+        print('')
         print(f'max is {max_value}')
-        print(max_value_back)
-        print(min(unique_friends))
         print('\n----------------------     max values:  -------------------\n')
         
         # Re-difine parameters
-        max_slot = 500
-        max_slot_back = 50
+        max_slot = 100
+        max_slot_back = max_slot
+
+
         for j in range(K):
             for i in range(H):
                 
-                release_date[j,i] = np.rint((release_date[j,i]*max_slot)/max_value).astype(int)
-                trans_back[j,i] = np.rint((trans_back[j,i]*max_slot)/max_value).astype(int)
+                release_date[j,i] = np.ceil((release_date[j,i]*max_slot)/max_value).astype(int)
+                trans_back[j,i] = np.ceil((trans_back[j,i]*max_slot)/max_value).astype(int)
                 
                 #release_date_back[j,i] = np.rint((release_date_back[j,i]*max_slot_back)/max_value_back).astype(int)
                 #trans_back_gradients[j,i] = np.rint((trans_back_gradients[j,i]*max_slot_back)/max_value_back).astype(int)
-                release_date_back[j,i] = np.rint((release_date_back[j,i]*max_slot_back)/max_value).astype(int)
-                trans_back_gradients[j,i] = np.rint((trans_back_gradients[j,i]*max_slot_back)/max_value).astype(int)
+                release_date_back[j,i] = np.ceil((release_date_back[j,i]*max_slot)/max_value).astype(int)
+                trans_back_gradients[j,i] = np.ceil((trans_back_gradients[j,i]*max_slot)/max_value).astype(int)
 
                 if i == 0:
-                    proc_local[j] = np.rint((proc_local[j]*max_slot)/max_value).astype(int)
+                    proc_local[j] = np.ceil((proc_local[j]*max_slot)/max_value).astype(int)
                     #proc_local_back[j] = np.rint((proc_local_back[j]*max_slot_back)/max_value_back).astype(int)
-                    proc_local_back[j] = np.rint((proc_local_back[j]*max_slot_back)/max_value).astype(int)
+                    proc_local_back[j] = np.ceil((proc_local_back[j]*max_slot)/max_value).astype(int)
 
-                proc[j,i] =  np.rint((proc[j,i]*max_slot)/max_value).astype(int)
+                proc[j,i] =  np.ceil((proc[j,i]*max_slot)/max_value).astype(int)
                 
                 if proc[j,i] == 0:
                         proc[j,i] = 1
 
                 #proc_bck[j,i] =  np.rint((proc_bck[j,i]*max_slot_back)/max_value_back).astype(int)
-                proc_bck[j,i] =  np.rint((proc_bck[j,i]*max_slot_back)/max_value).astype(int)
+                proc_bck[j,i] =  np.ceil((proc_bck[j,i]*max_slot)/max_value).astype(int)
 
                 if proc_bck[j,i] == 0:
                         proc_bck[j,i] = 1
@@ -429,76 +574,130 @@ if __name__ == '__main__':
             print(f'{proc_bck[0,i]} --- {machine_devices[i]}', end='\t')
             print('~~~~~~')
         print('')
-        '''
+        
         print('release date')
         for j in range(K):
             for i in range(H):
-                #print(f'{release_date[j,i]}', end='\t')
-                print(f'{release_date_back[j,i]}', end='\t')
+                print(f'{release_date[j,i]}', end='\t')
+            print('')
+
+        print('release date back')
+        for j in range(K):
+            for i in range(H):
+                print(f'back: {release_date_back[j,i]}', end='\t')
             print('')
 
         print('proc local: ')
         for j in range(K):
-            #print(f'{proc_local[j]}', end='\t')
-            print(f'{proc_local_back[j]}', end='\t')
+            print(f'{proc_local[j]}', end='\t')
+        print('')
+
+        print('proc local back: ')
+        for j in range(K):
+            print(f'back: {proc_local_back[j]}', end='\t')
         print('')
 
         print('trans back: ')
         for j in range(K):
             for i in range(H):
-                #print(f'{trans_back[j,i]}', end='\t')
-                print(f'{trans_back_gradients[j,i]}', end='\t')
+                print(f'{trans_back[j,i]}', end='\t')
             print('')
-        '''
-        # call the original solver for comparison
-        if back_flag:
-            print('Calling the original approach. -- BACK')
-            gurobi_fwd_back.K = args.data_owners
-            gurobi_fwd_back.H = args.compute_nodes
-            w_start = 118
-        
-            w_start = gurobi_fwd_back.run(release_date.astype(int), proc.astype(int), 
-                                          proc_local.astype(int), trans_back.astype(int), 
-                                          memory_capacity.astype(int), 
-                                          release_date_back.astype(int), proc_bck.astype(int), 
-                                          proc_local_back.astype(int), trans_back_gradients.astype(int), 
-                                          args.log)
-            
 
+        print('trans back back: ')
+        for j in range(K):
+            for i in range(H):
+                print(f'back: {trans_back_gradients[j,i]}', end='\t')
+            print('')
+        
+        # call the original solver for comparison
+        if fifo_flag:
+            print('Calling fifo')
+            heuristic.K = args.data_owners
+            heuristic.H = args.compute_nodes
+            gurobi_final_approach.K = args.data_owners
+            gurobi_final_approach.H = args.compute_nodes
+
+            if back_flag:
+                
+                y = gurobi_final_approach.run(release_date.astype(int), proc.astype(int), 
+                                                proc_local.astype(int), trans_back.astype(int), 
+                                                memory_capacity.astype(int), memory_demand.astype(int), 
+                                                release_date_back.astype(int), proc_bck.astype(int), 
+                                                proc_local_back.astype(int), trans_back_gradients.astype(int), 
+                                                back_flag, args.log, fifo_flag)
+                
+                w_start = heuristic.balance_run(release_date, proc, proc_local, trans_back, 
+                                release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
+                                           memory_capacity.astype(int), memory_demand[0].astype(int), y, True)
+        
+            else:
+                w_start = heuristic.balance_run(release_date, proc, proc_local, trans_back, 
+                                release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
+                                           memory_capacity.astype(int), memory_demand[0].astype(int))
+        elif gap_flag:
+
+            print('Calling GAP')
+            heuristic.K = args.data_owners
+            heuristic.H = args.compute_nodes
+        
+            w_start = heuristic.gap_run(release_date, proc, proc_local, trans_back, 
+                                release_date_back, proc_bck, proc_local_back, trans_back_gradients,
+                                release_date_proc, release_date_back_proc,
+                                memory_capacity.astype(int), memory_demand[0].astype(int))    
         else:
-            print('Calling the original approach.')
-            gurobi_solver.K = args.data_owners
-            gurobi_solver.H = args.compute_nodes
-            w_start = gurobi_solver.run(release_date.astype(int), proc.astype(int), 
-                                        proc_local.astype(int), trans_back.astype(int), 
-                                        memory_capacity.astype(int), 
-                                        args.log)
-      
+            if back_flag:
+                
+                print('Calling the original approach. -- BACK')
+                gurobi_fwd_back.K = args.data_owners
+                gurobi_fwd_back.H = args.compute_nodes
+                w_start = 127
+                '''
+                w_start = gurobi_fwd_back.run(release_date.astype(int), proc.astype(int), 
+                                            proc_local.astype(int), trans_back.astype(int), 
+                                            memory_capacity.astype(int), 
+                                            release_date_back.astype(int), proc_bck.astype(int), 
+                                            proc_local_back.astype(int), trans_back_gradients.astype(int), 
+                                            args.log)
+                '''
+                
+            else:
+                print('Calling the original approach.')
+                gurobi_solver.K = args.data_owners
+                gurobi_solver.H = args.compute_nodes
+                w_start = 59
+                
+                w_start = gurobi_solver.run(release_date.astype(int), proc.astype(int), 
+                                            proc_local.astype(int), trans_back.astype(int), 
+                                            memory_capacity.astype(int), 
+                                            args.log)
+                
     # TODO: save parameters into file
 
     else: # get parameters from file   
         pass
 
     print('')
-    print('                                                 Using ADDM approach')
     
-    # call the approach to solve the problem
-    violations = []
-    gurobi_final_approach.K = args.data_owners
-    gurobi_final_approach.H = args.compute_nodes
+    if (not fifo_flag) and (not gap_flag):
+        print('                                                 Using ADDM approach')
+    
+        # call the approach to solve the problem
+        violations = []
+        gurobi_final_approach.K = args.data_owners
+        gurobi_final_approach.H = args.compute_nodes
 
+            
+        start = time.time()
+        violations, ws = gurobi_final_approach.run(release_date.astype(int), proc.astype(int), 
+                                                proc_local.astype(int), trans_back.astype(int), 
+                                                memory_capacity.astype(int), memory_demand.astype(int), 
+                                                release_date_back.astype(int), proc_bck.astype(int), 
+                                                proc_local_back.astype(int), trans_back_gradients.astype(int), 
+                                                back_flag, args.log)
         
-    start = time.time()
-    violations, ws = gurobi_final_approach.run(release_date.astype(int), proc.astype(int), 
-                                               proc_local.astype(int), trans_back.astype(int), 
-                                               memory_capacity.astype(int), memory_demand.astype(int), 
-                                               release_date_back.astype(int), proc_bck.astype(int), 
-                                               proc_local_back.astype(int), trans_back_gradients.astype(int), 
-                                               back_flag, args.log)
-    
 
-    end = time.time()
-    print(f'final time {end-start}')
-    utils.plot_approach(w_start, ws, violations)
+        end = time.time()
+        print(f'final time {end-start}')
+        utils.plot_approach(w_start, ws, violations)
 
 

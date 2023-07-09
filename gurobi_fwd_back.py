@@ -108,7 +108,7 @@ def run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, memo
 
     # Define objective function
     
-    m.addConstrs(comp[i] == qsum(trans_back_activations[i,:] * y[i,:]) + f[i] + proc_local_back[i] for i in range(K))
+    m.addConstrs(comp[i] == qsum(trans_back_gradients[i,:] * y[i,:]) + f[i] + proc_local_back[i] for i in range(K))
        
     
     max_constr = m.addConstr(maxobj == gp.max_(comp[i] for i in range(K)))
@@ -126,6 +126,26 @@ def run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, memo
     print(f'{utils.bcolors.OKBLUE}optimize took: {m.Runtime}{utils.bcolors.ENDC}')
     print(f'{utils.bcolors.OKBLUE}TOTAL TIME: {(end-start) + build_time}{utils.bcolors.ENDC}')
     print(f'{utils.bcolors.OKBLUE}Objective is: {m.ObjVal}{utils.bcolors.ENDC}')
+
+    for i in range(H):
+        for k in range(T):
+            at_least = 0
+            for j in range(K):
+                if(np.rint(x.X[i,j,k]) <= 0) and (np.rint(z.X[i,j,k]) <= 0):
+                    continue
+                else:
+                    if np.rint(x.X[i,j,k]) > 0:
+                        f_y.write(f'{j+1}\t')
+                        at_least += 1
+                        break
+                    else:
+                        f_y.write(f'{j+1}\'\t')
+                        at_least += 1
+            if(at_least == 0):
+                #print(f'0', end='\t')
+                f_y.write(f'0\t')
+        #print('')
+        f_y.write('\n')
 
     f_y.write(f'Optima solution\n')
     f_y.write(f'{np.rint(y.X)}\n')

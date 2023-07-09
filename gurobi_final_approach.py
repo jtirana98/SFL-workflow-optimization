@@ -23,10 +23,11 @@ utils.file_name = 'fully_symmetric.xlsx'
 
 def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_demand, 
         release_date_back=[], proc_back=[], proc_local_back=[], trans_back_gradients=[], 
-        back_flag=False, filename=''):
+        back_flag=False, filename='', fifo_flag=False):
     
     stable = 0
     T = np.max(release_date) + K*np.max(proc) # time intervals
+
     print(f"T = {T}")
     print(f" Memory: {memory_capacity}")
 
@@ -35,7 +36,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
     ones_T = np.ones((T,1))
 
     MAX_ITER = 10
-    rho = 10
+    rho = 350
     DT = np.empty((0, 6))
 
     if filename != '':
@@ -166,7 +167,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
            
         m1.setObjective(w + (rho/2)*qsum(contr1_abs_1[i,j] for i in range(K) for j in range(H)), GRB.MINIMIZE)
 
-        # m1.reset()
+        #m1.reset()
         m1.update()
 
         
@@ -178,10 +179,10 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
         else:
             m1.setParam('MIPGap', 0.10)
         """
-        if iter < 7:
-            m1.setParam('MIPGap', 0.05)
-        else:
-            m1.setParam('MIPGap', 0.15)
+        #if iter < 7:
+        #    m1.setParam('MIPGap', 0.15)
+        #else:
+        #    m1.setParam('MIPGap', 0.15)
 
 
         # solve P1:
@@ -244,7 +245,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
         """
         m2.setObjective(w_x_fixed + (rho/2)*qsum(contr2_abs_1[i,j] for i in range(K) for j in range(H)), GRB.MINIMIZE)
 
-    
+        #m2.reset()
         m2.update()
         start_opt = time.time()
         m2.optimize()
@@ -320,6 +321,9 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
         # call sub-problems
         if iter == 4: #stable >3 or iter == MAX_ITER - 1:
             flag_exit = True # mark t that we reached the end
+            
+            if fifo_flag:
+                return y_par
             
             print(f'{utils.bcolors.OKBLUE}Calling the subproblems {iter}{utils.bcolors.ENDC}')
             
@@ -410,25 +414,49 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
         # END OF IF
 
     # ------------------------------------------  KEEP STATE ----------------------------------
-        
         f_.write("--------Machine allocation--------\n")
 
-        for i in range(H):
-            for k in range(T):
-                at_least = 0
-                for j in range(K):
-                    if(np.rint(x_par[i,j,k]) <= 0):
-                        continue
-                    else:
-                        #print(f'{j+1}', end='\t')
-                        f_.write(f'{j+1}\t')
-                        at_least += 1
-                        break
-                if(at_least == 0):
-                    #print(f'0', end='\t')
-                    f_.write(f'0\t')
-            #print('')
-            f_.write('\n')
+        if back_flag:
+            for i in range(H):
+                for k in range(T_back):
+                    at_least = 0
+                    for j in range(K):
+                        if k < T:
+                            if(np.rint(x_par[i,j,k]) <= 0) and (np.rint(z_par[i,j,k]) <= 0):
+                                continue
+                        elif (np.rint(z_par[i,j,k]) <= 0):
+                                continue
+                        else:
+                            if k < T:
+                                if np.rint(x_par[i,j,k]) > 0:
+                                    f_.write(f'{j+1}\t')
+                                    at_least += 1
+                                    break
+                            else:
+                                f_.write(f'{j+1}\'\t')
+                                at_least += 1
+                    if(at_least == 0):
+                        #print(f'0', end='\t')
+                        f_.write(f'0\t')
+                #print('')
+                f_.write('\n')
+        else:
+            for i in range(H):
+                for k in range(T):
+                    at_least = 0
+                    for j in range(K):
+                        if(np.rint(x_par[i,j,k]) <= 0):
+                            continue
+                        else:
+                            #print(f'{j+1}', end='\t')
+                            f_.write(f'{j+1}\t')
+                            at_least += 1
+                            break
+                    if(at_least == 0):
+                        #print(f'0', end='\t')
+                        f_.write(f'0\t')
+                #print('')
+                f_.write('\n')
 
         f_.write("--------Completition time--------\n")
         cs = []
@@ -447,7 +475,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
                             my_super_machine = my_machine
             fmax = last_zero
             f_m[i] = fmax
-            C = fmax + proc_local[i] + trans_back[i,my_machine]
+            C = fmax + proc_local[i] + trans_back[i,my_super_machine]
             cs.append(C)
             #print(f'C{i+1}: {C} - {my_machine}')
             f_.write(f'C{i+1}: {C} - {my_super_machine} {y[i,:].X} - {f[i].X}\n')
@@ -468,7 +496,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
                                 last_zero = k+1
                                 my_super_machine = my_machine
                 fmax = last_zero
-                C = fmax + proc_local_back[i] + trans_back_gradients[i,my_machine]
+                C = fmax + proc_local_back[i] + trans_back_gradients[i,my_super_machine]
                 cs_back.append(C)
 
             print(f'{utils.bcolors.FAIL}BACK max is: {max(cs_back)}{utils.bcolors.ENDC}')
@@ -504,16 +532,17 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
                 print(f"{utils.bcolors.FAIL}Constraint 3 is violated{utils.bcolors.ENDC}")
                 violated = True
 
-        for j in range(H): #for all devices
-            if np.sum([y[i,j].X for j in range(H)])*utils.max_memory_demand > memory_capacity[j]:
-                print(f"{utils.bcolors.FAIL}Constraint 4 is violated{utils.bcolors.ENDC}")
-                violated = True
+        #for j in range(H): #for all devices
+            #if np.sum([y[i,j].X for j in range(H)])*utils.max_memory_demand > memory_capacity[j]:
+            #    print(f"{utils.bcolors.FAIL}Constraint 4 is violated{utils.bcolors.ENDC}")
+            #    violated = True
 
-            occupied = reserved[j]*utils.max_memory_demand
-            if occupied > memory_capacity[j]:
-                print(f"{utils.bcolors.FAIL}Constraint 4 is violated for machine {j}{utils.bcolors.ENDC}")
-                violated = True
-
+            #occupied = reserved[j]*utils.max_memory_demand
+            #if occupied > memory_capacity[j]:
+                #print(f"{utils.bcolors.FAIL}Constraint 4 is violated for machine {j}{utils.bcolors.ENDC}")
+                #violated = True
+        print('RESERVED')
+        print(reserved)
         
         for i in range(K):
             my_machine = 0
