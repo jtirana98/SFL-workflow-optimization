@@ -42,7 +42,7 @@ def for_each_machine(K, release_date, proc, proc_local, trans_back, memory_capac
     m.addConstr( y @ ones_H == ones_K )
     
     # C4: memory constraint
-    m.addConstr((y.T * utils.max_memory_demand) @ ones_K <= memory_capacity.reshape(ones_H.shape))
+    #m.addConstr((y.T * utils.max_memory_demand) @ ones_K <= memory_capacity.reshape(ones_H.shape))
     
     # C6: machine processes only a single job at each interval
     for j in range(H): #for all devices

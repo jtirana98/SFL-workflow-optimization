@@ -20,9 +20,9 @@ class arrival_date:
         self.job = job
     
 
-def check_memory(capacity, load, memory_demand):
+def check_memory(capacity, load):
     #print(f'mem: {load} {load*memory_demand} {capacity}')
-    return ((load*memory_demand) <= capacity)
+    return ((load) <= capacity)
 
 def check(i, mylist):
     for v in mylist:
@@ -49,8 +49,9 @@ def check_balance(distributions_):
 def balance_run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, 
          release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
          memory_capacity, memory_demand, y=[], y_ready=False):
+    
     #print(memory_capacity)
-    #print(memory_demand)
+    print(memory_demand)
     # random seed 
     #random.seed(42)
 
@@ -62,12 +63,13 @@ def balance_run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activatio
         y = np.zeros((K,H))
         
         distribution = [0 for i in range(H)] #how many devices on machine
-        #print(distribution)
+        load_ = [0 for i in range(H)]
+        print(distribution)
         for i in range(K):
             fit = []
             for j in range(H):
                 #print(j)
-                if check_memory(memory_capacity[j], distribution[j]+1, memory_demand):
+                if check_memory(memory_capacity[j], load_[j]+memory_demand[i]):
                     fit.append(j)
                 
             if len(fit) == 1:
@@ -81,8 +83,9 @@ def balance_run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activatio
                     distribution[fit[j]] -= 1
                     if j == 0 or (load < best_load[1]):
                         best_load = (fit[j], load)
-                
+
                 distribution[best_load[0]] += 1
+                load_[best_load[0]] += memory_demand[i]
                 y[i,best_load[0]] = 1  
             #print(distribution)       
 
@@ -113,7 +116,7 @@ def gap_run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations,
     sumobj = m.addMVar(shape=(1), name="sumobj")
     
     m.addConstr( y @ ones_H == ones_K )
-    m.addConstr((y.T * utils.max_memory_demand) @ ones_K <= memory_capacity.reshape(ones_H.shape))
+    m.addConstr(memory_demand @ y<= memory_capacity)
     
     f = (release_date_proc+proc_fwd+trans_back_activations+release_date_back_proc+proc_bck+trans_back_gradients)
     m.addConstr(sumobj == qsum(qsum(f[i,:]*y[i,:] for i in range(K))))
