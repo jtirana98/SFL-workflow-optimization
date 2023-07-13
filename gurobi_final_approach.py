@@ -36,7 +36,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
     ones_T = np.ones((T,1))
 
     MAX_ITER = 10
-    rho = 350
+    rho = 300
     DT = np.empty((0, 6))
 
     if filename != '':
@@ -319,7 +319,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
             stable = 0
 
         # call sub-problems
-        if iter == 4: #stable >3 or iter == MAX_ITER - 1:
+        if iter == 3: #stable >3 or iter == MAX_ITER - 1:
             flag_exit = True # mark t that we reached the end
             
             if fifo_flag:

@@ -124,6 +124,12 @@ def gap_run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations,
 
     print(f'Time for gap :  {end-start}')
 
+    print('distribution')
+    for machine in range(H):
+        my_jobs = list(np.transpose(np.argwhere(y.X[:,machine]==1))[0])
+        print(len(my_jobs), end='\t')
+    print(' ')
+
     print(y.X)
     fifo(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, 
          release_date_back, proc_bck, proc_local_back, trans_back_gradients, np.absolute(np.rint(y.X)))
