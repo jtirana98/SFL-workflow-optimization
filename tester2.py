@@ -106,11 +106,16 @@ if __name__ == '__main__':
         
         # processing time on d1
         d1_data = df_d1.values.tolist()
-
         d1_proc_fwd_first = 0
         d1_proc_fwd_last = 0
         d1_proc_back_first = 0
         d1_proc_back_last = 0
+        '''
+        point_a_d1 = 3
+        point_b_d1 = 33
+        point_a = point_a_d1
+        point_b = point_b_d1
+        '''
         for i in range(0, point_a):
             d1_proc_fwd_first += d1_data[i][0]
             d1_proc_back_first += d1_data[i][1] + d1_data[i][2]
@@ -126,6 +131,10 @@ if __name__ == '__main__':
         jetson_cpu_proc_fwd_last = 0
         jetson_cpu_proc_back_first = 0
         jetson_cpu_proc_back_last = 0
+        #point_a_jet = 2
+        #point_b_jet = 31
+        #point_a = point_a_jet
+        #point_b = point_b_jet
         for i in range(0, point_a):
             jetson_cpu_proc_fwd_first += jetson_cpu_data[i][0]
             jetson_cpu_proc_back_first += jetson_cpu_data[i][1] + jetson_cpu_data[i][2]
@@ -156,6 +165,12 @@ if __name__ == '__main__':
         d2_proc_fwd_last = 0
         d2_proc_back_first = 0
         d2_proc_back_last = 0
+        '''
+        point_a_d2 = 3
+        point_b_d2 = 33
+        point_a = point_a_d1
+        point_b = point_b_d1
+        '''
         for i in range(0, point_a):
             d2_proc_fwd_first += d2_data[i][0]
             d2_proc_back_first += d2_data[i][1] + d2_data[i][2]
@@ -216,7 +231,7 @@ if __name__ == '__main__':
             store_compute_node += memory_data[i][0] + memory_data[i][1]
         store_compute_node = (store_compute_node/1024) # prefer MB
 
-        my_net = lambda data,bandwidth : ((data*0.000008)/bandwidth)*1000
+        my_net = lambda data,bandwidth : ((data*0.0008)/bandwidth)*1000
         network_connections = [ lambda a : ((a*0.000008)/8)*1000, # 8 Mbits/sec
                                 lambda a : (a*0.0000008)*1000, # 10 Mbits/sec
                                 lambda a : ((a*0.000000008)/7.13)*1000, # 7.13 Gbits/sec
@@ -268,6 +283,7 @@ if __name__ == '__main__':
             completed.append(net_line)
             network_type[int(net_line/H),int(net_line%H)] = random.randint(1,4)
 
+
         for i in range(num_class1):
             
             while True:
@@ -312,15 +328,27 @@ if __name__ == '__main__':
         # we have:
         # 0 for vm
         # 1 for laptop
+
+        
+        mine_machine = [0,0,0,0,0,0,0,1,1,1]
         
         print('MACHINES')
         machine_devices = np.zeros((H))
         for i in range(H):
             machine_devices[i] = random.randint(0,1)
             print(f'{machine_devices[i]}', end='\t')
-
+            
+            #machine_devices[i] = 1
+            '''
+            if machine_devices[i] == 1:
+                for j in range(K):
+                    network_type[j,i] = 1
+            else:
+                for j in range(K):
+                    network_type[j,i] = 20
+            '''
         print(' ')
-        
+
         # data owner device type 
         # we have:
         # 0 for d1
@@ -329,9 +357,9 @@ if __name__ == '__main__':
         # 3 for jetson cpu
         do_devices = np.zeros((K))
         for i in range(K):
-            do_devices[i] = random.randint(0,3)
-            do_devices[i] = 0
-        do_devices[2] = 1
+            do_devices[i] = random.randint(0,1)
+            #do_devices[i] = 0
+        #do_devices[2] = 1
         # forward parameters
         release_date = np.zeros((K,H))
         release_date_proc = np.zeros((K,H))
@@ -345,6 +373,16 @@ if __name__ == '__main__':
         proc_bck = np.zeros((K,H))
         proc_local_back =np.zeros((K))
         trans_back_gradients = np.zeros((K, H))
+
+        '''
+        for i in range(H):
+            if machine_devices[i] == 1:
+                for j in range(K):
+                    network_type[j,i] = int(random.randint(1,5))
+            else:
+                for j in range(K):
+                    network_type[j,i] = int(random.randint(15,20))
+        '''
 
         if scenario == 2:
             release_date_ = np.zeros((K))
@@ -435,11 +473,12 @@ if __name__ == '__main__':
                             proc_local[j] =  d2_proc_fwd_last
                             proc_local_back[j] =  d2_proc_back_first
                         elif int(do_devices[j]) == 2:
-                            proc_local[j] =  jetson_cpu_proc_fwd_last
-                            proc_local_back[j] =  jetson_cpu_proc_back_first
-                        elif int(do_devices[j]) == 3:
                             proc_local[j] =  jetson_gpu_proc_fwd_last
                             proc_local_back[j] =  jetson_gpu_proc_back_first
+                        elif int(do_devices[j]) == 3:
+                            proc_local[j] =  jetson_cpu_proc_fwd_last
+                            proc_local_back[j] =  jetson_cpu_proc_back_first
+                            
 
                     if scenario == 2:
                         proc_local[j] =  proc_local_[int(do_devices[j])]
@@ -475,16 +514,18 @@ if __name__ == '__main__':
             #memory_capacity[i] = int(max(memory_demand))*K
         print(' ')
         
-        array_mine = [14, 0, 2, 2, 4, 0, 2, 1, 0, 0, 1, 0, 2, 1, 1]
+        #array_mine = [1.0,	1.0,	14.0,	18.0,	1.0,	1.0,	1.0,    1.0,	1.0,	1.0]
         
-        array_mine = [11.0,	40.0,	11.0,	50.0,	4.0]
-        
-        for i in range(len(array_mine)):
-            memory_capacity[i] = int(array_mine[i]*utils.max_memory_demand)
+        array_mine = [1, 1, 1, 1, 1, 1, 1, 4, 4, 5]
+        '''
+        for i in range(H):
+            #memory_capacity[i] = int(array_mine[i]*utils.max_memory_demand)
+            #memory_capacity[i] = int(array_mine[i]*utils.max_memory_demand)
+            memory_capacity[i] = int(max(memory_demand))*K
             print(f'{int(memory_capacity[i])/int(utils.max_memory_demand)}', end=',\t')
-            #memory_capacity[i] = int(max(memory_demand))*K
+            
         print(' ')
-        
+        '''
         unique_friends = []
         
         #print('proc')
@@ -534,7 +575,7 @@ if __name__ == '__main__':
         print('\n----------------------     max values:  -------------------\n')
         
         # Re-difine parameters
-        max_slot = 100
+        max_slot = 50
         max_slot_back = max_slot
 
 
@@ -578,7 +619,7 @@ if __name__ == '__main__':
         print('release date')
         for j in range(K):
             for i in range(H):
-                print(f'{release_date[j,i]}', end='\t')
+                print(f'{release_date[j,i]} -- {do_devices[j]}', end='\t')
             print('')
 
         print('release date back')
