@@ -19,12 +19,13 @@ def get_args():
     parser.add_argument('--log', type=str, default='test1.txt', help='filename for the logging')
     parser.add_argument('--data_owners', '-K', type=int, default=50, help='the number of data owners')
     parser.add_argument('--compute_nodes', '-H', type=int, default=2, help='the number of compute nodes')
-    parser.add_argument('--splitting_points', '-S', type=str, default='3,23', help='give an input in the form of s1,s2')
+    parser.add_argument('--splitting_points', '-S', type=str, default='3,33', help='give an input in the form of s1,s2')
     parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
-    parser.add_argument('--repeat', '-r', type=str, default='', help='avoid generating input include file')
+    parser.add_argument('--repeat', '-e', type=str, default='', help='avoid generating input include file')
     parser.add_argument('--back', '-b', type=int, default=0, help='0: only fwd, 1: include backpropagation')
     parser.add_argument('--fifo', '-f', type=int, default=0, help='run fifo with load balancer')
     parser.add_argument('--gap', '-g', type=int, default=0, help='run fifo with gap')
+    parser.add_argument('--random', '-r', type=int, default=0, help='run fifo with raandom')
     parser.add_argument('--scenario', '-s', type=int, default=1, help='scenario')
     #parser.add_argument('--approach', type=str, default='approach3', help='select one of the approaches: approach1a/approach1aFreeze/approach2/approach3')
     args = parser.parse_args()
@@ -51,6 +52,10 @@ if __name__ == '__main__':
     gap_flag = False
     if args.gap == 1:
         gap_flag = True
+
+    random_flag = False
+    if args.random == 1:
+        random_flag = True
     
     scenario = args.scenario
     
@@ -63,13 +68,8 @@ if __name__ == '__main__':
     point_a = np.ones(K).astype(int)
     point_b = np.ones(K).astype(int)
 
-    for i in range(25):
-        point_a[i] = 9
-        point_b[i] = 35
-
-    for i in range(25, K):
-        point_a[i] = 2
-        point_b[i] = 17
+    
+    
 
     print(f'I have your splitting points after {point_a} and {point_b}, including')
     
@@ -81,6 +81,24 @@ if __name__ == '__main__':
             filename = 'real_data/resnet101_CIFAR.xlsx'
         elif model_type == 'vgg19':
             filename = 'real_data/vgg19_CIFAR.xlsx'
+
+        if model_type == 'resnet101': 
+            for i in range(int(K/2)):
+                point_a[i] = 9
+                point_b[i] = 33
+
+            for i in range(int(K/2), K):
+                point_a[i] = 17
+                point_b[i] = 33
+        
+        else:    
+            for i in range(int(K/2)):
+                point_a[i] = 9
+                point_b[i] = 23
+
+            for i in range(int(K/2), K):
+                point_a[i] = 5
+                point_b[i] = 20
 
 
         df_vm = pd.read_excel(io=filename, sheet_name='VM', header=None)
@@ -112,29 +130,24 @@ if __name__ == '__main__':
                 laptop_proc_fwd[k] += laptop_data[i][0]
                 laptop_proc_back[k] += laptop_data[i][1] + laptop_data[i][2]
 
-        '''
-        max_proc_fwd = int(max([vm_proc_fwd, laptop_proc_fwd]))
-        min_proc_fwd = int(min([vm_proc_fwd, laptop_proc_fwd]))
-
-        max_proc_back = int(max([vm_proc_back, laptop_proc_back]))
-        min_proc_back = int(min([vm_proc_back, laptop_proc_back]))
 
         # processing time on d1
         d1_data = df_d1.values.tolist()
-        d1_proc_fwd_first = 0
-        d1_proc_fwd_last = 0
-        d1_proc_back_first = 0
-        d1_proc_back_last = 0
-
         
-        for i in range(0, point_a):
-            d1_proc_fwd_first += d1_data[i][0]
-            d1_proc_back_first += d1_data[i][1] + d1_data[i][2]
-        
-        for i in range(point_b, len(d1_data)):
-            d1_proc_fwd_last += d1_data[i][0]
-            d1_proc_back_last += d1_data[i][1] + d1_data[i][2]
+        d1_proc_fwd_first = np.zeros(K)
+        d1_proc_fwd_last = np.zeros(K)
+        d1_proc_back_first = np.zeros(K)
+        d1_proc_back_last = np.zeros(K)
 
+        for k in range(K):
+            for i in range(0, point_a[k]):
+                d1_proc_fwd_first[k] += d1_data[i][0]
+                d1_proc_back_first[k] += d1_data[i][1] + d1_data[i][2]
+            
+            for i in range(point_b[k], len(d1_data)):
+                d1_proc_fwd_last[k] += d1_data[i][0]
+                d1_proc_back_last[k] += d1_data[i][1] + d1_data[i][2]
+        '''
         # processing time on jetson-cpu
         jetson_cpu_data = df_jetson_cpu.values.tolist()
 
@@ -214,7 +227,6 @@ if __name__ == '__main__':
 
         print('MEMORY DEMANDS ON CN')
         for k in range(K):
-            print(f'{point_a[k]} {point_b[k]}')
             for i in range(point_a[k], point_b[k]):
                 #print(f'{memory_data[i][0]}  {memory_data[i][1]}')
                 store_compute_node[k] += memory_data[i][0] + memory_data[i][1]
@@ -222,7 +234,7 @@ if __name__ == '__main__':
             #print('--------------------------------')
         print(store_compute_node)
 
-        my_net = lambda data,bandwidth : ((data*0.000008)/bandwidth)*1000
+        my_net = lambda data,bandwidth : ((data*0.0008)/bandwidth)*1000
         network_connections = [ lambda a : ((a*0.000008)/8)*1000, # 8 Mbits/sec
                                 lambda a : (a*0.0000008)*1000, # 10 Mbits/sec
                                 lambda a : ((a*0.000000008)/7.13)*1000, # 7.13 Gbits/sec
@@ -238,7 +250,13 @@ if __name__ == '__main__':
         for i in range(K):
             for j in range(H):
                 network_type[i][j] = 7
-                
+        
+      
+        
+        for i in range(K-H+1, K):
+            network_type[i][H-1] = 1
+        
+               
         '''
         network_type = np.zeros((K,H))
         for j in range(K):
@@ -312,14 +330,14 @@ if __name__ == '__main__':
             
             completed.append(net_line)
             network_type[int(net_line/H),int(net_line%H)] = random.randint(16,20)
-
+        '''
         #print(len(set(completed)))
 
         #for i in range(K):
          #   for j in range(H):
          #       print(network_type[i,j], end='\t')
          #   print('')
-        '''
+        
 
         
         # compute node device type 
@@ -333,7 +351,7 @@ if __name__ == '__main__':
         print('MACHINES')
         machine_devices = np.zeros((H))
         for i in range(H):
-            machine_devices[i] = 0
+            machine_devices[i] = 1
             print(f'{machine_devices[i]}', end='\t')
         print(' ')
 
@@ -346,8 +364,13 @@ if __name__ == '__main__':
         do_devices = np.zeros((K))
         for i in range(K):
             do_devices[i] = random.randint(0,1)
+            if do_devices[i] == 1:
+                do_devices[i] = 2
             #do_devices[i] = 0
         #do_devices[2] = 1
+
+        for i in range(K-H+1, K):
+            do_devices[i] = 0
 
         # forward parameters
         release_date = np.zeros((K,H))
@@ -383,29 +406,34 @@ if __name__ == '__main__':
                 release_date_back[j,i] = my_net(activations_to_do[j], indx)
                 trans_back_gradients[j,i] = my_net(activations_to_cn[j], indx)
                 
-                release_date[j,i] +=  jetson_gpu_proc_fwd_first[j]
-                release_date_back[j,i] += jetson_gpu_proc_back_last[j]
+                if do_devices[j] == 2:
+                    release_date[j,i] +=  jetson_gpu_proc_fwd_first[j]
+                    release_date_back[j,i] += jetson_gpu_proc_back_last[j]
 
-                release_date_proc[j,i] = jetson_gpu_proc_fwd_first[j]
-                release_date_back_proc[j,i] = jetson_gpu_proc_back_last[j]
-                   
+                    release_date_proc[j,i] = jetson_gpu_proc_fwd_first[j]
+                    release_date_back_proc[j,i] = jetson_gpu_proc_back_last[j]
+                else:
+                    release_date[j,i] +=  d1_proc_fwd_first[j]
+                    release_date_back[j,i] += d1_proc_back_last[j]
+
+                    release_date_proc[j,i] = d1_proc_fwd_first[j]
+                    release_date_back_proc[j,i] = d1_proc_back_last[j]
                         
                 if i == 0:
-                    proc_local[j] =  jetson_gpu_proc_fwd_last[j]
-                    proc_local_back[j] =  jetson_gpu_proc_back_first[j]
+                    if do_devices[j] == 2:
+                        proc_local[j] =  jetson_gpu_proc_fwd_last[j]
+                        proc_local_back[j] =  jetson_gpu_proc_back_first[j]
+                    else:
+                        proc_local[j] =  d1_proc_fwd_last[j]
+                        proc_local_back[j] =  d1_proc_back_first[j]
                 
-                if int(machine_devices[i]) == 0:
-                    proc[j,i] =  vm_proc_fwd[j]
-                    proc_bck[j,i] =  vm_proc_back[j]
-                    
-                    if i == H-1:
-                        proc[j,i] =  vm_proc_fwd[j]*5
-                        proc_bck[j,i] =  vm_proc_back[j]*5
-
-                elif int(machine_devices[i]) == 1:
-                    proc[j,i] = laptop_proc_fwd
-                    proc_bck[j,i] = laptop_proc_back
-                        
+                
+                proc[j,i] =  vm_proc_fwd[j]
+                proc_bck[j,i] =  vm_proc_back[j]
+                
+                if i == H-1:
+                    proc[j,i] =  vm_proc_fwd[j]*5
+                    proc_bck[j,i] =  vm_proc_back[j]*5
          
                         
         memory_demand =  store_compute_node
@@ -417,7 +445,21 @@ if __name__ == '__main__':
         utils.max_memory_demand = int(max(memory_demand))
         print("MEMORY CAPACITY")
         #memory_capacity = np.array(utils.get_memory_characteristics(H, K))
-        memory_capacity = np.array([224,224,224,224,K*171])
+
+        
+        if model_type == 'resnet101': 
+            if H == 5:
+                memory_capacity = np.array([224,224,224,224,K*171])
+            else:
+                memory_capacity = np.array([224,224,224,224,224,224,224,224,224,K*171])
+        else:    
+            if H == 5:
+                memory_capacity = np.array([537,537,537,537,K*526])
+            else:
+                memory_capacity = np.array([537,537,537,537,537,537,537,537,537,K*526])
+
+        
+
         unique_friends = []
         
         #print('proc')
@@ -490,21 +532,37 @@ if __name__ == '__main__':
                 proc[j,i] =  np.ceil((proc[j,i]*max_slot)/max_value).astype(int)
                 
                 if proc[j,i] == 0:
-                        proc[j,i] = 1
+                    proc[j,i] = 1
 
                 #proc_bck[j,i] =  np.rint((proc_bck[j,i]*max_slot_back)/max_value_back).astype(int)
                 proc_bck[j,i] =  np.ceil((proc_bck[j,i]*max_slot)/max_value).astype(int)
 
                 if proc_bck[j,i] == 0:
                         proc_bck[j,i] = 1
+        
+        
+        for i in range(K-H+1, K):
+            for j in range(H-1):
+                release_date[i][j] += 10
+                release_date_back[i][j] += 10
+                proc_local[i] += 10
+                proc_local_back[i] += 10
+            
 
-
+        
         
         print('                                             NEW')
         print('proc')
         for i in range(H):
             print(f'{proc[0,i]}', end='\t')
             print(f'{proc_bck[0,i]} --- {machine_devices[i]}', end='\t')
+            print('~~~~~~')
+        print('')
+
+        print('proc FAST')
+        for i in range(H):
+            print(f'{proc[10,i]}', end='\t')
+            print(f'{proc_bck[10,i]} --- {machine_devices[i]}', end='\t')
             print('~~~~~~')
         print('')
         
@@ -542,6 +600,7 @@ if __name__ == '__main__':
                 print(f'back: {trans_back_gradients[j,i]}', end='\t')
             print('')
         
+     
         # call the original solver for comparison
         if fifo_flag:
             print('Calling fifo')
@@ -577,6 +636,15 @@ if __name__ == '__main__':
                                 release_date_back, proc_bck, proc_local_back, trans_back_gradients,
                                 release_date_proc, release_date_back_proc,
                                 memory_capacity.astype(int), memory_demand.astype(int))    
+        
+        elif random_flag:
+            print('Calling RANDOM')
+            heuristic.K = args.data_owners
+            heuristic.H = args.compute_nodes
+    
+            w_start = heuristic.random_run(release_date, proc, proc_local, trans_back, 
+                                release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
+                                           memory_capacity.astype(int), memory_demand.astype(int))
         else:
             if back_flag:
                 
@@ -599,7 +667,7 @@ if __name__ == '__main__':
                 gurobi_solver.H = args.compute_nodes
                 w_start = 59
                 #       UNCOMMENT FOR    FWD ONLY OPTIMAL AND BACK SUB  AND -b 0
-                (y,x) = gurobi_solver.run(release_date.astype(int), proc.astype(int), 
+                (y,x,f_t) = gurobi_solver.run(release_date.astype(int), proc.astype(int), 
                                             proc_local.astype(int), trans_back.astype(int), 
                                             memory_capacity.astype(int), memory_demand.astype(int),
                                             args.log)
@@ -618,19 +686,30 @@ if __name__ == '__main__':
                     Kx = list(np.transpose(np.argwhere(y[:,i]==1))[0])
                     if len(Kx) == 0:
                         continue
-
+                    print(f'For machine {i+1} I have allocatedd: {Kx}')
                     procx = np.copy(proc[Kx, i])  # this is a row-vector
                     release_datex = np.copy(release_date[Kx, i])
                     proc_localx = np.copy(proc_local[Kx])
                     trans_backx = np.copy(trans_back[Kx, i])
-
+                    
+                    
                     f_temp = np.zeros((len(Kx)))
+                    jj = 0
+                    for j in Kx:
+                        f_temp[jj] = f_t[j]
+                        print(f_temp[jj])
+                        jj += 1
+                        
 
+                    '''
+                    print('finish times')
+                    print(Tx)
                     for kk in range(len(Kx)):
                         for t in range(Tx):
-                            if f_temp[kk] < (t+1)*x[0,kk,t]:
-                                f_temp[kk] = (t+1)*x[0,kk,t]
-                    
+                            if f_temp[kk] < (t+1)*x[i,kk,t]:
+                                f_temp[kk] = (t+1)*x[i,kk,t]
+                        print(f_temp[kk])
+                    '''
                     #min_f = min(f_temp)
                     
                     procz = np.copy(proc_bck[Kx, i])  # this is a row-vector
@@ -646,9 +725,11 @@ if __name__ == '__main__':
                     x__extend = np.zeros((1,len(Kx),Tz))
    
                     print(f'---- Tx {Tx} ---- Tz {Tz}')
-                    for jj in range(len(Kx)):
+                    
+                    jj = 0
+                    for j in Kx:
                         for t in range(min(Tx,Tz)):
-                            x__extend[0,jj,t] = x[0,jj,t]
+                            x__extend[0,jj,t] = x[i,j,t]
                         jj += 1
                     
                     start_sub = time.time()

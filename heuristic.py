@@ -3,6 +3,7 @@ import gurobipy as gp
 from gurobipy import GRB
 from gurobipy import quicksum as qsum
 import time
+import random
 
 import utils
 import gurobi_final_approach
@@ -45,6 +46,39 @@ def check_balance(distributions_):
             if larger < distributions_[i]:
                 larger = distributions_[i]
     return (larger - smaller)
+
+def random_run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, 
+         release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
+         memory_capacity, memory_demand, y=[], y_ready=False):
+
+    random.seed(42)
+
+    distribution = [0 for i in range(H)] #how many devices on machine
+    load_ = [0 for i in range(H)]
+    y = np.zeros((K,H))
+
+    for i in range(K):
+        fit = []
+        for j in range(H):
+            #print(j)
+            if check_memory(memory_capacity[j], load_[j]+memory_demand[i]):
+                fit.append(j)
+            
+        if len(fit) == 1:
+            distribution[fit[0]] += 1
+            y[i,fit[0]] = 1
+        else:
+            my_machine = random.randint(0, len(fit)-1)
+            y[i,fit[my_machine]] = 1
+            distribution[fit[my_machine]] += 1
+
+    print(y)
+    print(distribution)
+
+    fifo(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, 
+         release_date_back, proc_bck, proc_local_back, trans_back_gradients, y) 
+                                                                 
+
 
 def balance_run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, 
          release_date_back, proc_bck, proc_local_back, trans_back_gradients, 

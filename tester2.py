@@ -20,10 +20,11 @@ def get_args():
     parser.add_argument('--compute_nodes', '-H', type=int, default=2, help='the number of compute nodes')
     parser.add_argument('--splitting_points', '-S', type=str, default='3,23', help='give an input in the form of s1,s2')
     parser.add_argument('--model', '-m', type=str, default='vgg19', help='select model resnet101/vgg19')
-    parser.add_argument('--repeat', '-r', type=str, default='', help='avoid generating input include file')
+    parser.add_argument('--repeat', '-e', type=str, default='', help='avoid generating input include file')
     parser.add_argument('--back', '-b', type=int, default=0, help='0: only fwd, 1: include backpropagation')
     parser.add_argument('--fifo', '-f', type=int, default=0, help='run fifo with load balancer')
     parser.add_argument('--gap', '-g', type=int, default=0, help='run fifo with gap')
+    parser.add_argument('--random', '-r', type=int, default=0, help='run fifo with raandom')
     parser.add_argument('--scenario', '-s', type=int, default=1, help='scenario')
     #parser.add_argument('--approach', type=str, default='approach3', help='select one of the approaches: approach1a/approach1aFreeze/approach2/approach3')
     args = parser.parse_args()
@@ -51,6 +52,10 @@ if __name__ == '__main__':
     if args.gap == 1:
         gap_flag = True
     
+    random_flag = False
+    if args.random == 1:
+        random_flag = True
+
     scenario = args.scenario
     
     splitting_points = args.splitting_points
@@ -316,6 +321,7 @@ if __name__ == '__main__':
             
             completed.append(net_line)
             network_type[int(net_line/H),int(net_line%H)] = random.randint(16,20)
+        
 
         #print(len(set(completed)))
 
@@ -330,15 +336,15 @@ if __name__ == '__main__':
         # 1 for laptop
 
         
-        mine_machine = [0,0,0,0,0,0,0,1,1,1]
-        
+        mine_machine = [1,1,1,1,1,0,0,0,0,0]
+        mine_machine = [1,1,0,0,0]
         print('MACHINES')
         machine_devices = np.zeros((H))
         for i in range(H):
             machine_devices[i] = random.randint(0,1)
             print(f'{machine_devices[i]}', end='\t')
-            
-            #machine_devices[i] = 1
+            #machine_devices[i] =  mine_machine[i]
+            #machine_devices[i] =  mine_machine[i]
             '''
             if machine_devices[i] == 1:
                 for j in range(K):
@@ -355,11 +361,12 @@ if __name__ == '__main__':
         # 1 for d2
         # 2 for jetson gpu
         # 3 for jetson cpu
+        
         do_devices = np.zeros((K))
         for i in range(K):
             do_devices[i] = random.randint(0,1)
-            #do_devices[i] = 0
-        #do_devices[2] = 1
+            do_devices[i] = 0
+        do_devices[2] = 1
         # forward parameters
         release_date = np.zeros((K,H))
         release_date_proc = np.zeros((K,H))
@@ -508,16 +515,17 @@ if __name__ == '__main__':
         utils.max_memory_demand = int(max(memory_demand))
         print("MEMORY CAPACITY")
         memory_capacity = np.array(utils.get_memory_characteristics(H, K))
+        
         for i in range(len(memory_capacity)):
             memory_capacity[i] = int(memory_capacity[i])
-            print(f'{int(memory_capacity[i])/int(utils.max_memory_demand)}', end=',\t')
             #memory_capacity[i] = int(max(memory_demand))*K
-        print(' ')
+            #print(f'{int(memory_capacity[i])/int(utils.max_memory_demand)}', end=',\t')
+        #print(' ')
         
         #array_mine = [1.0,	1.0,	14.0,	18.0,	1.0,	1.0,	1.0,    1.0,	1.0,	1.0]
         
-        array_mine = [1, 1, 1, 1, 1, 1, 1, 4, 4, 5]
-        '''
+        array_mine =  [1, 1, 1, 1, 1, 1, 1, 1, 10, 10]
+    
         for i in range(H):
             #memory_capacity[i] = int(array_mine[i]*utils.max_memory_demand)
             #memory_capacity[i] = int(array_mine[i]*utils.max_memory_demand)
@@ -525,7 +533,7 @@ if __name__ == '__main__':
             print(f'{int(memory_capacity[i])/int(utils.max_memory_demand)}', end=',\t')
             
         print(' ')
-        '''
+        
         unique_friends = []
         
         #print('proc')
@@ -578,7 +586,7 @@ if __name__ == '__main__':
         max_slot = 50
         max_slot_back = max_slot
 
-
+        
         for j in range(K):
             for i in range(H):
                 
@@ -605,8 +613,34 @@ if __name__ == '__main__':
 
                 if proc_bck[j,i] == 0:
                         proc_bck[j,i] = 1
+        '''
+        for j in range(K):
+            for i in range(H):
+                
+                release_date[j,i] = np.ceil((release_date[j,i]/max_slot)).astype(int)
+                trans_back[j,i] = np.ceil((trans_back[j,i]/max_slot)).astype(int)
+                
+                #release_date_back[j,i] = np.rint((release_date_back[j,i]*max_slot_back)/max_value_back).astype(int)
+                #trans_back_gradients[j,i] = np.rint((trans_back_gradients[j,i]*max_slot_back)/max_value_back).astype(int)
+                release_date_back[j,i] = np.ceil((release_date_back[j,i]/max_slot)).astype(int)
+                trans_back_gradients[j,i] = np.ceil((trans_back_gradients[j,i]/max_slot)).astype(int)
 
+                if i == 0:
+                    proc_local[j] = np.ceil((proc_local[j]/max_slot)).astype(int)
+                    #proc_local_back[j] = np.rint((proc_local_back[j]*max_slot_back)/max_value_back).astype(int)
+                    proc_local_back[j] = np.ceil((proc_local_back[j]/max_slot)).astype(int)
 
+                proc[j,i] =  np.ceil((proc[j,i]/max_slot)).astype(int)
+                
+                if proc[j,i] == 0:
+                        proc[j,i] = 1
+
+                #proc_bck[j,i] =  np.rint((proc_bck[j,i]*max_slot_back)/max_value_back).astype(int)
+                proc_bck[j,i] =  np.ceil((proc_bck[j,i]/max_slot)).astype(int)
+
+                if proc_bck[j,i] == 0:
+                        proc_bck[j,i] = 1
+        '''
         
         print('                                             NEW')
         print('proc')
@@ -669,22 +703,31 @@ if __name__ == '__main__':
                 
                 w_start = heuristic.balance_run(release_date, proc, proc_local, trans_back, 
                                 release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
-                                           memory_capacity.astype(int), memory_demand[0].astype(int), y, True)
+                                           memory_capacity.astype(int), memory_demand.astype(int), y, True)
         
             else:
                 w_start = heuristic.balance_run(release_date, proc, proc_local, trans_back, 
                                 release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
-                                           memory_capacity.astype(int), memory_demand[0].astype(int))
+                                           memory_capacity.astype(int), memory_demand.astype(int))
         elif gap_flag:
 
             print('Calling GAP')
             heuristic.K = args.data_owners
             heuristic.H = args.compute_nodes
-        
+    
             w_start = heuristic.gap_run(release_date, proc, proc_local, trans_back, 
                                 release_date_back, proc_bck, proc_local_back, trans_back_gradients,
                                 release_date_proc, release_date_back_proc,
-                                memory_capacity.astype(int), memory_demand[0].astype(int))    
+                                memory_capacity.astype(int), memory_demand.astype(int))    
+        elif random_flag:
+            print('Calling RANDOM')
+            heuristic.K = args.data_owners
+            heuristic.H = args.compute_nodes
+    
+            w_start = heuristic.random_run(release_date, proc, proc_local, trans_back, 
+                                release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
+                                           memory_capacity.astype(int), memory_demand.astype(int))                
+        
         else:
             if back_flag:
                 
@@ -692,6 +735,11 @@ if __name__ == '__main__':
                 gurobi_fwd_back.K = args.data_owners
                 gurobi_fwd_back.H = args.compute_nodes
                 w_start = 127
+                
+                T = np.max(release_date) + K*np.max(proc[0,:]) + np.max(release_date_back) + K*np.max(proc_bck[0,:]) \
+                        + np.max(proc_local) + np.max(proc_local_back)\
+                        + np.max(np.max(trans_back)) + np.max(np.max(trans_back_gradients))
+                print(T)
                 '''
                 w_start = gurobi_fwd_back.run(release_date.astype(int), proc.astype(int), 
                                             proc_local.astype(int), trans_back.astype(int), 

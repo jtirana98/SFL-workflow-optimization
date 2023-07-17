@@ -36,7 +36,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
     ones_T = np.ones((T,1))
 
     MAX_ITER = 10
-    rho = 300
+    rho = 350
     DT = np.empty((0, 6))
 
     if filename != '':
@@ -319,7 +319,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
             stable = 0
 
         # call sub-problems
-        if iter == 3: #stable >3 or iter == MAX_ITER - 1:
+        if iter == 2: #stable >3 or iter == MAX_ITER - 1:
             flag_exit = True # mark t that we reached the end
             
             if fifo_flag:
@@ -357,12 +357,12 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
 
                 if back_flag: # Call sub-problems for back
                     f_temp = np.zeros((len(Kx)))
-
+                    print('finish times')
                     for kk in range(len(Kx)):
                         for t in range(Tx):
                             if f_temp[kk] < (t+1)*x__[0,kk,t]:
                                 f_temp[kk] = (t+1)*x__[0,kk,t]
-                    
+                        print(f_temp[kk])
                     #min_f = min(f_temp)
                     
                     procz = np.copy(proc_back[Kx, i])  # this is a row-vector
@@ -381,7 +381,6 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
                     for jj in range(len(Kx)):
                         for t in range(min(Tx,Tz)):
                             x__extend[0,jj,t] = x__[0,jj,t]
-                        jj += 1
                     
                     start_sub = time.time()
                     #z__ = sub.for_each_machine(len(Kx), release_datez, procz, proc_localz, trans_backz, memory_capacity[i], Tz)
@@ -623,6 +622,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_dema
 
     print(f"{utils.bcolors.FAIL}Total time without all buildings: {total_time}{utils.bcolors.ENDC}")
     '''
+    #print(y.X)
     print(violations)
     print(obj_per_iter)
     return(violations, obj_per_iter)

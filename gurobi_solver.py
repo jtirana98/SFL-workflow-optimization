@@ -15,7 +15,7 @@ H = 2 # number of compute nodes
 utils.file_name = 'fully_symmetric.xlsx'
 
 
-def run(release_date, proc, proc_local, trans_back, memory_capacity, filename=''):
+def run(release_date, proc, proc_local, trans_back, memory_capacity, memory_demand, filename=''):
     start = time.time()
     
     T = np.max(release_date) + K*np.max(proc) # time intervals
@@ -48,7 +48,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, filename=''
     m.addConstr( y @ ones_H == ones_K )
     
     # C4: memory constraint
-    m.addConstr((y.T * utils.max_memory_demand) @ ones_K <= memory_capacity.reshape(ones_H.shape))
+    m.addConstr(memory_demand @ y <= memory_capacity)
     
     # C6: machine processes only a single job at each interval
     for j in range(H): #for all devices
@@ -108,13 +108,13 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, filename=''
         if np.sum([y[i,j].X for j in range(H)]) != 1:
             print(f"{utils.bcolors.FAIL}Constraint 3 is violated{utils.bcolors.ENDC}")
             return
-
+    '''
     # C4: memory constraint
     for j in range(H): #for all devices
         if np.sum([y[i,j].X for j in range(H)])*utils.max_memory_demand > memory_capacity[j]:
             print(f"{utils.bcolors.FAIL}Constraint 4 is violated{utils.bcolors.ENDC}")
             return
-
+    '''
     
     # C5: job should be processed entirely once
     for i in range(K):
@@ -165,7 +165,8 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, filename=''
                 f_.write(f'0\t')
         #print('')
         f_.write('\n')
-
+    
+    g_var = []
     f_.write("--------Completition time--------\n")
     for i in range(K): #for all jobs
         my_machine = 0
@@ -178,6 +179,7 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, filename=''
             if np.rint(x[my_machine,i,k].X) >= 1:
                 last_zero = k+1
         fmax = last_zero
+        g_var.append(fmax)
         C = fmax + proc_local[i] + trans_back[i,my_machine]
         #print(f'C{i+1}: {C} - {my_machine}')
         f_.write(f'C{i+1}: {C} - {my_machine} - {fmax} {f[my_machine].X}\n')
@@ -185,8 +187,9 @@ def run(release_date, proc, proc_local, trans_back, memory_capacity, filename=''
 
     f_.close()
     #print 'runtime is',m.Runtime
-
-    return(m.ObjVal)
+    print(g_var)
+    #return(m.ObjVal)
+    return(y.X, x.X, g_var)
 
 if __name__ == '__main__':
     run()
