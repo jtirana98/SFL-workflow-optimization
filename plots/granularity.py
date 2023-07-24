@@ -10,7 +10,7 @@ plt.rcParams.update({
 })
 
 fig, axs = plt.subplots(1,2)
-
+fig.set_size_inches(6, 3)
 labels = ('(50,5)', '(50,10)')
 ind  = np.arange(2)
 
@@ -53,20 +53,20 @@ for attribute, measurement in vgg_gran.items():
     multiplier += 1
     iter += 1
     
-axs[1].legend(bbox_to_anchor=(0.5, 1.1), ncol=3)
+axs[1].legend(bbox_to_anchor=(0.5, 1.2), ncol=3)
 
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
 #for ax in axs.flat:
 axs[0].set_ylabel('batch makespan (sec)')
-fig.suptitle('(n. of clients, n. of helpers)', y=0.05)
+fig.suptitle('(number of clients, number of helpers)', y=0.02)
     
     
     
 
 for ax in axs:
     ax.set_xticks(x + width, labels)
-    ax.set_ylim(0, 68)
+    ax.set_ylim(35, 68)
 
 plt.savefig("granulariy.pdf", format="pdf", bbox_inches="tight")
 plt.show()
