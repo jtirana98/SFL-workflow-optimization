@@ -155,8 +155,8 @@ axs[0,1].legend(bbox_to_anchor=(0.5, 1.2), ncol=3)
 # Add some text for labels, title and custom x-axis tick labels, etc.
 #for ax in axs.flat:
 
-axs[1,0].set_ylabel('batch makespan (sec)', y=1.3)
-fig.suptitle('(number of clients, number of compute nodes)', y=0.02)
+axs[1,0].set_ylabel('batch makespan (sec)', y=1.3,fontsize=20)
+fig.suptitle('(number of clients, number of compute nodes)', y=0.05,fontsize=20)
     
     
 maxs = [120, 100, 500,750]    
