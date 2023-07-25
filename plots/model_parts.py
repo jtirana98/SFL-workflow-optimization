@@ -10,7 +10,7 @@ plt.rcParams.update({
 })
 
 fig, axs = plt.subplots(1,2)
-fig.set_size_inches(6, 3)
+fig.set_size_inches(10, 3)
 labels = ('forward', 'backward')
 ind  = np.arange(2)
 
@@ -60,8 +60,8 @@ axs[1].legend(bbox_to_anchor=(0., 1.2), ncol=4)
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
 #for ax in axs.flat:
-axs[0].set_ylabel('Computing time in logscale')
-fig.suptitle('Operation', y=0.02)
+axs[0].set_ylabel('Computing time in logscale',fontsize=16)
+fig.suptitle('Operation', y=0.02,fontsize=16)
     
     
     

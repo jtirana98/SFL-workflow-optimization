@@ -15,6 +15,8 @@ fig, axs = plt.subplots(2,2)
 fig.set_size_inches(10, 6)
 labels = ('(20,5)', '(20,10)', '(30,5)', '(30,10)', '(50,5)', '(50,10)', '(70,5)', '(70,10)')
 
+props = {'connectionstyle':'bar','arrowstyle':'-',\
+                 'shrinkA':30,'shrinkB':30,'linewidth':1}
 
 resnet_1 = {
     'ADMM': (43.97, 40.85, 48.64, 42.41, 56.75, 45.53, 91.06, 53.63),
@@ -46,15 +48,8 @@ def label_diff(i,j,text,X,Ya, Yb, ii,ij,f,k=0):
     props = {'connectionstyle':'bar','arrowstyle':'-',\
                  'shrinkA':30,'shrinkB':30,'linewidth':1}
     axs[ii][ij].annotate(text, xy=(X[i]+k,y), zorder=11)
-    axs[ii][ij].annotate('', xy=(X[i]+k,y-f), xytext=(X[i]+k+j,y-f), arrowprops=props)
+    #axs[ii][ij].annotate('', xy=(X[i]+k,y-f), xytext=(X[i]+k+j,y-f), arrowprops=props)
 
-def label_diff2(i,j,text,X,Ya, Yb, ii,ij,f):
-    x = (X[i]+X[i]+j)/2
-    y = 1*max(Ya[i], Yb[i])
-    props = {'connectionstyle':'bar','arrowstyle':'-',\
-                 'shrinkA':30,'shrinkB':30,'linewidth':1}
-    axs[ii][ij].annotate(text, xy=(X[i],y+5), zorder=11)
-    axs[ii][ij].annotate('', xy=(X[i],y-f), xytext=(X[i]+j,y-f), arrowprops=props)
 
 
 x = np.arange(len(labels))  # the label locations
@@ -75,12 +70,15 @@ for attribute, measurement in resnet_1.items():
     multiplier += 1
     iter += 1
 
+factor = ['16.5\%','13.2\%','7.8\%','19\%',     '8\%','18.4\%','19\%','14.2\%']
 admm = resnet_1["ADMM"]
 random = resnet_1["random"]
-factor = [16.5,13.2,7.8,19,     8,18.4,19,14.2]
+load = resnet_1["load_balanced"]
 for j in range(0, len(x)):
-    axs[0,0].plot([j, j], [resnet_1["ADMM"][j], resnet_1["random"][j]], color='black', linestyle = 'dashed', linewidth=1)
-    label_diff(j,1+0.3,factor[j],x,admm,random, 0,0,9,0)
+    axs[0,0].plot([j, j], [admm[j], random[j]], color='black', linestyle = 'dashed', linewidth=1)
+    axs[0][0].annotate('', xy=(j,3+random[j]), xytext=(j+0.6,3+random[j]), arrowprops=props)
+    #axs[0,0].plot([j, j+0.6], [5+random[j], 5+random[j]], color='black', linewidth=1.5, marker='|')
+    axs[0][0].annotate(factor[j], xy=(j,10+random[j]), zorder=20)
 
 multiplier = 0
 iter = 0
@@ -96,17 +94,22 @@ for attribute, measurement in vgg_1.items():
     multiplier += 1
     iter += 1
 
+factor = ['31.9\%','41.5\%','14.5\%','41.4\%',      '21.3\%','11.7\%','15\%','16.8\%']
 admm = vgg_1["ADMM"]
 random = vgg_1["random"]
-factor = [31.9,41.5,14.5,41.4,      21.3,11.7,15,16.8]
-k=0
+load = vgg_1["load_balanced"]
 for j in range(0, len(x)):
-    if j >len(x)-4:
-        admm = vgg_1["load_balanced"]
-        k=0.3
-    axs[0,1].plot([j+k, j+k], [admm[j], vgg_1["random"][j]], color='black', linestyle = 'dashed', linewidth=1)
-    label_diff(j,1+0.3,factor[j],x,admm,random, 0,1,9,k)
-
+    max_v = max([random[j], admm[j], load[j]])
+    if j < len(x)-4:
+        axs[0,1].plot([j, j], [admm[j], max_v], color='black', linestyle = 'dashed', linewidth=1)
+        #axs[0,1].plot([j, j+0.6], [5+max_v, 5+max_v], color='black', linewidth=1.5, marker='|')
+        axs[0][1].annotate('', xy=(j,3+max_v), xytext=(j+0.6,3+max_v), arrowprops=props)
+        axs[0][1].annotate(factor[j], xy=(j,7+max_v), zorder=11)
+    else:
+        axs[0,1].plot([j+0.3, j+0.3], [load[j], max_v], color='black', linestyle = 'dashed', linewidth=1)
+        #axs[0,1].plot([j+0.3, j+0.6], [5+max_v, 5+max_v], color='black', linewidth=1.5, marker='|')
+        axs[0][1].annotate('', xy=(j+0.3,3+max_v), xytext=(j+0.6,3+max_v), arrowprops=props)
+        axs[0][1].annotate(factor[j], xy=(j+0.3,7+max_v), zorder=11)
 multiplier = 0
 iter = 0
 for attribute, measurement in resnet_2.items():
@@ -121,13 +124,17 @@ for attribute, measurement in resnet_2.items():
     multiplier += 1
     iter += 1
 
+factor = ['38.7\%', '28.8\%', '20.2\%', '22.6\%',       '17.4\%', '28.1\%', '12.6\%', '20.1\%']
 admm = resnet_2["ADMM"]
 random = resnet_2["random"]
-factor = [38.7, 28.8, 20.2, 22.6,       17.4, 28.1, 12.6, 20.1]
+load = resnet_2["load_balanced"]
 for j in range(0, len(x)):
-    axs[1,0].plot([j, j], [resnet_2["ADMM"][j], resnet_2["random"][j]], color='black', linestyle = 'dashed', linewidth=1)
-    label_diff2(j,1+0.3,factor[j],x,admm,random, 1,0,45)
-
+    max_v = max([random[j], admm[j], load[j]])
+    axs[1,0].plot([j, j], [admm[j], max_v], color='black', linestyle = 'dashed', linewidth=1)
+    #axs[1,0].plot([j, j+0.6], [5+max_v, 5+max_v], color='black', linewidth=1.5, marker='|')
+    axs[1][0].annotate('', xy=(j,3+max_v), xytext=(j+0.6,3+max_v), arrowprops=props)
+    axs[1][0].annotate(factor[j], xy=(j,30+max_v), zorder=11)
+   
 multiplier = 0
 iter = 0
 for attribute, measurement in vgg_2.items():
@@ -142,14 +149,21 @@ for attribute, measurement in vgg_2.items():
     multiplier += 1
     iter += 1
 
+
+factor = ['41.0\%', '52.3\%', '19\%', '27.4\%',       '24.1\%', '38.7\%', '17.3\%', '31.4\%']
 admm = vgg_2["ADMM"]
-random =vgg_2["random"]
-factor = [41.0, 52.3, 19, 27.4,       24.1, 38.7, 17.3, 31.4]
+random = vgg_2["random"]
+load = vgg_2["load_balanced"]
 for j in range(0, len(x)):
-    axs[1,1].plot([j, j], [vgg_2["ADMM"][j], vgg_2["random"][j]], color='black', linestyle = 'dashed', linewidth=1)
-    label_diff2(j,1+0.3,factor[j],x,admm,random, 1,1,50)
-    
-axs[0,1].legend(bbox_to_anchor=(0.5, 1.2), ncol=3)
+    max_v = max([random[j], admm[j], load[j]])
+    axs[1,1].plot([j, j], [admm[j], max_v], color='black', linestyle = 'dashed', linewidth=1)
+    #axs[1,1].plot([j, j+0.6], [10+max_v, 10+max_v], color='black', linewidth=1.5, marker='|')
+    axs[1][1].annotate('', xy=(j,3+max_v), xytext=(j+0.6,3+max_v), arrowprops=props)
+    axs[1][1].annotate(factor[j], xy=(j,30+max_v), zorder=11)    
+
+axs[0,1].plot([0, 0], [800, 800], color='black', linewidth=1.5, label='ralative gain (\%)')
+
+axs[0,1].legend(bbox_to_anchor=(0.5, 1.2), ncol=4)
 
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
@@ -159,7 +173,7 @@ axs[1,0].set_ylabel('batch makespan (sec)', y=1.3,fontsize=20)
 fig.suptitle('(number of clients, number of compute nodes)', y=0.05,fontsize=20)
     
     
-maxs = [120, 100, 500,750]    
+maxs = [135, 100, 550,750]    
 #resn1, vgg1, resn2, vgg2
 ii = 0
 for ax in axs[:]:

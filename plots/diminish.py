@@ -40,7 +40,7 @@ axs[0].bar(x, resnet_diminish, **bar_kwargs)
 
 #axs[0].errs = plt.errorbar(x, resnet_diminish, yerr=menStd, **err_kwargs)
 
-dimish = ['1.9', '1.2', '1.3', '1.1', '1']
+dimish = ['47.6\%', '21.5\%', '23.9\%', '15.7\%', '3.1\%']
 for j in range(1, len(x)):
     #axs[0].axvline(x=j, linewidth=1, color='black', ymin=0, ymax=0.5)
     axs[0].plot([j, j], [resnet_diminish[j], resnet_diminish[j-1]], color='black', linestyle = 'dashed', linewidth=1)
@@ -51,7 +51,7 @@ for j in range(1, len(x)):
 
 
 axs[1].bar(x, vgg_diminish, **bar_kwargs)
-dimish = ['1.88', '1.4', '1.7', '1.3', '1']
+dimish = ['47\%', '32.7\%', '41.2\%', '25.5\%', '4.67\%']
 for j in range(1, len(x)):
     #axs[0].axvline(x=j, linewidth=1, color='black', ymin=0, ymax=0.5)
     axs[1].plot([j, j], [vgg_diminish[j], vgg_diminish[j-1]], color='black', linestyle = 'dashed', linewidth=1)
@@ -59,11 +59,14 @@ for j in range(1, len(x)):
 
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
+
+axs[0].plot([0, 0], [800, 800], color='black', linewidth=1.5, label='ralative gain (\%)')
+axs[0].legend(bbox_to_anchor=(1.5, 1.2), ncol=1)
 #for ax in axs.flat:
-axs[0].set_ylabel('batch makespan (sec)')
+axs[0].set_ylabel('batch makespan (sec)', fontsize=16)
 
 
-fig.suptitle('number of compute nodes', y=0.02)
+fig.suptitle('number of compute nodes', y=0.02,fontsize=16)
     
     
 
