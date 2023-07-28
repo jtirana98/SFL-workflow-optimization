@@ -61,7 +61,7 @@ for j in range(1, len(x)):
 # Add some text for labels, title and custom x-axis tick labels, etc.
 
 axs[0].plot([0, 0], [800, 800], color='black', linewidth=1.5, label='relative gain (\%)')
-axs[0].legend(bbox_to_anchor=(1.5, 1.9), ncol=1 ,fontsize=20)
+axs[0].legend(bbox_to_anchor=(1.5, 1.9), ncol=1 ,fontsize=25)
 #for ax in axs.flat:
 axs[0].set_ylabel('batch makespan (sec)', fontsize=20)
 
