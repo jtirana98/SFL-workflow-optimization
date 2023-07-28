@@ -11,7 +11,7 @@ plt.rcParams.update({
 
 fig, axs = plt.subplots(1,2)
 fig.set_size_inches(10, 3)
-labels = ('forward', 'backward')
+labels = ('fwd-prop', 'back-prop')
 ind  = np.arange(2)
 
 resnet_par1 = {
@@ -32,13 +32,13 @@ x = np.arange(len(labels))  # the label locations
 width = 0.2  # the width of the bars
 multiplier = 0
 iter = 0
-hatches = ['///', 'o', '\\', '+']
+hatches = ['\\\\', '..', '++', '+']
 for attribute, measurement in resnet_par1.items():
     offset = width * multiplier
     if multiplier == 0:
-        rects = axs[0].bar(x + offset, measurement, width, label=attribute, fill=True, color=(0.2, 0.4, 0.6, 0.6))
+        rects = axs[0].bar(x + offset, measurement, width, label=attribute, fill=True, color='darkseagreen')
     else:
-        rects = axs[0].bar(x + offset, measurement, width, label=attribute, fill=False, hatch=hatches[iter-1], edgecolor=(0.2, 0.4, 0.6, 0.6))
+        rects = axs[0].bar(x + offset, measurement, width, label=attribute, fill=False, hatch=hatches[iter-1], edgecolor='darkseagreen')
     #axs[0].bar_label(rects, padding=3)
     multiplier += 1
     iter += 1
@@ -48,9 +48,9 @@ iter = 0
 for attribute, measurement in vgg_par1.items():
     offset = width * multiplier
     if multiplier == 0:
-        rects = axs[1].bar(x + offset, measurement, width, label=attribute, fill=True, color=(0.2, 0.4, 0.6, 0.6))
+        rects = axs[1].bar(x + offset, measurement, width, label=attribute, fill=True, color='darkseagreen')
     else:
-        rects = axs[1].bar(x + offset, measurement, width, label=attribute, fill=False, hatch=hatches[iter-1], edgecolor=(0.2, 0.4, 0.6, 0.6))
+        rects = axs[1].bar(x + offset, measurement, width, label=attribute, fill=False, hatch=hatches[iter-1], edgecolor='darkseagreen')
     #axs[1].bar_label(rects, padding=3)
     multiplier += 1
     iter += 1
@@ -70,7 +70,8 @@ for ax in axs:
     ax.set_xticks(x + width, labels)
     ax.set_yscale('log')
     ax.grid(axis = "y")
-    #ax.set_ylim(35, 68)
+    ax.yaxis.set_ticks([1,10,100,1000])
+    ax.yaxis.set_ticklabels(['$1$','$10$', '$10^2$','$10^3$'])
     ax.tick_params(axis='x', labelsize=20)
     ax.tick_params(axis='y', labelsize=20)
 

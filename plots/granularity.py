@@ -56,10 +56,10 @@ resnet_150 = resnet_gran['$|S_t|$ = 150']
 resnet_200 = resnet_gran['$|S_t|$ = 200']
 
 
-axs[0].annotate(speedup[0], xy=(0.2,resnet_150[0]), zorder=10,fontsize=15)
-axs[0].annotate(speedup[1], xy=(0,resnet_200[0]), zorder=10,fontsize=15)
-axs[0].annotate(speedup[2], xy=(1+0.3,resnet_150[1]), zorder=10,fontsize=15)
-axs[0].annotate(speedup[3], xy=(1,resnet_200[1]), zorder=10,fontsize=15)
+axs[0].annotate(speedup[0], xy=(0.3,resnet_150[0]), zorder=10,fontsize=20)
+axs[0].annotate(speedup[1], xy=(0,resnet_200[0]), zorder=10,fontsize=20)
+axs[0].annotate(speedup[2], xy=(1+0.3,resnet_150[1]), zorder=10,fontsize=20)
+axs[0].annotate(speedup[3], xy=(1,resnet_200[1]+3), zorder=10,fontsize=20)
 
 
 multiplier = 0
@@ -77,10 +77,10 @@ for attribute, measurement in vgg_gran.items():
 speedup = ['x3.8', 'x4.9', 'x3.4', 'x4.8']
 vgg_150 = vgg_gran['$|S_t|$ = 150']
 vgg_200 = vgg_gran['$|S_t|$ = 200']
-axs[1].annotate(speedup[0], xy=(0.3,vgg_150[0]), zorder=10,fontsize=15)
-axs[1].annotate(speedup[1], xy=(0,vgg_200[0]), zorder=10,fontsize=15)
-axs[1].annotate(speedup[2], xy=(1+0.3,vgg_150[1]), zorder=10,fontsize=15)
-axs[1].annotate(speedup[3], xy=(1,vgg_200[1]), zorder=10,fontsize=15)
+axs[1].annotate(speedup[0], xy=(0,vgg_150[0]+4), zorder=10,fontsize=20)
+axs[1].annotate(speedup[1], xy=(0.3,vgg_200[0]-1), zorder=10,fontsize=20)
+axs[1].annotate(speedup[2], xy=(1+0.3,vgg_150[1]), zorder=10,fontsize=20)
+axs[1].annotate(speedup[3], xy=(1,vgg_200[1]+4), zorder=10,fontsize=20)
 
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
@@ -95,6 +95,10 @@ fig.suptitle('(number of clients, number of helpers)', y=-0.02,fontsize=18)
 for ax in axs:
     ax.set_xticks(x + width, labels)
     ax.set_ylim(35, 68)
+    #ax.set_yticks([i for i in range(35,10,70)],[i for i in range(35,10,70)])
+    ax.yaxis.set_ticks([35,45,55,65])
+    # set what will actually be displayed at each tick.
+    ax.yaxis.set_ticklabels(['$35$','$45$','$55$','$65$'])
     ax.grid(axis = "y") #for grid
     ax.tick_params(axis='x', labelsize=20)
     ax.tick_params(axis='y', labelsize=20)

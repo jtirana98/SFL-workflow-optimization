@@ -73,6 +73,9 @@ fig.suptitle('number of helpers', y=0.02,fontsize=20)
 for ax in axs:
     ax.set_xticks(x, labels)
     ax.set_ylim(30, 300)
+    ax.yaxis.set_ticks([30,55,100,150,200,250,300])
+    # set what will actually be displayed at each tick.
+    ax.yaxis.set_ticklabels([30,55,100,150,200,250,300])
     ax.grid(axis = "y") #for grid
     ax.tick_params(axis='x', labelsize=20)
     ax.tick_params(axis='y', labelsize=20)
