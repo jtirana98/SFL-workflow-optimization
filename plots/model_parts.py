@@ -55,13 +55,13 @@ for attribute, measurement in vgg_par1.items():
     multiplier += 1
     iter += 1
     
-axs[1].legend(bbox_to_anchor=(0., 1.2), ncol=4)
+axs[1].legend(bbox_to_anchor=(0.8, 1.2), ncol=4,fontsize=14)
 
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
 #for ax in axs.flat:
 axs[0].set_ylabel('Computing time in logscale',fontsize=16)
-fig.suptitle('Operation', y=0.02,fontsize=16)
+fig.suptitle('Operation', y=0.02,fontsize=20)
     
     
     
@@ -71,6 +71,8 @@ for ax in axs:
     ax.set_yscale('log')
     ax.grid(axis = "y")
     #ax.set_ylim(35, 68)
+    ax.tick_params(axis='x', labelsize=20)
+    ax.tick_params(axis='y', labelsize=20)
 
 plt.savefig("model_parts.pdf", format="pdf", bbox_inches="tight")
 plt.show()

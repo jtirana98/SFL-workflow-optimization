@@ -7,13 +7,13 @@ import matplotlib.pyplot as plt
 
 def label_diff(i,j,text,X,Y, ii):
     x = (X[i]+X[j])/2
-    y = 1.01*max(Y[i], Y[j])
+    y = 1*max(Y[i], Y[j])
     dx = abs(X[i]-X[j])
 
     props = {'connectionstyle':'bar','arrowstyle':'-',\
                  'shrinkA':30,'shrinkB':30,'linewidth':1}
-    axs[ii].annotate(text, xy=(X[i]+0.2,y+12), zorder=10)
-    axs[ii].annotate('', xy=(X[i],y), xytext=(X[j],y), arrowprops=props)
+    axs[ii].annotate(text, xy=(X[i]+0.5,y+13), zorder=10,fontsize=14)
+    axs[ii].annotate('', xy=(X[i],y), xytext=(X[i]+1.,y), arrowprops=props)
 
 
 plt.rcParams.update({
@@ -22,7 +22,7 @@ plt.rcParams.update({
 })
 
 fig, axs = plt.subplots(1,2)
-fig.set_size_inches(6, 3)
+fig.set_size_inches(12, 3)
 labels = ('1', '2', '5', '10', '20', '25')
 menStd     = ('2', '3', '4', '5')
 width = 0.7
@@ -60,13 +60,13 @@ for j in range(1, len(x)):
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
 
-axs[0].plot([0, 0], [800, 800], color='black', linewidth=1.5, label='ralative gain (\%)')
-axs[0].legend(bbox_to_anchor=(1.5, 1.2), ncol=1)
+axs[0].plot([0, 0], [800, 800], color='black', linewidth=1.5, label='relative gain (\%)')
+axs[0].legend(bbox_to_anchor=(1.5, 1.9), ncol=1 ,fontsize=20)
 #for ax in axs.flat:
-axs[0].set_ylabel('batch makespan (sec)', fontsize=16)
+axs[0].set_ylabel('batch makespan (sec)', fontsize=20)
 
 
-fig.suptitle('number of compute nodes', y=0.02,fontsize=16)
+fig.suptitle('number of helpers', y=0.02,fontsize=20)
     
     
 
@@ -74,6 +74,8 @@ for ax in axs:
     ax.set_xticks(x, labels)
     ax.set_ylim(30, 300)
     ax.grid(axis = "y") #for grid
+    ax.tick_params(axis='x', labelsize=20)
+    ax.tick_params(axis='y', labelsize=20)
 
 plt.savefig("diminish.pdf", format="pdf", bbox_inches="tight")
 plt.show()
