@@ -66,7 +66,7 @@ for attribute, measurement in resnet_1.items():
         if multiplier == 1:
             rects = axs[0,0].bar(x + offset, measurement, width, label=attribute, fill=False, hatch=hatches[iter-1], edgecolor=(0.2, 0.4, 0.6, 0.6))
         else:
-            rects = axs[0,0].bar(x + offset, measurement, width, label=attribute, fill=False, hatch=hatches[iter-1], edgecolor='firebrick')
+            rects = axs[0,0].bar(x + offset, measurement, width, label=attribute, fill=True, hatch=hatches[iter-1], color='tan', edgecolor='white')
     multiplier += 1
     iter += 1
 
@@ -90,7 +90,7 @@ for attribute, measurement in vgg_1.items():
         if multiplier == 1:
             rects = axs[0,1].bar(x + offset, measurement, width, label=attribute, fill=False, hatch=hatches[iter-1], edgecolor=(0.2, 0.4, 0.6, 0.6))
         else:
-            rects = axs[0,1].bar(x + offset, measurement, width, label=attribute, fill=False, hatch=hatches[iter-1], edgecolor='firebrick')
+            rects = axs[0,1].bar(x + offset, measurement, width, label=attribute, fill=True, hatch=hatches[iter-1], color='tan', edgecolor='white')
     multiplier += 1
     iter += 1
 
@@ -120,7 +120,7 @@ for attribute, measurement in resnet_2.items():
         if multiplier == 1:
             rects = axs[1,0].bar(x + offset, measurement, width, label=attribute, fill=False, hatch=hatches[iter-1], edgecolor=(0.2, 0.4, 0.6, 0.6))
         else:
-            rects = axs[1,0].bar(x + offset, measurement, width, label=attribute, fill=False, hatch=hatches[iter-1], edgecolor='firebrick')
+            rects = axs[1,0].bar(x + offset, measurement, width, label=attribute, fill=True, hatch=hatches[iter-1], color='tan', edgecolor='white')
     multiplier += 1
     iter += 1
 
@@ -145,7 +145,7 @@ for attribute, measurement in vgg_2.items():
         if multiplier == 1:
             rects = axs[1,1].bar(x + offset, measurement, width, label=attribute, fill=False, hatch=hatches[iter-1], edgecolor=(0.2, 0.4, 0.6, 0.6))
         else:
-            rects = axs[1,1].bar(x + offset, measurement, width, label=attribute, fill=False, hatch=hatches[iter-1], edgecolor='firebrick')
+            rects = axs[1,1].bar(x + offset, measurement, width, label=attribute, fill=True, hatch=hatches[iter-1], color='tan', edgecolor='white')
     multiplier += 1
     iter += 1
 

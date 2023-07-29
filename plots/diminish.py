@@ -40,7 +40,7 @@ axs[0].bar(x, resnet_diminish, **bar_kwargs)
 
 #axs[0].errs = plt.errorbar(x, resnet_diminish, yerr=menStd, **err_kwargs)
 
-dimish = ['47.6\%', '21.5\%', '23.9\%', '15.7\%', '3.1\%']
+dimish = ['47.6', '21.5', '23.9', '15.7', '3.1']
 for j in range(1, len(x)):
     #axs[0].axvline(x=j, linewidth=1, color='black', ymin=0, ymax=0.5)
     axs[0].plot([j, j], [resnet_diminish[j], resnet_diminish[j-1]], color='black', linestyle = 'dashed', linewidth=1)
@@ -51,7 +51,7 @@ for j in range(1, len(x)):
 
 
 axs[1].bar(x, vgg_diminish, **bar_kwargs)
-dimish = ['47\%', '32.7\%', '41.2\%', '25.5\%', '4.67\%']
+dimish = ['47', '32.7', '41.2', '25.5', '4.67']
 for j in range(1, len(x)):
     #axs[0].axvline(x=j, linewidth=1, color='black', ymin=0, ymax=0.5)
     axs[1].plot([j, j], [vgg_diminish[j], vgg_diminish[j-1]], color='black', linestyle = 'dashed', linewidth=1)
@@ -60,7 +60,7 @@ for j in range(1, len(x)):
 
 # Add some text for labels, title and custom x-axis tick labels, etc.
 
-axs[0].plot([0, 0], [800, 800], color='black', linewidth=1.5, label='relative gain (\%)')
+axs[0].plot([0, 0], [800, 800], color='black', linewidth=1.5, label='relative gain ()')
 axs[0].legend(bbox_to_anchor=(1.5, 1.9), ncol=1 ,fontsize=25)
 #for ax in axs.flat:
 axs[0].set_ylabel('batch makespan (sec)', fontsize=20)
@@ -72,10 +72,10 @@ fig.suptitle('number of helpers', y=0.02,fontsize=20)
 
 for ax in axs:
     ax.set_xticks(x, labels)
-    ax.set_ylim(30, 300)
-    ax.yaxis.set_ticks([30,55,100,150,200,250,300])
+    ax.set_ylim(30, 330)
+    ax.yaxis.set_ticks([30,90,150,210,270, 330])
     # set what will actually be displayed at each tick.
-    ax.yaxis.set_ticklabels([30,55,100,150,200,250,300])
+    ax.yaxis.set_ticklabels([30,90,150,210,270, 330])
     ax.grid(axis = "y") #for grid
     ax.tick_params(axis='x', labelsize=20)
     ax.tick_params(axis='y', labelsize=20)
