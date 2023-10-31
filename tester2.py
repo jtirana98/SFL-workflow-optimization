@@ -18,8 +18,8 @@ def get_args():
     parser.add_argument('--log', type=str, default='test1.txt', help='filename for the logging')
     parser.add_argument('--data_owners', '-K', type=int, default=50, help='the number of data owners')
     parser.add_argument('--compute_nodes', '-H', type=int, default=2, help='the number of compute nodes')
-    parser.add_argument('--splitting_points', '-S', type=str, default='3,23', help='give an input in the form of s1,s2')
-    parser.add_argument('--model', '-m', type=str, default='vgg19', help='select model resnet101/vgg19')
+    parser.add_argument('--splitting_points', '-S', type=str, default='3,33', help='give an input in the form of s1,s2')
+    parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
     parser.add_argument('--repeat', '-e', type=str, default='', help='avoid generating input include file')
     parser.add_argument('--back', '-b', type=int, default=0, help='0: only fwd, 1: include backpropagation')
     parser.add_argument('--fifo', '-f', type=int, default=0, help='run fifo with load balancer')
@@ -244,6 +244,7 @@ if __name__ == '__main__':
                               ]
         
         # random seed 
+        original_state = np.random.get_state()
         random.seed(42)
 
         # randomly select the network connections
@@ -337,13 +338,12 @@ if __name__ == '__main__':
 
         
         mine_machine = [1,1,1,1,1,0,0,0,0,0]
-        mine_machine = [1,1,0,0,0]
+        mine_machine = [1,0,0,0,0,0,0,0,0,0]
         print('MACHINES')
         machine_devices = np.zeros((H))
         for i in range(H):
             machine_devices[i] = random.randint(0,1)
             print(f'{machine_devices[i]}', end='\t')
-            #machine_devices[i] =  mine_machine[i]
             #machine_devices[i] =  mine_machine[i]
             '''
             if machine_devices[i] == 1:
@@ -365,8 +365,8 @@ if __name__ == '__main__':
         do_devices = np.zeros((K))
         for i in range(K):
             do_devices[i] = random.randint(0,1)
-            do_devices[i] = 0
-        do_devices[2] = 1
+            #do_devices[i] = 0
+        #do_devices[2] = 1
         # forward parameters
         release_date = np.zeros((K,H))
         release_date_proc = np.zeros((K,H))
@@ -381,7 +381,9 @@ if __name__ == '__main__':
         proc_local_back =np.zeros((K))
         trans_back_gradients = np.zeros((K, H))
 
-        '''
+        
+        #make slow connections to slow machines
+        
         for i in range(H):
             if machine_devices[i] == 1:
                 for j in range(K):
@@ -389,7 +391,7 @@ if __name__ == '__main__':
             else:
                 for j in range(K):
                     network_type[j,i] = int(random.randint(15,20))
-        '''
+        
 
         if scenario == 2:
             release_date_ = np.zeros((K))
@@ -583,7 +585,7 @@ if __name__ == '__main__':
         print('\n----------------------     max values:  -------------------\n')
         
         # Re-difine parameters
-        max_slot = 50
+        max_slot = 100
         max_slot_back = max_slot
 
         
@@ -706,9 +708,12 @@ if __name__ == '__main__':
                                            memory_capacity.astype(int), memory_demand.astype(int), y, True)
         
             else:
+                start = time.time()
                 w_start = heuristic.balance_run(release_date, proc, proc_local, trans_back, 
                                 release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
                                            memory_capacity.astype(int), memory_demand.astype(int))
+                end = time.time()
+                print(f'fifo time is {end-start}')
         elif gap_flag:
 
             print('Calling GAP')
@@ -723,7 +728,7 @@ if __name__ == '__main__':
             print('Calling RANDOM')
             heuristic.K = args.data_owners
             heuristic.H = args.compute_nodes
-    
+   
             w_start = heuristic.random_run(release_date, proc, proc_local, trans_back, 
                                 release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
                                            memory_capacity.astype(int), memory_demand.astype(int))                

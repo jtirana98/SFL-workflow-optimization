@@ -20,7 +20,7 @@ def get_args():
     parser.add_argument('--data_owners', '-K', type=int, default=50, help='the number of data owners')
     parser.add_argument('--compute_nodes', '-H', type=int, default=2, help='the number of compute nodes')
     parser.add_argument('--splitting_points', '-S', type=str, default='3,33', help='give an input in the form of s1,s2')
-    parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
+    parser.add_argument('--model', '-m', type=str, default='vgg19', help='select model resnet101/vgg19')
     parser.add_argument('--repeat', '-e', type=str, default='', help='avoid generating input include file')
     parser.add_argument('--back', '-b', type=int, default=0, help='0: only fwd, 1: include backpropagation')
     parser.add_argument('--fifo', '-f', type=int, default=0, help='run fifo with load balancer')
@@ -234,7 +234,7 @@ if __name__ == '__main__':
             #print('--------------------------------')
         print(store_compute_node)
 
-        my_net = lambda data,bandwidth : ((data*0.0008)/bandwidth)*1000
+        my_net = lambda data,bandwidth : ((data*0.00008)/bandwidth)*1000
         network_connections = [ lambda a : ((a*0.000008)/8)*1000, # 8 Mbits/sec
                                 lambda a : (a*0.0000008)*1000, # 10 Mbits/sec
                                 lambda a : ((a*0.000000008)/7.13)*1000, # 7.13 Gbits/sec
@@ -249,19 +249,12 @@ if __name__ == '__main__':
 
         for i in range(K):
             for j in range(H):
-                network_type[i][j] = 7
+                network_type[i][j] = 20
         
       
-        
+        '''
         for i in range(K-H+1, K):
             network_type[i][H-1] = 1
-        
-               
-        '''
-        network_type = np.zeros((K,H))
-        for j in range(K):
-            for i in range(H):
-                network_type[j,i] = random.randint(0,len(network_connections)-1)
         '''
 
         '''
@@ -368,9 +361,11 @@ if __name__ == '__main__':
                 do_devices[i] = 2
             #do_devices[i] = 0
         #do_devices[2] = 1
-
+        
+        '''
         for i in range(K-H+1, K):
             do_devices[i] = 0
+        '''
 
         # forward parameters
         release_date = np.zeros((K,H))
@@ -540,14 +535,15 @@ if __name__ == '__main__':
                 if proc_bck[j,i] == 0:
                         proc_bck[j,i] = 1
         
-        
+        # for large in resnet SLOW
+        '''
         for i in range(K-H+1, K):
             for j in range(H-1):
                 release_date[i][j] += 10
                 release_date_back[i][j] += 10
                 proc_local[i] += 10
                 proc_local_back[i] += 10
-            
+        '''    
 
         
         
@@ -623,9 +619,13 @@ if __name__ == '__main__':
                                            memory_capacity.astype(int), memory_demand[0].astype(int), y, True)
         
             else:
+                start = time.time()
                 w_start = heuristic.balance_run(release_date, proc, proc_local, trans_back, 
                                 release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
                                            memory_capacity, memory_demand)
+                
+                end = time.time()
+                print(f'fifo time is {end-start}')
         elif gap_flag:
 
             print('Calling GAP')

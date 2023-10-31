@@ -12,7 +12,7 @@ def label_diff(i,j,text,X,Y, ii):
 
     props = {'connectionstyle':'bar','arrowstyle':'-',\
                  'shrinkA':30,'shrinkB':30,'linewidth':1}
-    axs[ii].annotate(text, xy=(X[i]+0.5,y+13), zorder=10,fontsize=14)
+    axs[ii].annotate(text, xy=(X[i]+0.5,y+20), zorder=10,fontsize=20)
     axs[ii].annotate('', xy=(X[i],y), xytext=(X[i]+1.,y), arrowprops=props)
 
 

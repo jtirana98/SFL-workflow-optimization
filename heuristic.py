@@ -51,13 +51,19 @@ def random_run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activation
          release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
          memory_capacity, memory_demand, y=[], y_ready=False):
 
-    random.seed(42)
+    random.seed(None)
 
     distribution = [0 for i in range(H)] #how many devices on machine
     load_ = [0 for i in range(H)]
     y = np.zeros((K,H))
-
-    for i in range(K):
+    done = []
+    #for i in range(K):#K-1,0,-1
+    while len(done) < K:
+        while True:
+            i = random.randint(0, K-1)
+            if i not in done:
+                done.append(i)
+                break
         fit = []
         for j in range(H):
             #print(j)
@@ -67,9 +73,11 @@ def random_run(release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activation
         if len(fit) == 1:
             distribution[fit[0]] += 1
             y[i,fit[0]] = 1
+            load_[fit[0]] += memory_demand[i]
         else:
-            my_machine = random.randint(0, len(fit)-1)
+            my_machine = random.randint(3, len(fit)-1)
             y[i,fit[my_machine]] = 1
+            load_[fit[my_machine]] += memory_demand[i]
             distribution[fit[my_machine]] += 1
 
     print(y)
