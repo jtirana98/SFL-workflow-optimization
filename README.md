@@ -1,18 +1,17 @@
-# scheduling-jobs
+# Workflow Optimization for Parallel Split Learning
 
+This code is for the paper: _Tirana, J., Tsigkari D., Iosifidis G., Chatzopoulos, D. Workflow Optimization for Parallel Split Learning, in proc. of IEEE INFOCOM 2024._
 
-Set-up steps:
+**Set-up and requirements steps:**
 
 1. Python > 3.9
-2. Install cvxpy, run: `$ pip install cvxpy`
-3. Install GUROBI for cvxpy, run:  `$  pip install gurobipy`
-4. Get access to GUROBI license.
-5. Other libraries:
-    - numpy
-    - pandas
+2. Install cvxpy, run: `pip install cvxpy`
+3. Install GUROBI for cvxpy, run:  `pip install gurobipy`
+4. Get access to GUROBI license. There is a free academic license [here](https://www.gurobi.com/academia/academic-program-and-licenses/).
+5. run `pip install -r requirements.txt`
     
-
-Scripts Organasation:
+   
+**Scripts and branch organasation**:
 - utils.py: read from input files
 - fwd_only.py: implementaion of the model that contains the forward propagation (x,y).
 - fwd_bwd.py: implementation of the whole model (forward and backward propagation) (x,y,z).
@@ -24,7 +23,7 @@ Scripts Organasation:
     - fwd_only_tetsting.py: call solver repeatively to get avg running time.
 - generate_test_samples.py: is a script that we use to generate the testing files with random values.
 
-Testing files:
+**Testing files:**
 
 All files contain values for maximun 100 data owners and 5 compute nodes. You can use these files for smaller number of data owners or/and number of compute nodes, by defining the respective values (K, H) and the util files will read up to K data owners and up to H compute nodes. Note to not exceed K>100 and H>5.
 
