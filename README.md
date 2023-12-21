@@ -11,7 +11,7 @@ This code is for the paper: _Tirana, J., Tsigkari D., Iosifidis G., Chatzopoulos
 5. run `pip install -r requirements.txt`
     
 ### Main code
-The following scripts implement the main algorithms of the paper (i.e, Algorithm 1 and 2), and are used to run the the testing scripts:
+The following scripts, which can be found inside the folder util_files, implement the main algorithms of the paper (i.e, Algorithm 1 and 2), and are used to run the the testing scripts:
 
 - utils.py: reads the input file with the profiled data and creates the input tensors.
 - ILP_solver.py: solves the problem using only the solver.
@@ -23,7 +23,7 @@ The following scripts implement the main algorithms of the paper (i.e, Algorithm
 
 
 ### Testing files
-The following scripts can be used to reproduced the experiments of the paper.
+The following scripts, which can be found inside the folder test_files, can be used to reproduced the experiments of the paper.
 
 **observation_1.py:** 
         This script can be used to reproduce tha Table II from the paper. 
