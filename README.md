@@ -68,6 +68,15 @@ The following scripts, which can be found inside the folder test_files, can be u
 
 **observation_4.py:**
 This script can be used to reproduce the Figure 8 from the paper. 
+This scripts compares adn computing time when adding more helpers in the system.
+By default the K = 100 and H = [1, 2, 5, 10, 20, 25].
+
+| Parameter of observation_2                      | Description                                 |
+| ----------------------------- | ---------------------------------------- |
+| `log` | Filename for the logging. The scripts writes intermediate resutls into a file. |
+| `model`, `m` | The model architecture. Options: `resnet101`, `vgg19`. |
+| `dataset`, `d` | Dataset to use. Options: `mnist`, `cifar10`. |
+
 
 **Citation:**
 If you find this repository useful, please cite our paper:

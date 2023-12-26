@@ -71,7 +71,7 @@ if __name__ == '__main__':
                         + np.max(np.max(trans_back)) + np.max(np.max(trans_back_gradients))    
 
     start_fcfs = time.time()
-    w_fcfs = fcfs_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
+    w_fcfs = fcfs_sol.run(K, H, release_date.astype(int), proc.astype(int), 
                                             proc_local.astype(int), trans_back.astype(int), 
                                             memory_capacity.astype(int), 
                                             release_date_back.astype(int), proc_bck.astype(int), 

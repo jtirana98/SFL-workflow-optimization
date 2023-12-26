@@ -643,3 +643,56 @@ def plot_approach(w_1, w_2):
 
     ax1.legend()
     plt.show()
+
+def fifo(K, H, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, 
+         release_date_back, proc_bck, proc_local_back, trans_back_gradients, y):
+    
+    
+    f_temp = np.zeros(K)
+    f_temp_faster_machine = []
+
+    # Estimated Completition time
+    for machine in range(H):
+        my_jobs = list(np.transpose(np.argwhere(y[:,machine]==1))[0])
+        machine_time = 0
+        arival_jobs = []
+        for j in my_jobs:
+            new_job = arrival_date(release_date_fwd[j,machine], False, j)
+            arival_jobs.append(new_job)
+        first = True
+        while len(arival_jobs) > 0:
+            #print('rr')
+            faster = -1
+            for i in range(len(arival_jobs)):
+                #print(arival_jobs[i].value)
+                if (i == 0) or (arival_jobs[faster].value > arival_jobs[i].value):
+                    faster = i
+
+            next_task = arival_jobs[faster]
+            arival_jobs.pop(faster)
+
+            if next_task.back:
+                if machine_time <= next_task.value:
+                    machine_time = next_task.value
+
+                f_temp[next_task.job] = machine_time + proc_bck[next_task.job, machine] +\
+                                        trans_back_gradients[next_task.job, machine] +\
+                                        proc_local_back[next_task.job]
+                
+                machine_time +=  proc_bck[next_task.job, machine]
+            else:
+                if machine_time <= next_task.value:
+                    machine_time = next_task.value
+
+                next_task.value = machine_time + proc_fwd[next_task.job, machine] +\
+                                   trans_back_activations[next_task.job, machine] + \
+                                   proc_local_fwd[next_task.job] +\
+                                   release_date_back[next_task.job, machine]
+                
+                machine_time +=  proc_fwd[next_task.job, machine]
+                
+                
+                next_task.back = True
+                arival_jobs.append(next_task)
+        
+        return max(f_temp)
