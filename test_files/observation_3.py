@@ -10,7 +10,8 @@ import sys
 sys.path.insert(0,'../util_files')
 
 import ADMM_solution as admm_sol
-import ILP_solver as ilp_sol
+import heuristic_FCFS as fcfs_sol
+import random_benchmark as random_sol
 import utils as utils
 
 def get_args():
@@ -59,7 +60,7 @@ if __name__ == '__main__':
             
     (release_date, proc, 
     proc_local, trans_back, 
-    memory_capacity, memory_demand_, 
+    memory_capacity, memory_demand, 
     release_date_back, proc_bck, 
     proc_local_back, trans_back_gradients) = utils.create_scenario(filename, point_a, point_b, 
                                                                    K, H, 
@@ -73,30 +74,28 @@ if __name__ == '__main__':
     start_fcfs = time.time()
     w_fcfs = fcfs_sol.run(K, H, release_date.astype(int), proc.astype(int), 
                                             proc_local.astype(int), trans_back.astype(int), 
-                                            memory_capacity.astype(int), 
+                                            memory_capacity.astype(int), memory_demand.astype(int), 
                                             release_date_back.astype(int), proc_bck.astype(int), 
-                                            proc_local_back.astype(int), trans_back_gradients.astype(int), 
-                                            args.log)
+                                            proc_local_back.astype(int), trans_back_gradients.astype(int))
     end_fcfs = time.time()
     duration_fcfs = end_fcfs - start_fcfs
 
     start_random = time.time()
-    w_random = random_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
+    w_random = random_sol.run(K, H, release_date.astype(int), proc.astype(int), 
                                             proc_local.astype(int), trans_back.astype(int), 
-                                            memory_capacity.astype(int), 
+                                            memory_capacity.astype(int), memory_demand.astype(int), 
                                             release_date_back.astype(int), proc_bck.astype(int), 
-                                            proc_local_back.astype(int), trans_back_gradients.astype(int), 
-                                            args.log)
+                                            proc_local_back.astype(int), trans_back_gradients.astype(int))
     end_random = time.time()
     duration_random = end_random - start_random
 
     w_admm, duration_admm = admm_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
                                             proc_local.astype(int), trans_back.astype(int), 
-                                            memory_capacity.astype(int), 
+                                            memory_capacity.astype(int), memory_demand.astype(int),
                                             release_date_back.astype(int), proc_bck.astype(int), 
                                             proc_local_back.astype(int), trans_back_gradients.astype(int), 
                                             args.log)
 
 
-    print(f"The makespan for FCFS is  {w_fcfs}, for the ADMM solution is {w_admm}, and for the benchmark {w_random}")
+    print(f"The makespan for FCFS is  {w_fcfs}, for the ADMM solution is {w_admm[-1]}, and for the benchmark {w_random}")
     print(f"For the FCFS we needed {duration_fcfs} sec, for the ADMM solution {duration_admm} sec, and for the benchmark we need {duration_random}")

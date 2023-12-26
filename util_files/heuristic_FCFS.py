@@ -24,9 +24,11 @@ def check_balance(distributions_):
     return (larger - smaller)
 
 
-def run(K, H, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, 
-         release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
-         memory_capacity, memory_demand, y=[]):
+def run(K, H, release_date_fwd, proc_fwd, 
+            proc_local_fwd, trans_back_activations, 
+            memory_capacity, memory_demand,
+            release_date_back, proc_bck, 
+            proc_local_back, trans_back_gradients, y=[]):
     
     # random seed 
     random.seed(42)
@@ -39,7 +41,6 @@ def run(K, H, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations
     
     distribution = [0 for i in range(H)] #how many devices on machine
     load_ = [0 for i in range(H)]
-    print(distribution)
     for i in range(K):
         fit = []
         for j in range(H):

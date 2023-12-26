@@ -6,9 +6,11 @@ def check_memory(capacity, load):
     #print(f'mem: {load} {load*memory_demand} {capacity}')
     return ((load) <= capacity)
 
-def run(K, H, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, 
-         release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
-         memory_capacity, memory_demand, y=[]):
+def run(K, H, release_date_fwd, proc_fwd, 
+            proc_local_fwd, trans_back_activations, 
+            memory_capacity, memory_demand,
+            release_date_back, proc_bck, 
+            proc_local_back, trans_back_gradients, y=[]):
     
     # random seed 
     random.seed(42)
@@ -26,7 +28,6 @@ def run(K, H, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations
                 break
         fit = []
         for j in range(H):
-            #print(j)
             if check_memory(memory_capacity[j], load_[j]+memory_demand[i]):
                 fit.append(j)
             
@@ -35,7 +36,7 @@ def run(K, H, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations
             y[i,fit[0]] = 1
             load_[fit[0]] += memory_demand[i]
         else:
-            my_machine = random.randint(3, len(fit)-1)
+            my_machine = random.randint(0, len(fit)-1)
             y[i,fit[my_machine]] = 1
             load_[fit[my_machine]] += memory_demand[i]
             distribution[fit[my_machine]] += 1
