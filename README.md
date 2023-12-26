@@ -26,7 +26,7 @@ The following scripts, which can be found inside the folder util_files, implemen
 The following scripts, which can be found inside the folder test_files, can be used to reproduced the experiments of the paper.
 
 **observation_1.py:** 
-        This script can be used to reproduce tha Table II from the paper. 
+        This script can be used to reproduce the Table II from the paper. 
         This script measures the optimality gap between the ADMM-based solution and the optimal solution. Also, it compares the computing time of the two approaches.
         
 
@@ -37,11 +37,37 @@ The following scripts, which can be found inside the folder test_files, can be u
 | `helpers`, `H`| The number of helpers. |
 | `model`, `m` | The model architecture. Options: `resnet101`, `vgg19`. |
 | `dataset`, `d` | Dataset to use. Options: `mnist`, `cifar10`. |
-| `scenario`, `s` | . |
+| `scenario`, `s` | Scenario 1 for low heterogeneity and 2 for high. |
 
 **observation_2.py:**
+      This script can be used to reproduce tha Figure 6 from the paper. 
+      This scripts compares the resulted makespan using the ADMM approach for different slot lenghts.
+      By default the K = 50 and H = [5, 10], and slot duration = [50, 150, 200]
+
+| Parameter of observation_2                      | Description                                 |
+| ----------------------------- | ---------------------------------------- |
+| `log` | Filename for the logging. The scripts writes intermediate resutls into a file. |
+| `model`, `m` | The model architecture. Options: `resnet101`, `vgg19`. |
+| `dataset`, `d` | Dataset to use. Options: `mnist`, `cifar10`. |
+
+
 **observation_3.py:**
+      This script can be used to reproduce the Figure 7 from the paper. 
+      This script compares the output makespan and computing time amongs the ADMM-approach the balanced-greedy and the benchmark approach.
+        
+
+| Parameter of observation_3                      | Description                                 |
+| ----------------------------- | ---------------------------------------- |
+| `log` | Filename for the logging. The scripts writes intermediate resutls into a file. |
+| `clients`, `K`| The number of clients. |
+| `helpers`, `H`| The number of helpers. |
+| `model`, `m` | The model architecture. Options: `resnet101`, `vgg19`. |
+| `dataset`, `d` | Dataset to use. Options: `mnist`, `cifar10`. |
+| `scenario`, `s` | Scenario 1 for low heterogeneity and 2 for high. |
+
+
 **observation_4.py:**
+This script can be used to reproduce the Figure 8 from the paper. 
 
 **Citation:**
 If you find this repository useful, please cite our paper:

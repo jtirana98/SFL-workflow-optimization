@@ -16,7 +16,7 @@ def get_args():
     parser.add_argument('--helpers', '-H', type=int, default=2, help='the number of helpers')
     parser.add_argument('--splitting_points', '-S', type=str, default='3,33', help='give an input in the form of s1,s2')
     parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
-    parser.add_argument('--scenario', '-s', type=int, default=1, help='scenario')
+    parser.add_argument('--scenario', '-s', type=int, default=1, help='scenario 1 for low heterogeneity and 2 for high')
     parser.add_argument('--dataset', '-d', type=int, default=1, help='dataset, options cifar10/mnist')
     args = parser.parse_args()
     return args
@@ -70,7 +70,7 @@ if __name__ == '__main__':
                         + np.max(np.max(trans_back)) + np.max(np.max(trans_back_gradients))    
 
     start_ilp = time.time()
-    w_star = ilp_sol.run(release_date.astype(int), proc.astype(int), 
+    w_star = ilp_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
                                             proc_local.astype(int), trans_back.astype(int), 
                                             memory_capacity.astype(int), 
                                             release_date_back.astype(int), proc_bck.astype(int), 
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     duration_ilp = end_ilp - start_ilp
 
     start_admm = time.time()
-    w_admm = admm_sol.run(release_date.astype(int), proc.astype(int), 
+    w_admm = admm_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
                                             proc_local.astype(int), trans_back.astype(int), 
                                             memory_capacity.astype(int), 
                                             release_date_back.astype(int), proc_bck.astype(int), 
@@ -89,3 +89,7 @@ if __name__ == '__main__':
                                             args.log)
     end_admm = time.time()
     duration_admm = end_admm - start_admm
+
+    print(f"The optimal makespan is {w_star}, whereas the ADMM solution is {w_admm}")
+    print(f"For the optimal solution we needed {duration_ilp} sec, while for the ADMM solution {duration_admm} sec")
+    utils.plot_approach(w_star, w_star)

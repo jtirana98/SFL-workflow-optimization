@@ -19,53 +19,6 @@ max_memory_demand = 3
 file_name = 'test4.xlsx'
 
 
-
-def get_bwd_release_delays(K,H):
-    df = pd.read_excel(io=file_name, sheet_name='get_bwd_release_delays', header=None)
-
-    all_data = df.values.tolist()
-    return_list = []
-
-    for i in range(K):
-        row_ = []
-        for j in range(H):
-            row_.append(all_data[i][j])
-        return_list.append(row_)
-
-    return return_list
-
-
-'''
-return np an numpy array of shape (K, H) with the processing time
-for the forward pass on the compute nodes.
-Use profiling values
-'''
-def get_fwd_proc_helper(K, H):
-    df = pd.read_excel(io=file_name, sheet_name='get_fwd_proc_helper', header=None)
-    temp = df.values.tolist()
-
-    machines = []
-    for i in  range(H):#range(len(temp)):
-        machines.append(temp[i][0])
-
-    total = []
-    for i in range(K):
-        total += [machines]
-    return total
-
-def get_bwd_proc_helper(K, H):
-    df = pd.read_excel(io=file_name, sheet_name='get_bwd_proc_helper', header=None)
-    temp = df.values.tolist()
-
-    machines = []
-    for i in  range(H):#range(len(temp)):
-        machines.append(temp[i][0])
-
-    total = []
-    for i in range(K):
-        total += [machines]
-    return total
-
 def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
     df_vm = pd.read_excel(io=filename, sheet_name='VM', header=None)
     df_laptop = pd.read_excel(io=filename, sheet_name='laptop', header=None)
@@ -542,6 +495,52 @@ def get_bwd_end_local(K):
 
     return df_list
 
+def get_bwd_release_delays(K,H):
+    df = pd.read_excel(io=file_name, sheet_name='get_bwd_release_delays', header=None)
+
+    all_data = df.values.tolist()
+    return_list = []
+
+    for i in range(K):
+        row_ = []
+        for j in range(H):
+            row_.append(all_data[i][j])
+        return_list.append(row_)
+
+    return return_list
+
+
+'''
+return np an numpy array of shape (K, H) with the processing time
+for the forward pass on the compute nodes.
+Use profiling values
+'''
+def get_fwd_proc_helper(K, H):
+    df = pd.read_excel(io=file_name, sheet_name='get_fwd_proc_helper', header=None)
+    temp = df.values.tolist()
+
+    machines = []
+    for i in  range(H):#range(len(temp)):
+        machines.append(temp[i][0])
+
+    total = []
+    for i in range(K):
+        total += [machines]
+    return total
+
+def get_bwd_proc_helper(K, H):
+    df = pd.read_excel(io=file_name, sheet_name='get_bwd_proc_helper', header=None)
+    temp = df.values.tolist()
+
+    machines = []
+    for i in  range(H):#range(len(temp)):
+        machines.append(temp[i][0])
+
+    total = []
+    for i in range(K):
+        total += [machines]
+    return total
+
 
 '''
 return np an numpy array of shape (H, H) with the transmission time
@@ -629,39 +628,18 @@ def get_memory_characteristics(H, K=10):
     return df_list
 
 
-def plot_approach(w_star, w_approach, constraints_1, constraints_2=[], maxC=[], violations=[]):
-    fig, (ax1, ax2) = plt.subplots(2)
-    x_ticks = [i+1 for i in range(len(w_approach))]
+def plot_approach(w_1, w_2):
+    fig, ax1 = plt.subplots(1)
+    x_ticks = [i+1 for i in range(len(w_2))]
     #print(w_approach)
     
-    ax1.plot(x_ticks, [w_star for i in range(len(x_ticks))], linewidth = 2, marker='o', markersize=2, color="green", label = "Optimal value")
+    ax1.plot(x_ticks, [w_1 for i in range(len(x_ticks))], linewidth = 2, marker='o', markersize=2, color="green", label = "Optimal value")
     
-    if len(w_approach):
-        ax1.plot(x_ticks, w_approach, linestyle='dashed', linewidth = 2, marker='o', markersize=5, color="orange", label = "W-approx.")
-
-    if len(maxC) != 0:
-        ax1.plot(x_ticks, maxC, linestyle='dashed', color="black", linewidth = 2, marker='o', markersize=5, label = "max - C")
-        #ax2.plot(x_ticks, violation, linestyle = 'None', color="red", marker='+', markersize=12, label = "Violation (T/F)")
-
-    if len(constraints_1) != 0:
-        ax2.plot(x_ticks, constraints_1, linestyle = 'dashed', linewidth = 2, color="brown", marker='*', markersize=7, label = "constraint-1-violation (%)")
-    if len(constraints_2) != 0:
-        ax2.plot(x_ticks, constraints_2, linestyle = 'None', color="magenta", marker='o', markersize=5, label = "constraint-2-violation (%)")
-    
-    if len(violations) != 0:
-        #for i in range(len(violations)):
-        ax2.plot(x_ticks, violations, linestyle = 'dashed', color="brown", marker='o', markersize=5, label = f"constraint-1-with max-violation (%)") 
+    if len(w_2):
+        ax1.plot(x_ticks, w_2, linestyle='dashed', linewidth = 2, marker='o', markersize=5, color="orange", label = "W-approx.")
     
     ax1.set_ylabel("w value")
-    ax2.set_ylabel("Violations(%)")
-    plt.xlim(0.9,len(w_approach))
+    plt.xlim(0.9,len(w_2))
 
     ax1.legend()
-    ax2.legend()
-
-    #ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05),
-    #        fancybox=True, shadow=True, ncol=5)
-
-    #ax2.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
-    #        ncol=3, fancybox=True, shadow=True)
     plt.show()
