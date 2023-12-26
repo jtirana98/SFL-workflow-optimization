@@ -76,15 +76,12 @@ if __name__ == '__main__':
 
 
 
-            start_admm = time.time()
-            w_admm = admm_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
+            w_admm, duration_admm  = admm_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
                                                     proc_local.astype(int), trans_back.astype(int), 
                                                     memory_capacity.astype(int), 
                                                     release_date_back.astype(int), proc_bck.astype(int), 
                                                     proc_local_back.astype(int), trans_back_gradients.astype(int), 
                                                     args.log)
-            end_admm = time.time()
-            duration_admm = end_admm - start_admm
 
             durations_admm.append(duration_admm)
             ws_admm.append(w_admm)

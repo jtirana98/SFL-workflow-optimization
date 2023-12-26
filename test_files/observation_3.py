@@ -90,15 +90,13 @@ if __name__ == '__main__':
     end_random = time.time()
     duration_random = end_random - start_random
 
-    start_admm = time.time()
-    w_admm = admm_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
+    w_admm, duration_admm = admm_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
                                             proc_local.astype(int), trans_back.astype(int), 
                                             memory_capacity.astype(int), 
                                             release_date_back.astype(int), proc_bck.astype(int), 
                                             proc_local_back.astype(int), trans_back_gradients.astype(int), 
                                             args.log)
-    end_admm = time.time()
-    duration_admm = end_admm - start_admm
+
 
     print(f"The makespan for FCFS is  {w_fcfs}, for the ADMM solution is {w_admm}, and for the benchmark {w_random}")
     print(f"For the FCFS we needed {duration_fcfs} sec, for the ADMM solution {duration_admm} sec, and for the benchmark we need {duration_random}")

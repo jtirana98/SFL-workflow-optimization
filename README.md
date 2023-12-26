@@ -17,9 +17,7 @@ The following scripts, which can be found inside the folder util_files, implemen
 - ILP_solver.py: solves the problem using only the solver.
 - heuristic_FCFS.py: solves the problem using the balanced_greedy algorthm described in Section IV. In this algorithm the client assigment is implemented using a greedy approach, whereas the scheduling takes place using the FCFS policy.
 - random_benchmark.py: this the benchmark approach that is used to compare the proposed approach. The client assigment problem is implemented using a random function, whereas the scheduling takes place using the FCFS policy.
-- forwardprop_admm.py: Implements Algorithm 1 and solves Pf problem
-- backprop_only.py: Solves the Pb problem using the algorithm 2.
-- ADMM_solution.py: Implements the ADMM-base solution described in figure 3. To do so calls the forwardprop_admm.py and backprop_only.py
+- ADMM_solution.py: Implements the ADMM-base solution described in figure 3. Implements Algorithm 1 and solves Pf problem and  solves the Pb problem using the algorithm 2.
 
 
 ### Testing files
