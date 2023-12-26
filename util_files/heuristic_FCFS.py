@@ -2,11 +2,6 @@ import numpy as np
 import random
 import utils
 
-class arrival_date:
-    def __init__(self, value, back, job):
-        self.value = value
-        self.back = back
-        self.job = job
 
 def check_memory(capacity, load):
     #print(f'mem: {load} {load*memory_demand} {capacity}')

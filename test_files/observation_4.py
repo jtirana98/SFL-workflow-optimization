@@ -4,10 +4,14 @@ import pandas as pd
 import random
 import math
 import time
+import sys
 
-import util_files.ADMM_solution as admm_sol
-import util_files.ILP_solver as ilp_sol
-import util_files.utils as utils
+
+sys.path.insert(0,'../util_files')
+
+import ADMM_solution as admm_sol
+import ILP_solver as ilp_sol
+import utils as utils
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -15,16 +19,12 @@ def get_args():
     parser.add_argument('--splitting_points', '-S', type=str, default='3,33', help='give an input in the form of s1,s2')
     parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
     parser.add_argument('--scenario', '-s', type=int, default=1, help='scenario')
-    parser.add_argument('--dataset', '-d', type=int, default=1, help='dataset, options cifar10/mnist')
+    parser.add_argument('--dataset', '-d', type=str, default='cifar10', help='dataset, options cifar10/mnist')
     args = parser.parse_args()
     return args
 
 if __name__ == '__main__':
     args = get_args()
-
-    f = open(args.log, "w")
-    f.write(f"Experiment for {args.data_owners} data ownners and {args.compute_nodes} compute nodes.\n")
-    f.close()
 
     K = 100
     H = [1, 2, 5, 10, 20, 25]
@@ -44,14 +44,14 @@ if __name__ == '__main__':
     dataset = args.dataset
     if model_type == 'resnet101':
         if dataset == 'cifar10':
-            filename = 'real_data/resnet101_CIFAR.xlsx'
+            filename = '../real_data/resnet101_CIFAR.xlsx'
         elif dataset == 'mnist':
-            filename = 'real_data/resnet101_MNIST.xlsx'
+            filename = '../real_data/resnet101_MNIST.xlsx'
     elif model_type == 'vgg19':
         if dataset == 'cifar10':
-            filename = 'real_data/vgg19_CIFAR.xlsx'
+            filename = '../real_data/vgg19_CIFAR.xlsx'
         elif dataset == 'mnist':
-            filename = 'real_data/vgg19_MNIST.xlsx'
+            filename = '../real_data/vgg19_MNIST.xlsx'
 
     
     w_makespans = []
@@ -63,7 +63,7 @@ if __name__ == '__main__':
         proc_local, trans_back, 
         memory_capacity, memory_demand_, 
         release_date_back, proc_bck, 
-        proc_local_back, trans_back_gradients) = utils.create_scenario(point_a, point_b, 
+        proc_local_back, trans_back_gradients) = utils.create_scenario(filename, point_a, point_b, 
                                                                     K, h, 
                                                                     scenario, 100)
         

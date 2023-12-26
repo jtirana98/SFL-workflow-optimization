@@ -9,9 +9,11 @@ import utils
 warnings.filterwarnings("ignore")
 
 
-def run(K, H, T, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, 
-         release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
-         memory_capacity, memory_demand, filename=''):
+def run(K, H, T, release_date_fwd, proc_fwd, 
+            proc_local_fwd, trans_back_activations, 
+            memory_capacity, 
+            release_date_back, proc_bck, 
+            proc_local_back, trans_back_gradients, filename=''):
     
     ones_H = np.ones((H,1))
     ones_K = np.ones((K,1))

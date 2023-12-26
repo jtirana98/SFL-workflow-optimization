@@ -18,6 +18,12 @@ class bcolors:
 max_memory_demand = 3
 file_name = 'test4.xlsx'
 
+class arrival_date:
+    def __init__(self, value, back, job):
+        self.value = value
+        self.back = back
+        self.job = job
+
 
 def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
     df_vm = pd.read_excel(io=filename, sheet_name='VM', header=None)
@@ -390,7 +396,6 @@ def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
     memory_capacity = np.array(get_memory_characteristics(H, K))
     for i in range(H):
         memory_capacity[i] = int(max(memory_demand_))*K
-        print(f'{int(memory_capacity[i])/int(max_memory_demand)}', end=',\t')
 
 
     unique_values = []

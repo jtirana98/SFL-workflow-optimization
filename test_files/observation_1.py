@@ -4,10 +4,14 @@ import pandas as pd
 import random
 import math
 import time
+import sys
 
-import util_files.ADMM_solution as admm_sol
-import util_files.ILP_solver as ilp_sol
-import util_files.utils as utils
+
+sys.path.insert(0,'../util_files')
+
+import ADMM_solution as admm_sol
+import ILP_solver as ilp_sol
+import utils as utils
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -17,18 +21,14 @@ def get_args():
     parser.add_argument('--splitting_points', '-S', type=str, default='3,33', help='give an input in the form of s1,s2')
     parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
     parser.add_argument('--scenario', '-s', type=int, default=1, help='scenario 1 for low heterogeneity and 2 for high')
-    parser.add_argument('--dataset', '-d', type=int, default=1, help='dataset, options cifar10/mnist')
+    parser.add_argument('--dataset', '-d', type=str, default='cifar10', help='dataset, options cifar10/mnist')
     args = parser.parse_args()
     return args
 
 if __name__ == '__main__':
     args = get_args()
 
-    f = open(args.log, "w")
-    f.write(f"Experiment for {args.data_owners} data ownners and {args.compute_nodes} compute nodes.\n")
-    f.close()
-
-    K = args.data_owners
+    K = args.clients
     H = args.helpers
 
     scenario = args.scenario
@@ -45,22 +45,22 @@ if __name__ == '__main__':
     dataset = args.dataset
     if model_type == 'resnet101':
         if dataset == 'cifar10':
-            filename = 'real_data/resnet101_CIFAR.xlsx'
+            filename = '../real_data/resnet101_CIFAR.xlsx'
         elif dataset == 'mnist':
-            filename = 'real_data/resnet101_MNIST.xlsx'
+            filename = '../real_data/resnet101_MNIST.xlsx'
     elif model_type == 'vgg19':
         if dataset == 'cifar10':
-            filename = 'real_data/vgg19_CIFAR.xlsx'
+            filename = '../real_data/vgg19_CIFAR.xlsx'
         elif dataset == 'mnist':
-            filename = 'real_data/vgg19_MNIST.xlsx'
+            filename = '../real_data/vgg19_MNIST.xlsx'
 
     # get the scerio of the system
             
     (release_date, proc, 
     proc_local, trans_back, 
-    memory_capacity, memory_demand_, 
+    memory_capacity, memory_demand, 
     release_date_back, proc_bck, 
-    proc_local_back, trans_back_gradients) = utils.create_scenario(point_a, point_b, 
+    proc_local_back, trans_back_gradients) = utils.create_scenario(filename, point_a, point_b, 
                                                                    K, H, 
                                                                    scenario,100)
     
@@ -69,6 +69,7 @@ if __name__ == '__main__':
                         + np.max(proc_local) + np.max(proc_local_back)\
                         + np.max(np.max(trans_back)) + np.max(np.max(trans_back_gradients))    
 
+    T = int(T)
     start_ilp = time.time()
     w_star = ilp_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
                                             proc_local.astype(int), trans_back.astype(int), 
@@ -82,11 +83,11 @@ if __name__ == '__main__':
 
     w_admm, duration_admm  = admm_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
                                             proc_local.astype(int), trans_back.astype(int), 
-                                            memory_capacity.astype(int), 
+                                            memory_capacity.astype(int), memory_demand.astype(int),
                                             release_date_back.astype(int), proc_bck.astype(int), 
                                             proc_local_back.astype(int), trans_back_gradients.astype(int), 
                                             args.log)
 
-    print(f"The optimal makespan is {w_star}, whereas the ADMM solution is {w_admm}")
+    print(f"The optimal makespan is {w_star}, whereas the ADMM solution is {w_admm[-1]}")
     print(f"For the optimal solution we needed {duration_ilp} sec, while for the ADMM solution {duration_admm} sec")
-    utils.plot_approach(w_star, w_star)
+    #utils.plot_approach(w_star, w_star)

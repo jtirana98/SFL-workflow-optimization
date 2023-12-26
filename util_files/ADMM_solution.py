@@ -125,9 +125,11 @@ def backward_for_each_machine(K, release_date, proc, proc_local, trans_back, mem
     return(z.X)
 
 
-def run(K, H, T_all, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, 
-         release_date_back, proc_bck, proc_local_back, trans_back_gradients, 
-         memory_capacity, memory_demand, filename=''):
+def run(K, H, T_all, release_date_fwd, proc_fwd, 
+            proc_local_fwd, trans_back_activations, 
+            memory_capacity, memory_demand,
+            release_date_back, proc_bck, 
+            proc_local_back, trans_back_gradients, filename=''):
     
     stable = 0
     T = np.max(release_date_fwd) + K*np.max(proc_fwd) # time intervals
@@ -162,8 +164,8 @@ def run(K, H, T_all, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_acti
     # Parameters
     x_par = np.zeros((H,K,T))
     y_par = np.zeros((K,H))
-    
-    T_back = np.max(release_date_fwd) + K*np.max(proc_fwd[0,:]) + np.max(release_date_back) + K*np.max(proc_local_back[0,:]) \
+
+    T_back = np.max(release_date_fwd) + K*np.max(proc_fwd[0][:]) + np.max(release_date_back) + K*np.max(proc_bck[0,:]) \
                         + np.max(proc_local_fwd) + np.max(proc_local_back) \
                         + np.max(np.max(trans_back_activations)) + np.max(np.max(trans_back_gradients))
 
@@ -240,7 +242,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_acti
                     c = m1.getConstrByName(f'const1add-{i}-{j}')
                     m1.remove(c)
 
-                m1.addConstr(contr1_add_1[i,j] == qsum(x[j,i,t] for t in range(T)) - y_par[i,j]*proc[i,j] + mu[i,j], name=f'const1add-{i}-{j}')
+                m1.addConstr(contr1_add_1[i,j] == qsum(x[j,i,t] for t in range(T)) - y_par[i,j]*proc_fwd[i,j] + mu[i,j], name=f'const1add-{i}-{j}')
                 my_ds.append(m1.addConstr(contr1_abs_1[i,j] == gp.abs_(contr1_add_1[i,j]), name=f'const1ab-{i}-{j}'))
 
         for i in range(K):
@@ -294,7 +296,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_acti
                     c2 = m2.getConstrByName(f'const2add-{i}-{j}')
                     m2.remove(c2)
 
-                m2.addConstr(contr2_add_1[i,j] == ll[j,i] - y[i,j]*proc[i,j] + mu[i,j], name=f'const2add-{i}-{j}')
+                m2.addConstr(contr2_add_1[i,j] == ll[j,i] - y[i,j]*proc_fwd[i,j] + mu[i,j], name=f'const2add-{i}-{j}')
                 my_ds2.append(m2.addConstr(contr2_abs_1[i,j] == gp.abs_(contr2_add_1[i,j]), name=f'const2ab-{i}-{j}'))
 
         for i in range(K):
@@ -302,8 +304,8 @@ def run(K, H, T_all, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_acti
                 f2 = m2.getConstrByName(f'const2f-{i}')
                 m2.remove(f2)
 
-        m2.addConstr(comp_x_fixed[i] == qsum(trans_back_activations[i,:]*y[i,:]) + f_par[i] + proc_local_fwd[i], name=f'const2f-{i}')
-        my_ds2.append(m2.addConstr(w_x_fixed >= comp_x_fixed[i], name=f'const2fw-{i}'))
+            m2.addConstr(comp_x_fixed[i] == qsum(trans_back_activations[i,:]*y[i,:]) + f_par[i] + proc_local_fwd[i], name=f'const2f-{i}')
+            my_ds2.append(m2.addConstr(w_x_fixed >= comp_x_fixed[i], name=f'const2fw-{i}'))
 
         m2.setObjective(w_x_fixed + (rho/2)*qsum(contr2_abs_1[i,j] for i in range(K) for j in range(H)), GRB.MINIMIZE)
 
@@ -327,7 +329,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_acti
                 temp_sum = []
                 for t in range(T):
                     temp_sum += [x[j,i,t].X]
-                temp_mu[i,j] = np.copy(mu[i,j] + (sum(temp_sum)-(y[i,j].X*proc[i,j])))
+                temp_mu[i,j] = np.copy(mu[i,j] + (sum(temp_sum)-(y[i,j].X*proc_fwd[i,j])))
 
         mu = np.copy(temp_mu)
 
@@ -349,7 +351,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_acti
         
         violations.append((violated_constraints/total_constraints)*100)
 
-        primal_residual = LA.norm((ll.T - np.multiply(y_par, proc)), 'fro')**2
+        primal_residual = LA.norm((ll.T - np.multiply(y_par, proc_fwd)), 'fro')**2
 
         if changes_y <= 0:
             stable += 1
@@ -367,7 +369,6 @@ def run(K, H, T_all, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_acti
 
         for i in range(H): # theoritically this can be doone in parallel
             Kx = list(np.transpose(np.argwhere(y_[:,i]==1))[0]) # finds which data owners are assigned to the machine i
-            print(f'For machine {i+1} I have allocatedd: {Kx}')
             if len(Kx) == 0:
                 continue
             
@@ -389,13 +390,10 @@ def run(K, H, T_all, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_acti
                 jj += 1
             
             f_temp = np.zeros((len(Kx)))
-            print('finish times')
             for kk in range(len(Kx)):
                 for t in range(Tx):
                     if f_temp[kk] < (t+1)*x__[0,kk,t]:
                         f_temp[kk] = (t+1)*x__[0,kk,t]
-                print(f_temp[kk])
-            #min_f = min(f_temp)
             
             procz = np.copy(proc_bck[Kx, i])  # this is a row-vector
             release_datez = np.copy(release_date_back[Kx, i])
