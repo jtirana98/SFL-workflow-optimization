@@ -39,7 +39,7 @@ The following scripts, which can be found inside the folder test_files, can be u
 
 **observation_2.py:**
       This script can be used to reproduce tha Figure 6 from the paper. 
-      This scripts compares the resulted makespan using the ADMM approach for different slot lenghts.
+      This script compares the resulted makespan using the ADMM approach for different slot lenghts.
       By default the K = 50 and H = [5, 10], and slot duration = [50, 150, 200]
 
 | Parameter of observation_2                      | Description                                 |
@@ -51,7 +51,7 @@ The following scripts, which can be found inside the folder test_files, can be u
 
 **observation_3.py:**
       This script can be used to reproduce the Figure 7 from the paper. 
-      This script compares the output makespan and computing time amongs the ADMM-approach the balanced-greedy and the benchmark approach.
+      This script compares the output makespan and computing time amongst the ADMM-approach the balanced-greedy and the benchmark approach.
         
 
 | Parameter of observation_3                      | Description                                 |
