@@ -69,7 +69,7 @@ This script can be used to reproduce the Figure 8 from the paper.
 This scripts compares adn computing time when adding more helpers in the system.
 By default the K = 100 and H = [1, 2, 5, 10, 20, 25].
 
-| Parameter of observation_2                      | Description                                 |
+| Parameter of observation_4                      | Description                                 |
 | ----------------------------- | ---------------------------------------- |
 | `log` | Filename for the logging. The scripts writes intermediate resutls into a file. |
 | `model`, `m` | The model architecture. Options: `resnet101`, `vgg19`. |
