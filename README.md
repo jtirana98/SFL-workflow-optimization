@@ -82,7 +82,7 @@ If you find this repository useful, please cite our paper:
 ```
 @inproceedings{tirana2024workflow,
       title={Workflow Optimization for Parallel Split Learning},
-      author={Tirana, J., Tsigkari D., Iosifidis G., Chatzopoulos, D.},
+      author={Tirana, Joana and Tsigkari, Dimitra and Iosifidis, George and Chatzopoulos, Dimitris},
       booktitle={proc. of IEEE INFOCOM},
       year={2024}
 }
