@@ -43,7 +43,7 @@ def feasibility_check(K, release_date, proc, proc_local, trans_back, memory_capa
     for j in range(H): #for all devices
         m.addConstr( x[j,:,:].T @ ones_K <= ones_T )
     
-    # C9: new constraint - the merge of C2 and C3 (job should be process all once and only in one machine)
+    # C9: new constraint - the merge of C2 and C3 (job should be processed all in once and only in one machine)
     for j in range(H): #for all machines
         for i in range(K):
             m.addConstr( qsum(x[j,i,:]) == y[i,j]*proc[i])
@@ -52,7 +52,7 @@ def feasibility_check(K, release_date, proc, proc_local, trans_back, memory_capa
         for i in range(K):
             m.addConstrs( f[i] >= (t+1)*x[j,i,t] for t in range(T))
 
-    # Define objective function
+    # Define the objective function
 
     m.addConstrs(comp[i] == qsum(trans_back[i] * y[i,:]) + f[i] + proc_local[i] for i in range(K))
        
@@ -97,7 +97,7 @@ def backward_for_each_machine(K, release_date, proc, proc_local, trans_back, mem
     
     m.addConstr( y @ ones_H == ones_K )
 
-    # C10: backprop job should be processed entirely once and in the same machine as fwd
+    # C10: backprop job should be processed entirely once and in the same machine as the fwd
     for i in range(K): #for all jobs
         for j in range(H):
             m.addConstr(qsum(z[j, i, t] for t in range(T))/ proc[i] == y[i,j])
@@ -111,7 +111,7 @@ def backward_for_each_machine(K, release_date, proc, proc_local, trans_back, mem
         for i in range(K):
             m.addConstrs( f[i] >= (t+1)*z[j,i,t] for t in range(T) )
 
-    # Define objective function
+    # Define the objective function
     m.addConstrs(comp[i] == qsum(trans_back[i] * y[i,:]) + f[i] + proc_local[i] for i in range(K))
        
     
@@ -149,7 +149,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     comp = m1.addMVar(shape=(K), name="comp") # completion time
     w = m1.addMVar(shape=(1), name="w")  # min of compl. times
 
-    # define variables -y subproblem
+    # define variables for y subproblem
     y = m2.addMVar(shape=(K,H), vtype=GRB.BINARY, name="y")
     comp_x_fixed = m2.addMVar(shape=(K), name="comp_x_fixed") # completion time
     w_x_fixed = m2.addMVar(shape=(1), name="w_x_fixed")  # min of compl. times
@@ -189,7 +189,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     # completition time definition
     m1.addConstrs(f[i] >= (t+1)*x[j, i, t] for i in range(K) for j in range(H) for t in range(T))
 
-    # C1: job cannot be assigned to a time interval before the release time
+    # C1: A job cannot be assigned to a time interval before the release time
     for i in range(H): #for all devices
         for j in range(K): #for all jobs
             for t in range(T): #for all timeslots
@@ -200,7 +200,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     for j in range(H): #for all devices
         m1.addConstr( x[j,:,:].T @ ones_K <= ones_T )
 
-    # C5: job should be processed entirely once
+    # C5: A job should be processed entirely once
     for i in range(K):
         m1.addConstr(qsum(qsum(x[j,i,t] for t in range(T))/proc_fwd[i,j] for j in range(H)) == 1)
 
@@ -210,7 +210,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     time_stamps = []
     time_stamps_nobuild = []
 
-    # Theoritically these build take place in parallel
+    # Theoritically these builds take place in parallel
     if second_build > first_build:
         time_stamps.append(second_build)
         time_stamps_nobuild.append(second_build)
@@ -226,7 +226,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
 
     flag_exit = False
     for iter in range(MAX_ITER):
-        if flag_exit: # in previous iteration we called back-propagation problem
+        if flag_exit: # in the previous iteration we called the back-propagation problem
             break # exit;
         start = time.time()
         
@@ -271,7 +271,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
         start = time.time()
 
 
-        # Now calculate the value of (original) objective function at this iter
+        # Now calculate the value of the (original) objective function at this iter
         g_values = []
         for i in range(K): #for all jobs
             g_interm = []
@@ -367,7 +367,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
         y_ = y_par
         all_time = []
 
-        for i in range(H): # theoritically this can be doone in parallel
+        for i in range(H): # theoritically this can be done in parallel
             Kx = list(np.transpose(np.argwhere(y_[:,i]==1))[0]) # finds which data owners are assigned to the machine i
             if len(Kx) == 0:
                 continue
