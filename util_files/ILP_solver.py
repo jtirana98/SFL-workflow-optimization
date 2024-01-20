@@ -33,14 +33,14 @@ def run(K, H, T, release_date_fwd, proc_fwd,
 
     # define constraints FORWARD
 
-    # C1: job cannot be assigned to a time interval before the release time
+    # C1: A job cannot be assigned to a time interval before the release time
     for i in range(H): #for all devices
         for j in range(K): #for all jobs
             for t in range(T): #for all timeslots
                 if t < release_date_fwd[j,i]:
                     m.addConstr(x[i,j,t] == 0)
 
-    # C3: all jobs interval are assigned to one only machine
+    # C3: all job intervals are assigned to one machine
     m.addConstr( y @ ones_H == ones_K )
     
     # C4: memory constraint
@@ -51,14 +51,14 @@ def run(K, H, T, release_date_fwd, proc_fwd,
         m.addConstr( x[j,:,:].T @ ones_K <= ones_T )
     
     
-    # C9: new constraint - the merge of C2 and C3 (job should be process all once and only in one machine)
+    # C9: new constraint - the merge of C2 and C3 (job should be processed all once and only in one machine)
     for j in range(H): #for all machines
         for i in range(K):
             m.addConstr( qsum(x[j,i,:]) == y[i,j]*proc_fwd[i,j])
 
      # define constraints BACK
     
-    # backprop job cannot be assigned to a time interval before the backprops release time
+    # The backprop job cannot be assigned to a time interval before the backdrops release time
 
     for i in range(K): #for all jobs
         for j in range(H):
@@ -89,7 +89,7 @@ def run(K, H, T, release_date_fwd, proc_fwd,
             m.addConstrs( f[i] >= (t+1)*z[j,i,t] for t in range(T))
 
 
-    # Define objective function
+    # Define the objective function
     
     m.addConstrs(comp[i] == qsum(trans_back_gradients[i,:] * y[i,:]) + f[i] + proc_local_back[i] for i in range(K))
        
