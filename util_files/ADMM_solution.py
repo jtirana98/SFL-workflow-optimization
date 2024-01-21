@@ -271,7 +271,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
         start = time.time()
 
 
-        # Now calculate the value of the (original) objective function at this iter
+        # Now calculate the value of the (original) objective function at this iteration
         g_values = []
         for i in range(K): #for all jobs
             g_interm = []
@@ -359,8 +359,8 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
             stable = 0
         
 
-        # Call algorithm-2 to compute z variables
-        if iter == 2: #stable >3 or iter == MAX_ITER - 1:
+        # Call Algorithm-2 to compute z variables
+        if iter == 2: 
             flag_exit = True # mark it that we reached the end
 
         x_par = np.zeros((H,K,T))
@@ -409,7 +409,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
             for jj in range(len(Kx)):
                 for t in range(min(Tx,Tz)):
                     x__extend[0,jj,t] = x__[0,jj,t]
-            
+            # EDW
             start_sub = time.time()
             z__ = backward_for_each_machine(len(Kx), release_datez, procz, proc_localz, trans_backz, memory_capacity[i], Tz, x__extend)
             end_sub = time.time()
