@@ -26,6 +26,12 @@ def main():
     arriv = np.array([0, 2, 3, 1, 9]) # arrival time at helper 
     proc = np.array([1, 2, 3, 2, 1]) # process time at helper
     ll = np.array([5, 3, 8, 1, 1]) # transmission an proc at the client
+
+    '''
+    arriv = np.array([1, 2, 3, 1, 4]) 
+    proc = np.array([1, 2, 4, 2, 1])
+    ll = np.array([5, 3, 1, 1, 2])
+    '''
     duration = sum(arriv) + sum(proc)
 
     allocation = np.zeros((duration)) # if allocation[i] = 0 there is no task allocated, if allocation = k, k>0 then client k has been allocated at machine
@@ -237,6 +243,13 @@ def main():
     print('FINAL scheduling')
     print_res(allocation, duration, num_clients)
 
+    for i in range(duration):
+        if allocation[i] != 0:
+            finish_clients[int(allocation[i])-1] = i
+    
+    for i in range(num_clients):
+        finish_clients[i] += ll[i] + 1
 
+    print(f'THE MAKESPAN IS {max(finish_clients)}')
 if __name__ == '__main__':
     main()
