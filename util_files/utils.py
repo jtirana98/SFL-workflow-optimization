@@ -416,7 +416,7 @@ def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
 
     max_value = max(unique_values)
 
-     # Re-difine parameters
+    # Re-difine parameters as splots
     max_slot_back = max_slot
  
     for j in range(K):
