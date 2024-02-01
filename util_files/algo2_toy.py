@@ -35,24 +35,18 @@ def main():
     duration = sum(arriv) + sum(proc)
 
     allocation = np.zeros((duration)) # if allocation[i] = 0 there is no task allocated, if allocation = k, k>0 then client k has been allocated at machine
+    
     # step - 1 order clients by releasing date
     order = np.argsort(arriv)
     print(order)
-    for i in range(num_clients):
-        client = order[i]
+    for ii in range(num_clients):
+        client = order[ii]
         start = arriv[client]
-        clear = True
-        reserved = 0
-        
         for i in range(start, duration):
-            clear = True
-            for j in range(num_clients):
-                if allocation[i] == j+1:
-                    clear = False
-                    start = start + 1
-            if clear == True:
+            if allocation[i] == 0:
                 break
-        
+            start = start + 1
+
         for j in range(proc[client]):
             allocation[start+j] = client+1
 
@@ -62,10 +56,12 @@ def main():
 
     # step - 2 define blocks
     '''
-    for each block I store a list of two values bita_i = [[slots_i], [clients_i]]
+    for each block-i, we store a list of two values bita_i = [[slots_i], [clients_i]]
+    where,
     slots_i = [s(bita_i), e(bita_i)]
     clients_i : list of clients inside that slot
     '''
+    
     B = {}
     start = 0
     new_set = False

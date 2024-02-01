@@ -124,6 +124,210 @@ def backward_for_each_machine(K, release_date, proc, proc_local, trans_back, mem
    
     return(z.X)
 
+def algo2(K, release_date, proc, proc_local, trans_back, memory_capacity, T, x):
+    H = 1 
+
+    z = np.zeros(((K,T)))
+
+    # step - 1 order clients by releasing date
+    order = np.argsort(release_date)
+    for i in range(K):
+        client = order[i]
+        start = release_date[client]
+        for t in range(start, T):
+            clear = True
+            for j in range(K):
+              if z[j][t] != 0 or x[j][t] != 0:
+                  clear = False
+                  break 
+            if clear:
+                break
+            else:
+                start += 1 
+        
+        alloced = 0
+        while alloced < proc[client]:
+            clear = True
+            for j in range(K):
+              if x[j][t] != 0:
+                  clear = False
+                  break 
+            if clear:
+                z[client][start] = 1
+                alloced += 1
+            start += 1
+
+        # step - 2 define blocks
+        
+        '''
+        for each block-i, we store a list of two values bita_i = [[slots_i], [clients_i]]
+        where,
+        slots_i = [s(bita_i), e(bita_i)]
+        clients_i : list of clients inside that slot
+        '''
+        
+        B = {}
+        start = 0
+        new_set = False
+        iter = 0
+        next = ([0,0], [])
+        for t in range(T):
+            if new_set == False:
+                if np.sum(z[:][t]) > 0:
+                    new_set = True
+                    iter += 1
+                    next[0][0] = t
+                    for j in range(K):
+                        if z[j,t] != 0:
+                            next[1].append(j+1)
+                            break
+            else:
+                is_end = True
+                if (np.sum(z[:][t]) > 0) or (np.sum(z[:][t]) == 0 and np.sum(x[:][t]) > 0):
+                    is_end = False
+                    for j in range(K):
+                        if z[j,t] != 0:
+                            if (j+1) not in next[1]:
+                                next[1].append(j+1)
+                            break
+
+                if is_end:    
+                    next[0][1] = t
+                    B.update({iter:next})
+                    next = ([0,0], [])
+                    new_set = False
+
+        
+        for bita in list(B.keys()):
+            if len(B[bita][1]) == 1: # no need to reschedule
+                continue
+            
+            print(f'Starting exploring new MAIN block')
+            
+            sub_blocks = [B[bita]]
+            block_i = 0
+            while len(sub_blocks) > 0: 
+                bloc = sub_blocks.pop(block_i)
+                print(f'Starting exploring new sub-block block: start-{bloc[0][0]} end-{bloc[0][1]}  clients {bloc[1]}')
+                if len(bloc[1]) == 1:
+                    print('skip block, has only one client')
+                    if len(sub_blocks) != 0:
+                            block_i = (block_i + 1)%len(sub_blocks)
+                    continue
+                
+                # step - 3 find l-client
+                l = -1
+                min = T+1000000
+                for client in bloc[1]:
+                    temp = bloc[0][1]+proc_local[int(client)-1]+trans_back[int(client)-1]
+                    if temp < min:
+                        min = temp
+                        l = client
+
+                # step 4 - reschedule
+                # l tasks should allocated in slots where no other client has been released
+
+                # find start of l
+                start_l = -1
+                for i in range(bloc[0][0], bloc[0][1]):
+                    if z[l-1,i] != 0:
+                        start_l = i
+                        break
+                
+                allocated_slots = 0
+                
+                slot_i = start_l
+                at_least_one = False
+                while slot_i <= bloc[0][1]:
+                    no_change = True
+                    for jj in range(K):
+                        give_priority = -1
+                        client_c = order[jj]
+                        if client_c + 1 == l:
+                            continue
+                        
+                        if release_date[client_c] <= slot_i and (client_c+1 in bloc[1]):
+                            is_allocated = False
+                            ii = bloc[0][0]
+                            while ii <= slot_i:
+                                if z[client_c+1,ii] != 0:
+                                    is_allocated = True
+                                ii += 1
+                            
+                            if is_allocated:
+                                continue
+                            give_priority = client_c+1
+                        
+                        
+                        if give_priority != -1:
+                            alloced = 0
+                            while alloced < proc[give_priority-1]:
+                                clear = True
+                                for j in range(K):
+                                    if x[j][t] != 0:
+                                        clear = False
+                                        break 
+                                if clear:
+                                    z[client][slot_i] = 1
+                                    alloced += 1
+                                slot_i += 1
+                            no_change = False
+                            at_least_one = True
+                            break
+                        
+                    if no_change:
+                        if allocated_slots == 0:
+                            start_l = slot_i
+                        while True:
+                            slot_i += 1
+                            clear = True
+                            for j in range(K):
+                                if x[j][t] != 0:
+                                    clear = False
+                                    break 
+                            if clear:
+                                z[l-1][slot_i] = 1
+                                allocated_slots += 1
+                                break
+                        if allocated_slots == proc[int(l)-1]:
+                            break
+                            
+
+                # if cannot reschedule:
+                if not at_least_one:
+                    if len(sub_blocks) != 0:
+                        block_i = (block_i + 1)%len(sub_blocks)
+                    continue
+
+                # step 5 - update subset
+                slot_i = bloc[0][0]
+                
+                new_block_f = True
+                while slot_i < bloc[0][1]:
+                    if new_block_f:
+                        new_block = [[slot_i,-1],[]]
+                        new_block_f = False
+                    
+                    if z[int(l)-1,slot_i] != 0:
+                        if len(new_block[1]) > 0:
+                            new_block[0][1] = slot_i
+                            sub_blocks.append(new_block)
+                        new_block_f = True
+                        slot_i += 1
+                        continue
+                    else:
+                        for c in range(K):
+                            if z[c,slot_i] != 0 and (c+1) not in new_block[1]:
+                                new_block[1].append(c+1)
+                    
+                    new_block[0][1] = slot_i
+                    if slot_i == bloc[0][1]-1:
+                        sub_blocks.append(new_block)
+                    slot_i += 1
+                if len(sub_blocks) != 0:
+                    block_i = (block_i + 1)%len(sub_blocks)
+    return(z)
+
 
 def run(K, H, T_all, release_date_fwd, proc_fwd, 
             proc_local_fwd, trans_back_activations, 
