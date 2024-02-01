@@ -629,7 +629,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
             z__ = backward_for_each_machine(len(Kx), release_datez, procz, proc_localz, trans_backz, memory_capacity[i], Tz, x__extend)
             
             # OR USE OUR IMPLEMENTATION:
-            z__ = np.expand_dims(algo2(len(Kx), release_datez, procz, proc_localz, trans_backz, memory_capacity[i], Tz, x__extend), axis=0)
+            #z__ = np.expand_dims(algo2(len(Kx), release_datez, procz, proc_localz, trans_backz, memory_capacity[i], Tz, x__extend), axis=0)
             
             # ----- SELECT ONLY ONE
 
