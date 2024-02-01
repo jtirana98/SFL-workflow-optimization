@@ -17,7 +17,7 @@ The following scripts, which can be found inside the folder util_files, implemen
 - ILP_solver.py: solves the problem using only the solver.
 - heuristic_FCFS.py: solves the problem using the balanced_greedy algorthm described in Section IV. In this algorithm, the client assignment is implemented using a greedy approach, whereas the scheduling takes place using the FCFS policy.
 - random_benchmark.py: this is the benchmark approach that is used to compare the proposed approach. The client assignment problem is implemented using a random function, whereas the scheduling takes place using the FCFS policy.
-- ADMM_solution.py: Implements the ADMM-base solution described in Figure 3. Implements Algorithm 1 and solves the $P_f$ problem. Also, solves the $P_b$ problem using the Algorithm 2.
+- ADMM_solution.py: Implements the ADMM-base solution described in Figure 3. Implements Algorithm 1 and solves the $P_f$ problem. Also, solves the $P_b$ problem using the Algorithm 2 (see comment in util_files/README).
 
 The scripts above can be used as function calls for other scripts, just import the respective file. However, a scenario and input parameters should be defined.
 In case you want to build your own scenarios you can follow the flow of the scripts described below (i.e., the testing scripts).  

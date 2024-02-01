@@ -94,6 +94,6 @@ if __name__ == '__main__':
     j = 0
     for slot in slot_duration:
         for h in H:
-            print(f'The makespan for slot duration {slot} and {h} helpers is {w_makespans[i][j][-1]} and the computing time is {duration[i][j]}')
+            print(f'{utils.bcolors.OKGREEN}The makespan for slot duration {slot} and {h} helpers is {w_makespans[i][j][-1]} and the computing time is {duration[i][j]}{utils.bcolors.ENDC}')
             j += 1
         i += 1

@@ -71,12 +71,14 @@ if __name__ == '__main__':
 
     T = int(T)
     start_ilp = time.time()
+    
     w_star = ilp_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
                                             proc_local.astype(int), trans_back.astype(int), 
                                             memory_capacity.astype(int), 
                                             release_date_back.astype(int), proc_bck.astype(int), 
                                             proc_local_back.astype(int), trans_back_gradients.astype(int), 
                                             args.log)
+
     end_ilp = time.time()
 
     duration_ilp = end_ilp - start_ilp
@@ -88,6 +90,6 @@ if __name__ == '__main__':
                                             proc_local_back.astype(int), trans_back_gradients.astype(int), 
                                             args.log)
 
-    print(f"The optimal makespan is {w_star}, whereas the ADMM solution is {w_admm[-1]}")
-    print(f"For the optimal solution we needed {duration_ilp} sec, while for the ADMM solution {duration_admm} sec")
+    print(f"{utils.bcolors.OKGREEN}The optimal makespan is {w_star}, whereas the ADMM solution is {w_admm[-1]}{utils.bcolors.ENDC}")
+    print(f"{utils.bcolors.OKGREEN}For the optimal solution we needed {duration_ilp} sec, while for the ADMM solution {duration_admm} sec{utils.bcolors.ENDC}")
     #utils.plot_approach(w_star, w_star)

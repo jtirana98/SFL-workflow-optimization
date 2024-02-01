@@ -55,13 +55,14 @@ def main():
     print_res(allocation, duration, num_clients)
 
     # step - 2 define blocks
+    
     '''
     for each block-i, we store a list of two values bita_i = [[slots_i], [clients_i]]
     where,
     slots_i = [s(bita_i), e(bita_i)]
     clients_i : list of clients inside that slot
     '''
-    
+
     B = {}
     start = 0
     new_set = False

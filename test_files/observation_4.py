@@ -84,5 +84,5 @@ if __name__ == '__main__':
     print(f"The results:")
     i = 0
     for h in H:
-        print(f'The makespan for {h} helpers is {w_makespans[i][-1]} and the computing time is {duration[i]}')
+        print(f'{utils.bcolors.OKGREEN}The makespan for {h} helpers is {w_makespans[i][-1]} and the computing time is {duration[i]}{utils.bcolors.ENDC}')
         i += 1

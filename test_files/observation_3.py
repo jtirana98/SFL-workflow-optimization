@@ -97,5 +97,5 @@ if __name__ == '__main__':
                                             args.log)
 
 
-    print(f"The makespan for FCFS is  {w_fcfs}, for the ADMM solution is {w_admm[-1]}, and for the benchmark {w_random}")
-    print(f"For the FCFS we needed {duration_fcfs} sec, for the ADMM solution {duration_admm} sec, and for the benchmark we need {duration_random}")
+    print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {w_fcfs}, for the ADMM solution is {w_admm[-1]}, and for the benchmark {w_random}{utils.bcolors.ENDC}")
+    print(f"{utils.bcolors.OKGREEN}For the FCFS we needed {duration_fcfs} sec, for the ADMM solution {duration_admm} sec, and for the benchmark we need {duration_random}{utils.bcolors.ENDC}")
