@@ -192,7 +192,6 @@ def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
     num_class2 += K*H - (num_class0+num_class1+num_class2+num_class3)
 
     completed = []
-
     for i in range(num_class0):
         while True:
             net_line = int(random.randint(0,total_connections-1))
@@ -244,7 +243,7 @@ def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
     
     machine_devices = np.zeros((H))
     for i in range(H):
-            machine_devices[i] = random.randint(0,1)
+        machine_devices[i] = random.randint(0,1)
 
 
     # data owner device type 
@@ -270,7 +269,7 @@ def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
     release_date_back = np.zeros((K,H))
     release_date_back_proc = np.zeros((K,H))
     proc_bck = np.zeros((K,H))
-    proc_local_back =np.zeros((K))
+    proc_local_back = np.zeros((K))
     trans_back_gradients = np.zeros((K, H))
 
     # Construct scenario
@@ -325,7 +324,6 @@ def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
                     release_date_proc[j,i] = d1_proc_fwd_first
                     release_date_back[j,i] += d1_proc_back_last
 
-                    release_date_proc[j,i] = d1_proc_fwd_first
                     release_date_back_proc[j,i] = d1_proc_back_last
                 elif int(do_devices[j]) == 1:
                     release_date[j,i] +=  d2_proc_fwd_first
@@ -442,6 +440,295 @@ def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
             if proc_bck[j,i] == 0:
                     proc_bck[j,i] = 1
     
+    return (release_date, proc, 
+    proc_local, trans_back, 
+    memory_capacity, memory_demand_, 
+    release_date_back, proc_bck, 
+    proc_local_back, trans_back_gradients)
+
+def create_scenario_hybrid_typeA(filename, point_a, point_b, K, H, 
+                                 max_slot, slow_client, slow_networks):
+    
+    df_vm = pd.read_excel(io=filename, sheet_name='VM', header=None)
+    df_d1 = pd.read_excel(io=filename, sheet_name='d1', header=None)
+    df_memory = pd.read_excel(io=filename, sheet_name='memory', header=None)
+
+    H_prime = H + K
+    slow_factor = 6
+
+    # processing time on vms
+    vm_data = df_vm.values.tolist()
+    vm_proc_fwd = 0
+    vm_proc_back = 0
+
+    d1_p2_middle_fwd = 0
+    d1_p2_middle_back = 0
+    for i in range(point_a, point_b):
+        vm_proc_fwd += vm_data[i][0]
+        vm_proc_back += vm_data[i][1] + vm_data[i][2]
+
+        d1_p2_middle_fwd += d1_data[i][0]
+        d1_p2_middle_back += d1_data[i][1] + d1_data[i][2]
+    
+    # processing time on d1
+    d1_data = df_d1.values.tolist()
+    d1_proc_fwd_first = 0
+    d1_proc_fwd_last = 0
+    d1_proc_back_first = 0
+    d1_proc_back_last = 0
+
+    for i in range(0, point_a):
+            d1_proc_fwd_first += d1_data[i][0]
+            d1_proc_back_first += d1_data[i][1] + d1_data[i][2]
+        
+    for i in range(point_b, len(d1_data)):
+        d1_proc_fwd_last += d1_data[i][0]
+        d1_proc_back_last += d1_data[i][1] + d1_data[i][2]
+
+    memory_data = df_memory.values.tolist()
+    
+    # travel data
+    activations_to_cn = memory_data[point_a-1][0]
+    activations_to_do = memory_data[point_b-1][0]
+
+    # store data
+    store_data_owner = 0
+    for i in range(0, point_a):
+        store_data_owner += memory_data[i][0] + memory_data[i][1]
+        
+    for i in range(point_b, len(d1_data)):
+        store_data_owner += memory_data[i][0] + memory_data[i][1]
+
+    store_compute_node = 0
+    for i in range(point_a, point_b):
+        store_compute_node += memory_data[i][0] + memory_data[i][1]
+    store_compute_node = (store_compute_node/1024) # prefer MB
+
+    my_net = lambda data,bandwidth : ((data*0.0008)/bandwidth)*1000
+    network_connections = [ lambda a : ((a*0.000008)/8)*1000, # 8 Mbits/sec
+                            lambda a : (a*0.0000008)*1000, # 10 Mbits/sec
+                            lambda a : ((a*0.000000008)/7.13)*1000, # 7.13 Gbits/sec
+                            lambda a : ((a*0.000008)/2)*1000 # 2 Mbits/sec
+                            ]
+    
+    # random seed 
+    original_state = np.random.get_state()
+    random.seed(42)
+
+    # randomly select the network connections using the Atari stats
+    network_type = np.zeros((K,H))
+
+    '''
+    We consider the following cases:
+
+    class-0        <= 4 Mbps             --> SLOW
+    class-3        > 15 and <= 20        --> FAST
+    '''
+
+    class0 = []
+    class3 = []
+
+    total_connections = K*H
+
+    num_class0 = int((total_connections*slow_networks)/100)
+    num_class3 += K*H - num_class0
+
+    completed = []
+    for i in range(num_class0):
+        while True:
+            net_line = int(random.randint(0,total_connections-1))
+
+            if not (net_line in completed):
+                break
+        
+        completed.append(net_line)
+        network_type[int(net_line/H),int(net_line%H)] = random.randint(1,4)
+
+    for i in range(num_class3):
+        
+        while True:
+            net_line = int(random.randint(0,total_connections-1))
+
+            if not (net_line in completed):
+                break
+        
+        completed.append(net_line)
+        network_type[int(net_line/H),int(net_line%H)] = random.randint(16,20)
+
+    do_devices = np.zeros((K))
+    num_slow = int((K*slow_client)/100)
+    num_fast += K*H - num_class0
+
+    completed = []
+    for i in range(num_slow):
+        while True:
+            client_id = int(random.randint(0,K-1))
+
+            if not (client_id in completed):
+                break
+        
+        completed.append(client_id)
+        do_devices[client_id] = 0
+
+    for i in range(num_slow):
+        while True:
+            client_id = int(random.randint(0,K-1))
+
+            if not (client_id in completed):
+                break
+        
+        completed.append(client_id)
+        do_devices[client_id] = 1
+
+
+    release_date = [np.zeros((K,H)), np.zeros((K,H_prime))]
+    proc = [np.zeros((K,H)), np.zeros((K,H_prime))] 
+    proc_local = [np.zeros((K)), np.zeros((K))]
+    trans_back = [np.zeros((K, H)), np.zeros((K, H_prime))] 
+    release_date_back = [np.zeros((K,H)), np.zeros((K,H_prime))]
+    proc_bck = [np.zeros((K,H)), np.zeros((K,H_prime))] 
+    proc_local_back = [np.zeros((K)), np.zeros((K))]
+    trans_back_gradients = [np.zeros((K, H)), np.zeros((K, H_prime))]
+
+    # Construct scenario
+    for j in range(K):
+        for i in range(H_prime):
+            if i < H:
+                indx = int(network_type[j,i])
+                
+                release_date[0][j,i] = my_net(activations_to_cn, indx)
+                trans_back[0][j,i] = my_net(activations_to_do, indx)
+
+                release_date_back[0][j,i] = my_net(activations_to_do, indx)
+                trans_back_gradients[0][j,i] = my_net(activations_to_cn, indx)
+            
+            if int(do_devices[j]) == 0: #slow
+                if i < H:
+                    release_date[0][j,i] +=  d1_proc_fwd_first*slow_factor
+                    release_date_back[0][j,i] += d1_proc_back_last*slow_factor
+
+                release_date[1][j,i] +=  d1_proc_fwd_first*slow_factor
+                release_date_back[1][j,i] += d1_proc_back_last*slow_factor
+            else:
+                if i < H:
+                    release_date[0][j,i] +=  d1_proc_fwd_first
+                    release_date_back[0][j,i] += d1_proc_back_last
+
+                release_date[1][j,i] +=  d1_proc_fwd_first
+                release_date_back[1][j,i] += d1_proc_back_last
+
+            if i == 0:
+                if int(do_devices[j]) == 0:
+                    proc_local[0][j] =  d1_proc_fwd_last*slow_factor
+                    proc_local_back[0][j] =  d1_proc_back_first*slow_factor
+
+                    proc_local[1][j] =  d1_proc_fwd_last*slow_factor
+                    proc_local_back[1][j] =  d1_proc_back_first*slow_factor
+                else:
+                    proc_local[0][j] =  d1_proc_fwd_last
+                    proc_local_back[0][j] =  d1_proc_back_first
+
+                    proc_local[1][j] =  d1_proc_fwd_last
+                    proc_local_back[1][j] =  d1_proc_back_first
+            
+            if i < H:                           
+                proc[0][j,i] =  vm_proc_fwd
+                proc_bck[0][j,i] =  vm_proc_back
+
+                proc[1][j,i] =  vm_proc_fwd
+                proc_bck[1][j,i] =  vm_proc_back
+            else:
+                if int(do_devices[j]) == 0:
+                    proc[1][j,i] =  d1_p2_middle_fwd*slow_factor
+                    proc_bck[1][j,i] =  d1_p2_middle_back*slow_factor
+                else:
+                    proc[1][j,i] =  d1_p2_middle_fwd
+                    proc_bck[1][j,i] =  d1_p2_middle_back
+
+    memory_demand_ = np.ones((K)) * store_compute_node
+    for i in range(K):
+        memory_demand_[i] = int(math.ceil(memory_demand_[i]))
+    
+    global max_memory_demand
+    max_memory_demand = int(max(memory_demand_))
+
+    memory_capacity = np.array(get_memory_characteristics(H, K))
+    for i in range(H_prime):
+        memory_capacity[i] = int(max(memory_demand_))*K
+
+    unique_values = []
+    for j in range(K):
+        for i in range(H_prime):
+            if i < H:
+                unique_values.append(int(np.rint(release_date[0][j,i])))
+                unique_values.append(int(np.rint(release_date_back[0][j,i])))
+            else:
+                unique_values.append(int(np.rint(release_date[1][j,i])))
+                unique_values.append(int(np.rint(release_date_back[1][j,i])))    
+
+    for j in range(K):
+        unique_values.append(int(np.rint(proc_local[0][j])))
+        unique_values.append(int(np.rint(proc_local_back[0][j])))
+
+
+    for j in range(K):
+        for i in range(H):
+            if i < H:
+                unique_values.append(int(np.rint(trans_back[0][j,i])))
+                unique_values.append(int(np.rint(trans_back_gradients[0][j,i])))
+            else:
+                unique_values.append(int(np.rint(trans_back[1][j,i])))
+                unique_values.append(int(np.rint(trans_back_gradients[1][j,i])))
+
+    max_value = max(unique_values)
+
+    # Re-difine parameters as splots
+    max_slot_back = max_slot
+ 
+    for j in range(K):
+        for i in range(H_prime):
+            if i < H:
+                release_date[0][j,i] = np.ceil((release_date[0][j,i]*max_slot)/max_value).astype(int)
+                trans_back[0][j,i] = np.ceil((trans_back[0][j,i]*max_slot)/max_value).astype(int)
+                
+                release_date_back[0][j,i] = np.ceil((release_date_back[0][j,i]*max_slot)/max_value).astype(int)
+                trans_back_gradients[0][j,i] = np.ceil((trans_back_gradients[0][j,i]*max_slot)/max_value).astype(int)
+            
+            release_date[1][j,i] = np.ceil((release_date[1][j,i]*max_slot)/max_value).astype(int)
+            trans_back[1][j,i] = np.ceil((trans_back[1][j,i]*max_slot)/max_value).astype(int)
+            
+            release_date_back[1][j,i] = np.ceil((release_date_back[1][j,i]*max_slot)/max_value).astype(int)
+            trans_back_gradients[1][j,i] = np.ceil((trans_back_gradients[1][j,i]*max_slot)/max_value).astype(int)
+
+            if i == 0:
+                proc_local[0][j] = np.ceil((proc_local[0][j]*max_slot)/max_value).astype(int)
+                proc_local_back[0][j] = np.ceil((proc_local_back[0][j]*max_slot)/max_value).astype(int)
+
+                proc_local[1][j] = np.ceil((proc_local[1][j]*max_slot)/max_value).astype(int)
+                proc_local_back[1][j] = np.ceil((proc_local_back[1][j]*max_slot)/max_value).astype(int)
+
+            if i < H:
+                proc[0][j,i] =  np.ceil((proc[0][j,i]*max_slot)/max_value).astype(int)
+            
+                if proc[0][j,i] == 0:
+                        proc[0][j,i] = 1
+
+                proc_bck[0][j,i] =  np.ceil((proc_bck[0][j,i]*max_slot)/max_value).astype(int)
+
+                if proc_bck[0][j,i] == 0:
+                        proc_bck[0][j,i] = 1
+            else:
+                proc[1][j,i] =  np.ceil((proc[1][j,i]*max_slot)/max_value).astype(int)
+            
+                if proc[1][j,i] == 0:
+                        proc[1][j,i] = 1
+
+                proc_bck[1][j,i] =  np.ceil((proc_bck[1][j,i]*max_slot)/max_value).astype(int)
+
+                if proc_bck[1][j,i] == 0:
+                        proc_bck[1][j,i] = 1
+
+
     return (release_date, proc, 
     proc_local, trans_back, 
     memory_capacity, memory_demand_, 
