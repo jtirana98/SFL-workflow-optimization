@@ -74,7 +74,8 @@ if __name__ == '__main__':
 
     T = int(T)
     start_ilp = time.time()
-    
+    print(release_date_back[0])
+    print(release_date_back[1])
     w_original = ilp_sol.run(K, H, T, release_date[0].astype(int), proc[0].astype(int), 
                                             proc_local[0].astype(int), trans_back[0].astype(int), 
                                             memory_capacity[0].astype(int), 
@@ -86,12 +87,13 @@ if __name__ == '__main__':
 
     duration_ilp = end_ilp - start_ilp
     # Define the time horizon (hybrid)
-    T_hybrid = np.max(release_date[1]) + K*np.max(proc[1][0,0:H-1]) + np.max(release_date_back[1]) + K*np.max(proc_bck[1][0,0:H-1]) \
+    T_hybrid = np.max(release_date[1]) + K*np.max(proc[1][0,0:H]) + np.max(release_date_back[1]) + K*np.max(proc_bck[1][0,0:H]) \
                         + np.max(proc_local[1]) + np.max(proc_local_back[1])\
                         + np.max(np.max(trans_back[1])) + np.max(np.max(trans_back_gradients[1]))    
 
     T_hybrid = int(T_hybrid)
     print(T_hybrid)
+    print(T)
     start_ilp = time.time()
     
     w_hybrid = ilp_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
