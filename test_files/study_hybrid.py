@@ -10,7 +10,8 @@ import sys
 sys.path.insert(0,'../util_files')
 
 #import ADMM_solution as admm_sol
-import ILP_hybrid as ilp_sol
+import ILP_hybrid as ilp_hybrid
+import ILP_solver as ilp_sol
 import utils as utils
 
 def get_args():
@@ -22,6 +23,8 @@ def get_args():
     parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
     parser.add_argument('--scenario', '-s', type=int, default=1, help='scenario 1 for low heterogeneity or 2 for high')
     parser.add_argument('--dataset', '-d', type=str, default='cifar10', help='dataset, options cifar10/mnist')
+    parser.add_argument('--slow_devices', type=int, default=0, help='the number of slow client devices')
+    parser.add_argument('--slow_network', type=int, default=0, help='the number of slow connectivities')
     args = parser.parse_args()
     return args
 
@@ -60,35 +63,43 @@ if __name__ == '__main__':
     proc_local, trans_back, 
     memory_capacity, memory_demand, 
     release_date_back, proc_bck, 
-    proc_local_back, trans_back_gradients) = utils.create_scenario_hybrid(filename, point_a, point_b, 
-                                                                   K, H, 
-                                                                   scenario,100)
+    proc_local_back, trans_back_gradients) = utils.create_scenario_hybrid_typeA(filename, point_a, point_b, 
+                                                                                K, H, 100, 
+                                                                                args.slow_devices, args.slow_network)
     
-    # Define the time horizon
-    T = np.max(release_date) + K*np.max(proc[0,:]) + np.max(release_date_back) + K*np.max(proc_bck[0,:]) \
-                        + np.max(proc_local) + np.max(proc_local_back)\
-                        + np.max(np.max(trans_back)) + np.max(np.max(trans_back_gradients))    
+    # Define the time horizon (original)
+    T = np.max(release_date[0]) + K*np.max(proc[0][0,:]) + np.max(release_date_back[0]) + K*np.max(proc_bck[0][0,:]) \
+                        + np.max(proc_local[0]) + np.max(proc_local_back[0])\
+                        + np.max(np.max(trans_back[0])) + np.max(np.max(trans_back_gradients[0]))    
 
     T = int(T)
     start_ilp = time.time()
     
-    w_star = ilp_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
-                                            proc_local.astype(int), trans_back.astype(int), 
-                                            memory_capacity.astype(int), 
-                                            release_date_back.astype(int), proc_bck.astype(int), 
-                                            proc_local_back.astype(int), trans_back_gradients.astype(int), 
+    w_original = ilp_sol.run(K, H, T, release_date[0].astype(int), proc[0].astype(int), 
+                                            proc_local[0].astype(int), trans_back[0].astype(int), 
+                                            memory_capacity[0].astype(int), 
+                                            release_date_back[0].astype(int), proc_bck[0].astype(int), 
+                                            proc_local_back[0].astype(int), trans_back_gradients[0].astype(int), 
                                             args.log)
 
     end_ilp = time.time()
 
     duration_ilp = end_ilp - start_ilp
+    # Define the time horizon (hybrid)
+    T_hybrid = np.max(release_date[1]) + K*np.max(proc[1][0,0:H-1]) + np.max(release_date_back[1]) + K*np.max(proc_bck[1][0,0:H-1]) \
+                        + np.max(proc_local[1]) + np.max(proc_local_back[1])\
+                        + np.max(np.max(trans_back[1])) + np.max(np.max(trans_back_gradients[1]))    
 
-    w_admm, duration_admm  = admm_sol.run(K, H, T, release_date.astype(int), proc.astype(int), 
-                                            proc_local.astype(int), trans_back.astype(int), 
-                                            memory_capacity.astype(int), memory_demand.astype(int),
-                                            release_date_back.astype(int), proc_bck.astype(int), 
-                                            proc_local_back.astype(int), trans_back_gradients.astype(int), 
-                                            args.log)
+    T_hybrid = int(T_hybrid)
+    print(T_hybrid)
+    start_ilp = time.time()
+    
+    w_hybrid = ilp_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
+                                            proc_local[1].astype(int), trans_back[1].astype(int), 
+                                            memory_capacity[1].astype(int), 
+                                            release_date_back[1].astype(int), proc_bck[1].astype(int), 
+                                            proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
+    
 
-    print(f"{utils.bcolors.OKGREEN}The optimal makespan is {w_star}, whereas the ADMM solution is {w_admm[-1]}{utils.bcolors.ENDC}")
-    print(f"{utils.bcolors.OKGREEN}For the optimal solution we needed {duration_ilp} sec, while for the ADMM solution {duration_admm} sec{utils.bcolors.ENDC}")
+    print(f"{utils.bcolors.OKGREEN}The original makespan is {w_original}, whereas the hybrid is {w_hybrid}{utils.bcolors.ENDC}")
+    #print(f"{utils.bcolors.OKGREEN}For the optimal solution we needed {duration_ilp} sec, while for the ADMM solution {duration_admm} sec{utils.bcolors.ENDC}")

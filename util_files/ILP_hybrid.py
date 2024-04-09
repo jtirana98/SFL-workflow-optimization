@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore")
 
 def run(K, H, T, release_date_fwd, proc_fwd, 
             proc_local_fwd, trans_back_activations, 
-            memory_capacity, memory_demand,
+            memory_capacity, 
             release_date_back, proc_bck, 
             proc_local_back, trans_back_gradients):
     
@@ -19,7 +19,7 @@ def run(K, H, T, release_date_fwd, proc_fwd,
     ones_K = np.ones((K,1))
     ones_T = np.ones((T,1))
 
-    m = gp.Model("optimal_solution")
+    m = gp.Model("hybrid_solution")
     
     # define variables
     x = m.addMVar(shape = (H_prime,K,T), vtype=GRB.BINARY, name="x")
@@ -31,6 +31,7 @@ def run(K, H, T, release_date_fwd, proc_fwd,
     maxobj = m.addMVar(shape=(1),vtype=GRB.INTEGER, name="maxobj")
     comp = m.addMVar(shape=(K),vtype=GRB.INTEGER, name="comp")
 
+    
     for j in range(K):
         for i in range(H_prime):
             if i < H:
@@ -51,7 +52,7 @@ def run(K, H, T, release_date_fwd, proc_fwd,
     m.addConstr( y @ ones_H == ones_K )
     
     # C4: memory constraint 
-    m.addConstr((y.T * memory_demand) @ ones_K <= memory_capacity.reshape(ones_H.shape))
+    m.addConstr((y.T * utils.max_memory_demand) @ ones_K <= memory_capacity.reshape(ones_H.shape))
     
     # C6: machine processes only a single job at each interval
     for j in range(H_prime): #for all devices

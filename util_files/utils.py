@@ -395,7 +395,6 @@ def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
     for i in range(H):
         memory_capacity[i] = int(max(memory_demand_))*K
 
-
     unique_values = []
     for j in range(K):
         for i in range(H):
@@ -455,7 +454,7 @@ def create_scenario_hybrid_typeA(filename, point_a, point_b, K, H,
 
     H_prime = H + K
     slow_factor = 6
-
+    d1_data = df_d1.values.tolist()
     # processing time on vms
     vm_data = df_vm.values.tolist()
     vm_proc_fwd = 0
@@ -471,7 +470,6 @@ def create_scenario_hybrid_typeA(filename, point_a, point_b, K, H,
         d1_p2_middle_back += d1_data[i][1] + d1_data[i][2]
     
     # processing time on d1
-    d1_data = df_d1.values.tolist()
     d1_proc_fwd_first = 0
     d1_proc_fwd_last = 0
     d1_proc_back_first = 0
@@ -531,7 +529,7 @@ def create_scenario_hybrid_typeA(filename, point_a, point_b, K, H,
     total_connections = K*H
 
     num_class0 = int((total_connections*slow_networks)/100)
-    num_class3 += K*H - num_class0
+    num_class3 = K*H - num_class0
 
     completed = []
     for i in range(num_class0):
@@ -557,7 +555,7 @@ def create_scenario_hybrid_typeA(filename, point_a, point_b, K, H,
 
     do_devices = np.zeros((K))
     num_slow = int((K*slow_client)/100)
-    num_fast += K*H - num_class0
+    num_fast = K*H - num_class0
 
     completed = []
     for i in range(num_slow):
@@ -651,11 +649,12 @@ def create_scenario_hybrid_typeA(filename, point_a, point_b, K, H,
     
     global max_memory_demand
     max_memory_demand = int(max(memory_demand_))
-
-    memory_capacity = np.array(get_memory_characteristics(H, K))
+    memory_capacity = [np.zeros((H)), np.zeros((H_prime))]
     for i in range(H_prime):
-        memory_capacity[i] = int(max(memory_demand_))*K
-
+        if i < H:
+            memory_capacity[0][i] = int(max(memory_demand_))*K
+        memory_capacity[1][i] = int(max(memory_demand_))*K
+    print(memory_capacity[0])
     unique_values = []
     for j in range(K):
         for i in range(H_prime):
@@ -717,6 +716,16 @@ def create_scenario_hybrid_typeA(filename, point_a, point_b, K, H,
 
                 if proc_bck[0][j,i] == 0:
                         proc_bck[0][j,i] = 1
+
+                proc[1][j,i] =  np.ceil((proc[1][j,i]*max_slot)/max_value).astype(int)
+            
+                if proc[1][j,i] == 0:
+                        proc[1][j,i] = 1
+
+                proc_bck[1][j,i] =  np.ceil((proc_bck[1][j,i]*max_slot)/max_value).astype(int)
+
+                if proc_bck[1][j,i] == 0:
+                        proc_bck[1][j,i] = 1
             else:
                 proc[1][j,i] =  np.ceil((proc[1][j,i]*max_slot)/max_value).astype(int)
             
