@@ -599,6 +599,12 @@ def create_scenario_hybrid_typeA(filename, point_a, point_b, K, H,
 
                 release_date_back[0][j,i] = my_net(activations_to_do, indx)
                 trans_back_gradients[0][j,i] = my_net(activations_to_cn, indx)
+
+                release_date[1][j,i] = my_net(activations_to_cn, indx)
+                trans_back[1][j,i] = my_net(activations_to_do, indx)
+
+                release_date_back[1][j,i] = my_net(activations_to_do, indx)
+                trans_back_gradients[1][j,i] = my_net(activations_to_cn, indx)
             
             if int(do_devices[j]) == 0: #slow
                 if i < H:
