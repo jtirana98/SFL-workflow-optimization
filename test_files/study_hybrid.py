@@ -106,15 +106,15 @@ if __name__ == '__main__':
     end_hybrid_optimal = time.time()
     duration_ilp = end_hybrid_optimal - start_hybrid_optimal
     
-    '''
+    
     w_hybrid_admm = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
                                             proc_local[1].astype(int), trans_back[1].astype(int), 
                                             memory_capacity[1].astype(int), memory_demand[1].astype(int),
                                             release_date_back[1].astype(int), proc_bck[1].astype(int), 
                                             proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
-    '''
+    
 
     
     print(f"{utils.bcolors.OKGREEN}The original makespan is {w_original}, whereas the hybrid is {w_hybrid}{utils.bcolors.ENDC}")
-    #print(f"{utils.bcolors.OKGREEN}The hybrin ilp makespan is {w_hybrid}, whereas the admm is {w_hybrid_admm[0][-1]}{utils.bcolors.ENDC}")
-    #print(f"{utils.bcolors.OKGREEN}For the optimal solution we needed {duration_ilp} sec, while for the ADMM solution {w_hybrid_admm[1]} sec{utils.bcolors.ENDC}")
+    print(f"{utils.bcolors.OKGREEN}The hybrid ilp makespan is {w_hybrid}, whereas the admm is {w_hybrid_admm[0][-1]}{utils.bcolors.ENDC}")
+    print(f"{utils.bcolors.OKGREEN}For the optimal solution we needed {duration_ilp} sec, while for the ADMM solution {w_hybrid_admm[1]} sec{utils.bcolors.ENDC}")
