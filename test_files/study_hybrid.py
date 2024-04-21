@@ -20,7 +20,7 @@ def get_args():
     parser.add_argument('--log', type=str, default='test1.txt', help='filename for the logging')
     parser.add_argument('--clients', '-K', type=int, default=50, help='the number of clients')
     parser.add_argument('--helpers', '-H', type=int, default=2, help='the number of helpers')
-    parser.add_argument('--splitting_points', '-S', type=str, default='3,33', help='give an input in the format of s1,s2')
+    parser.add_argument('--splitting_points', '-S', type=str, default='3,33', help='give an input in the format of s1,s2') # resnet (3,20) #v3,10
     parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
     parser.add_argument('--scenario', '-s', type=int, default=1, help='scenario 1 for low heterogeneity or 2 for high')
     parser.add_argument('--dataset', '-d', type=str, default='cifar10', help='dataset, options cifar10/mnist')
@@ -89,12 +89,14 @@ if __name__ == '__main__':
     T = int(T)
     start_ilp = time.time()
     print('---------------------- ORIGINAL -----------------------------------')
-    w_original = ilp_sol.run(K, H, T, release_date[0].astype(int), proc[0].astype(int), 
-                                            proc_local[0].astype(int), trans_back[0].astype(int), 
-                                            memory_capacity[0].astype(int), 
-                                            release_date_back[0].astype(int), proc_bck[0].astype(int), 
-                                            proc_local_back[0].astype(int), trans_back_gradients[0].astype(int), 
-                                            args.log)
+    w_original = 2
+    
+    # ilp_sol.run(K, H, T, release_date[0].astype(int), proc[0].astype(int), 
+    #                                         proc_local[0].astype(int), trans_back[0].astype(int), 
+    #                                         memory_capacity[0].astype(int), 
+    #                                         release_date_back[0].astype(int), proc_bck[0].astype(int), 
+    #                                         proc_local_back[0].astype(int), trans_back_gradients[0].astype(int), 
+    #                                         args.log)
     
     end_ilp = time.time()
 
@@ -113,6 +115,7 @@ if __name__ == '__main__':
     start_ilp = time.time()
     
     start_hybrid_optimal = time.time()
+    w_hybrid = 2
     print('---------------------- HYBRID -----------------------------------')
     w_hybrid = ilp_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
                                             proc_local[1].astype(int), trans_back[1].astype(int), 
