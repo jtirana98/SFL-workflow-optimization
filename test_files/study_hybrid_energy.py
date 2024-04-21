@@ -77,30 +77,11 @@ if __name__ == '__main__':
     proc_local, trans_back, 
     memory_capacity, memory_demand, 
     release_date_back, proc_bck, 
-    proc_local_back, trans_back_gradients) = utils.create_scenario_hybrid(filename, point_a, point_b, 
+    proc_local_back, trans_back_gradients) = utils.create_scenario_hybrid_energy(filename, point_a, point_b, 
                                                                                 K, H, 100, 
                                                                                 args.slow_devices, args.slow_network, args.scenario)
 
-    # Define the time horizon (original)
-    T = np.max(release_date[0]) + K*np.max(proc[0][0,:]) + np.max(release_date_back[0]) + K*np.max(proc_bck[0][0,:]) \
-                        + np.max(proc_local[0]) + np.max(proc_local_back[0])\
-                        + np.max(np.max(trans_back[0])) + np.max(np.max(trans_back_gradients[0]))    
-    
-    T = int(T)
-    start_ilp = time.time()
-    print('---------------------- ORIGINAL -----------------------------------')
-    w_original = 2
-    
-    # ilp_sol.run(K, H, T, release_date[0].astype(int), proc[0].astype(int), 
-    #                                         proc_local[0].astype(int), trans_back[0].astype(int), 
-    #                                         memory_capacity[0].astype(int), 
-    #                                         release_date_back[0].astype(int), proc_bck[0].astype(int), 
-    #                                         proc_local_back[0].astype(int), trans_back_gradients[0].astype(int), 
-    #                                         args.log)
-    
-    end_ilp = time.time()
 
-    duration_ilp = end_ilp - start_ilp
     # Define the time horizon (hybrid)
     T_hybrid = np.max(release_date[1]) + K*np.max(proc[1][0,0:H]) + np.max([proc[1][k,H+k] for k in range(K)])  \
                         + np.max(release_date_back[1]) + K*np.max(proc_bck[1][0,0:H]) + np.max([proc_bck[1][k,H+k] for k in range(K)])  \
@@ -117,11 +98,11 @@ if __name__ == '__main__':
     start_hybrid_optimal = time.time()
     w_hybrid = 2
     print('---------------------- HYBRID -----------------------------------')
-    # w_hybrid = ilp_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
-    #                                         proc_local[1].astype(int), trans_back[1].astype(int), 
-    #                                         memory_capacity[1].astype(int), 
-    #                                         release_date_back[1].astype(int), proc_bck[1].astype(int), 
-    #                                         proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
+    w_hybrid = ilp_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
+                                            proc_local[1].astype(int), trans_back[1].astype(int), 
+                                            memory_capacity[1].astype(int), 
+                                            release_date_back[1].astype(int), proc_bck[1].astype(int), 
+                                            proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
     
     end_hybrid_optimal = time.time()
     duration_ilp = end_hybrid_optimal - start_hybrid_optimal

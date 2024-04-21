@@ -165,6 +165,26 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     # Parameters
     x_par = np.zeros((H_prime,K,T))
     y_par = np.zeros((K,H_prime))
+    # fair = int(H/K)
+    # track = 0
+    i = 0
+    for j in range(K):
+        m_min = 0
+        min_i = 0
+        for i in range(H_prime):
+            if i >= H and j != i - H:
+                continue
+            sum_temp = release_date_fwd[j,i] + proc_fwd[j,i] + trans_back_activations[j,i] + release_date_back[j,i] + proc_bck[j,i] + trans_back_gradients[j,i]
+            if i == 0:
+                m_min = sum_temp
+                min_i = i
+            else:
+                if sum_temp < m_min:
+                    m_min = sum_temp
+                    min_i = i
+        y_par[j,min_i] = 1 
+    
+    print(y_par)
 
     T_back = np.max(release_date_fwd) + K*np.max(proc_fwd[0][0:H]) + np.max(release_date_back) + K*np.max(proc_bck[0,0:H]) \
                         + np.max(proc_local_fwd) + np.max(proc_local_back) \
@@ -253,7 +273,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
                     c = m1.getConstrByName(f'const1add-{i}-{j}')
                     m1.remove(c)
 
-                m1.addConstr(contr1_add_1[i,j] == qsum(x[j,i,t] for t in range(T)) - y_par[i,j]*proc_fwd[i,j] + mu[i,j], name=f'const1add-{i}-{j}')
+                m1.addConstr(contr1_add_1[i,j] == (qsum(x[j,i,t] for t in range(T)) - y_par[i,j]*proc_fwd[i,j]), name=f'const1add-{i}-{j}')
                 my_ds.append(m1.addConstr(contr1_abs_1[i,j] == gp.abs_(contr1_add_1[i,j]), name=f'const1ab-{i}-{j}'))
 
         for i in range(K):
@@ -265,7 +285,8 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
             m1.addConstr(comp[i] == np.sum(np.multiply(trans_back_activations[i,:], y_par[i,:])) + f[i] + proc_local_fwd[i], name=f'const1f-{i}')
             my_ds.append(m1.addConstr(w >= comp[i], name=f'const1fw-{i}'))
            
-        m1.setObjective(w + (rho/2)*qsum(contr1_abs_1[i,j] for i in range(K) for j in range(H_prime)), GRB.MINIMIZE)
+        m1.setObjective(w + qsum(contr1_add_1[i,j] * mu[i,j] for i in range(K) for j in range(H_prime)) + (rho/2)*qsum(contr1_abs_1[i,j] for i in range(K) for j in range(H_prime)), GRB.MINIMIZE)
+        #m1.setParam('MIPGap', 0.05)
         m1.update()
 
         # solve P1:
@@ -307,7 +328,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
                     c2 = m2.getConstrByName(f'const2add-{i}-{j}')
                     m2.remove(c2)
 
-                m2.addConstr(contr2_add_1[i,j] == ll[j,i] - y[i,j]*proc_fwd[i,j] + mu[i,j], name=f'const2add-{i}-{j}')
+                m2.addConstr(contr2_add_1[i,j] == (ll[j,i] - y[i,j]*proc_fwd[i,j]), name=f'const2add-{i}-{j}')
                 my_ds2.append(m2.addConstr(contr2_abs_1[i,j] == gp.abs_(contr2_add_1[i,j]), name=f'const2ab-{i}-{j}'))
 
         for i in range(K):
@@ -318,8 +339,8 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
             m2.addConstr(comp_x_fixed[i] == qsum(trans_back_activations[i,:]*y[i,:]) + f_par[i] + proc_local_fwd[i], name=f'const2f-{i}')
             my_ds2.append(m2.addConstr(w_x_fixed >= comp_x_fixed[i], name=f'const2fw-{i}'))
 
-        m2.setObjective(w_x_fixed + (rho/2)*qsum(contr2_abs_1[i,j] for i in range(K) for j in range(H_prime)), GRB.MINIMIZE)
-
+        m2.setObjective(w_x_fixed + qsum(contr2_add_1[i,j]*mu[i,j] for i in range(K) for j in range(H_prime)) + (rho/2)*qsum(contr2_abs_1[i,j] for i in range(K) for j in range(H_prime)), GRB.MINIMIZE)
+        #m2.setParam('MIPGap', 0.05)
         m2.update()
         start_opt = time.time()
         m2.optimize()
