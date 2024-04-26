@@ -167,8 +167,8 @@ def run_energy(K, H, T, release_date_fwd, proc_fwd,
                 release_date_back, proc_bck, 
                 proc_local_back, trans_back_gradients, 
                 P_comp, P_transf, P_receive,
-                max_slot, network_bwd, ksi):
-    
+                max_slot, network_bwd, ksi, alpha):
+
     H_prime = H + K
     ones_H = np.ones((H_prime,1))
     ones_K = np.ones((K,1))
@@ -188,8 +188,6 @@ def run_energy(K, H, T, release_date_fwd, proc_fwd,
     eng_comp = m.addMVar(shape=(K), vtype=GRB.CONTINUOUS, name="eng_comp")
     eng_transf = m.addMVar(shape=(K), vtype=GRB.CONTINUOUS, name="eng_transf")
     eng_total = m.addMVar(shape=(1), vtype=GRB.CONTINUOUS, name="eng_total")
-    norm_a = m.addMVar(shape=(1), vtype=GRB.CONTINUOUS, name="norm_a")
-    norm_b = m.addMVar(shape=(1), vtype=GRB.CONTINUOUS, name="norm_b")
     
     for j in range(K):
         for i in range(H_prime):
@@ -261,34 +259,42 @@ def run_energy(K, H, T, release_date_fwd, proc_fwd,
     m.addConstrs(comp[i] == qsum(trans_back_gradients[i,:] * y[i,:]) + f[i] + proc_local_back[i] for i in range(K))
        
     
-    max_constr = m.addConstr(maxobj == gp.max_(comp[i] for i in range(K)))
+    m.addConstr(maxobj == gp.max_(comp[i] for i in range(K)))
 
     for i in range(K):
-        m.addConstr(eng_comp[i] == P_comp[i]*(release_date_fwd[i,H+i]+release_date_back[i,H+i] \
+        m.addConstr(eng_comp[i] == (max_slot/1000)*P_comp[i]*(release_date_fwd[i,H+i]+release_date_back[i,H+i] \
                                             + proc_local_fwd[i] + proc_local_back[i] \
                                             + qsum(y[i,j]*(proc_fwd[i,j] + proc_bck[i,j]) for j in range(H,H_prime))))
         
-        m.addConstr(eng_transf[i] == qsum((P_transf[i,j]+P_receive[i,j])*(1/network_bwd[i,j])*y[i,j] for j in range(H))*(ksi[0] + ksi[1]))
+        m.addConstr(eng_transf[i] == qsum((P_transf[i,j]+P_receive[i,j])*float(1/network_bwd[i,j])*y[i,j] for j in range(H))*(ksi[0] + ksi[1])*0.0008)
     
-    m.addConstr(eng_total == qsum(eng_comp+eng_transf)/1000) # make it Joule from mJ
+    m.addConstr(eng_total == qsum(eng_comp+eng_transf)) # make it Joule from mJ
     
-    # max_obj = m.addMVar(shape=(1), vtype=GRB.CONTINUOUS, name="max_obj")
-    # min_obj = m.addMVar(shape=(1), vtype=GRB.CONTINUOUS, name="min_obj")
+    # approach a: with propotional values
+    max_eng = 0
+    for i in range(K):
+        max_eng += float(max_slot/1000)*P_comp[i] * (release_date_fwd[i,H+i]+release_date_back[i,H+i] \
+                            + proc_local_fwd[i] + proc_local_back[i]) \
+                            + float(max_slot/1000)*P_comp[i] * (proc_fwd[i,H+i] + proc_bck[i,H+i]) \
+                            + ((ksi[0] + ksi[1])*0.0008)*max([(P_transf[i,j]+P_receive[i,j])*float(1/network_bwd[i,j]) for j in range(H)])
+        
+    #max_eng = max_eng
+    
 
-    # m.addConstr(max_obj == gp.max_(maxobj, eng_total))
-    # m.addConstr(min_obj == gp.min_(maxobj, eng_total))
+    # approach b: with log 
+    # log_object = m.addMVar(shape=(1), vtype=GRB.CONTINUOUS, name="log_object")
+    # m.addGenConstrLogA(eng_total, log_object, 10.0, "log10", "FuncPieces=-1 FuncPieceError=1e-5")
+    # m.setObjective(alpha*maxobj + (1-alpha)*log_object, GRB.MINIMIZE)
+    
+    makespan_obj = m.addMVar(shape=(1), vtype=GRB.CONTINUOUS, name="makespan_obj")
+    energy_obj = m.addMVar(shape=(1), vtype=GRB.CONTINUOUS, name="energy_obj")
 
-    # m.addConstr(norm_a*(max_obj - min_obj) >= (maxobj - min_obj))
-    # m.addConstr(norm_b*(max_obj - min_obj) >= (eng_total - min_obj))
-    log_object = m.addMVar(shape=(1), vtype=GRB.CONTINUOUS, name="log_object")
-    alpha = 0.5
-    #m.setObjective(alpha*norm_a + (1-alpha)*norm_b, GRB.MINIMIZE)
-    m.addGenConstrLogA(eng_total, log_object, 10.0, "log10", "FuncPieces=-1 FuncPieceError=1e-5")
-    m.setObjective(alpha*maxobj + (1-alpha)*log_object, GRB.MINIMIZE)
-    #m.setParam("NonConvex", 2)
+    m.addConstr(makespan_obj == ((maxobj)/((T+np.max(np.max(trans_back_gradients))+ np.max(proc_local_back)))))
+    m.addConstr(energy_obj == ((eng_total)/max_eng))
+    m.setObjective(alpha*makespan_obj \
+                   + (1-alpha)*energy_obj, GRB.MINIMIZE)
+    
     m.optimize()
-
-    
     print(f'Allocation policy: {np.rint(y.X)}')
     print('----- Scheduling policy -----')    
 
@@ -341,11 +347,13 @@ def run_energy(K, H, T, release_date_fwd, proc_fwd,
     print(f'objective function: {m.ObjVal}')
 
     print('print output:')
-    print(maxobj.X)
-    print(eng_comp.X)
-    print(eng_transf.X)
+    print(f' Computing: {eng_comp.X}')
+    print(f' Transport: {eng_transf.X}')
     print(f'TOTAL is:   {eng_total.X}')
-    print('normilized:')
-    print(log_object.X)
+    print(f'The maximum value of the energy consumption is: {max_eng}')
+    
+    print('------------ normilized: -------------')
+    print(makespan_obj.X)
+    print(energy_obj.X)
 
     return(maxobj.X[0])

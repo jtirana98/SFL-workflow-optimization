@@ -138,7 +138,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     ones_K = np.ones((K,1))
     ones_T = np.ones((T,1))
 
-    MAX_ITER = 10
+    MAX_ITER = 5
     rho = 350
 
     m1 = gp.Model("xsubproblem") # forward job assigment problem

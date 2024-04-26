@@ -20,7 +20,7 @@ def get_args():
     parser.add_argument('--log', type=str, default='test1.txt', help='filename for the logging')
     parser.add_argument('--clients', '-K', type=int, default=50, help='the number of clients')
     parser.add_argument('--helpers', '-H', type=int, default=2, help='the number of helpers')
-    parser.add_argument('--splitting_points', '-S', type=str, default='2,7', help='give an input in the format of s1,s2') # resnet (3,20) #v3,10
+    parser.add_argument('--splitting_points', '-S', type=str, default='2,10', help='give an input in the format of s1,s2') # resnet (3,20) #v3,10
     parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
     parser.add_argument('--alpha', '-a', type=float, default=1, help='alpha value for the multiobjective')
     parser.add_argument('--dataset', '-d', type=str, default='cifar10', help='dataset, options cifar10/mnist')
@@ -33,8 +33,8 @@ if __name__ == '__main__':
     K = args.clients
     H = args.helpers
 
-    #K = 6
-    #H = 2
+    K = 6
+    H = 2
 
     splitting_points = args.splitting_points
 
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     release_date_back, proc_bck, 
     proc_local_back, trans_back_gradients,
     P_comp, P_transf, P_receive,
-    max_slot, network_bwd, ksi) = utils.create_scenario_hybrid_energy(filename, point_a, point_b, K, H, 100)
+    max_slot, network_bwd, ksi) = utils.create_scenario_hybrid_energy_exploration(filename, point_a, point_b, K, H, 100)
 
     # Define the time horizon (hybrid)
     T_hybrid = np.max(release_date) + K*np.max(proc[0,0:H]) \
