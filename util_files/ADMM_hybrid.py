@@ -182,7 +182,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
                 if sum_temp < m_min:
                     m_min = sum_temp
                     min_i = i
-        y_par[j,min_i] = 1 
+        y_par[j,min_i] = 0 
     
     print(y_par)
 

@@ -1197,11 +1197,11 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
         laptop_proc_fwd += laptop_data[i][0]
         laptop_proc_back += laptop_data[i][1] + laptop_data[i][2]
 
-    max_proc_fwd = int(max([vm_proc_fwd, laptop_proc_fwd/100]))
-    min_proc_fwd = int(min([vm_proc_fwd, laptop_proc_fwd/100]))
+    max_proc_fwd = int(max([vm_proc_fwd]))
+    min_proc_fwd = int(min([vm_proc_fwd]))
 
-    max_proc_back = int(max([vm_proc_back, laptop_proc_back/100]))
-    min_proc_back = int(min([vm_proc_back, laptop_proc_back/100]))
+    max_proc_back = int(max([vm_proc_back]))
+    min_proc_back = int(min([vm_proc_back]))
     
     # processing time on d1
     d1_data = df_d1.values.tolist()
@@ -1620,9 +1620,9 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
                     proc_bck[j,i] = 1
     '''
 
-    max_slot = 500
-    max_slot_back = 500 #v 2000#r 1500
-    max_slot_maxx = 500#v 5000# r-4000
+    max_slot = 1500
+    max_slot_back = 1500 #v 2000#r 1500
+    max_slot_maxx = 1500#v 5000# r-4000
     for j in range(K):
         for i in range(H_prime):
             if i < H:
