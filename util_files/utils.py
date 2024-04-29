@@ -445,6 +445,24 @@ def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
 
             if proc_bck[j,i] == 0:
                     proc_bck[j,i] = 1
+
+    print('release date')
+    print(release_date)
+    print('proc')
+    print(proc)
+    print('proc local')
+    print(proc_local)
+    print('trans back')
+    print(trans_back)
+    print('release data back')
+    print(release_date_back)
+    print('proc back')
+    print(proc_bck)
+    print('proc local back')
+    print(proc_local_back)
+    print('trans back')
+    print(trans_back_gradients)
+    print('------')
     
     return (release_date, proc, 
     proc_local, trans_back, 
@@ -1168,7 +1186,7 @@ def create_scenario_hybrid_energy_exploration(filename, point_a, point_b, K, H, 
     max_slot, network_type, ksi)
 
 def create_scenario_hybrid(filename, point_a, point_b, K, H, 
-                                 max_slot, slow_client, slow_networks, scenario):
+                                 max_slot, scenario):
     
 
     df_vm = pd.read_excel(io=filename, sheet_name='VM', header=None)
@@ -2272,4 +2290,4 @@ def fifo(K, H, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activation
                 next_task.back = True
                 arival_jobs.append(next_task)
         
-        return max(f_temp)
+    return max(f_temp)

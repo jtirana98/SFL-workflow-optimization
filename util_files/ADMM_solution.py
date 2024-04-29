@@ -707,4 +707,3 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
         total_time += t
     
     return (obj_per_iter, total_time)
-

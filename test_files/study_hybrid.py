@@ -78,8 +78,7 @@ if __name__ == '__main__':
     memory_capacity, memory_demand, 
     release_date_back, proc_bck, 
     proc_local_back, trans_back_gradients) = utils.create_scenario_hybrid(filename, point_a, point_b, 
-                                                                                K, H, 100, 
-                                                                                args.slow_devices, args.slow_network, args.scenario)
+                                                                                K, H, 100, args.scenario)
 
     # Define the time horizon (original)
     T = np.max(release_date[0]) + K*np.max(proc[0][0,:]) + np.max(release_date_back[0]) + K*np.max(proc_bck[0][0,:]) \
