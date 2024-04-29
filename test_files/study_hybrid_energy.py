@@ -20,7 +20,7 @@ def get_args():
     parser.add_argument('--log', type=str, default='test1.txt', help='filename for the logging')
     parser.add_argument('--clients', '-K', type=int, default=50, help='the number of clients')
     parser.add_argument('--helpers', '-H', type=int, default=2, help='the number of helpers')
-    parser.add_argument('--splitting_points', '-S', type=str, default='2,7', help='give an input in the format of s1,s2') # resnet (3,20) #v3,10
+    parser.add_argument('--splitting_points', '-S', type=str, default='1,4', help='give an input in the format of s1,s2') # resnet (3,20) #v3,10 #v-- 2,7
     parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
     parser.add_argument('--alpha', '-a', type=float, default=1, help='alpha value for the multiobjective')
     parser.add_argument('--dataset', '-d', type=str, default='cifar10', help='dataset, options cifar10/mnist')

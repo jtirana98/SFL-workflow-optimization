@@ -375,6 +375,21 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     # Parameters
     x_par = np.zeros((H,K,T))
     y_par = np.zeros((K,H))
+    for j in range(K):
+        m_min = 0
+        min_i = 0
+        for i in range(H):
+            if i >= H and j != i - H:
+                continue
+            sum_temp = release_date_fwd[j,i] + proc_fwd[j,i] + trans_back_activations[j,i] + release_date_back[j,i] + proc_bck[j,i] + trans_back_gradients[j,i]
+            if i == 0:
+                m_min = sum_temp
+                min_i = i
+            else:
+                if sum_temp < m_min:
+                    m_min = sum_temp
+                    min_i = i
+        y_par[j,min_i] = 1 
 
     T_back = np.max(release_date_fwd) + K*np.max(proc_fwd[0][:]) + np.max(release_date_back) + K*np.max(proc_bck[0,:]) \
                         + np.max(proc_local_fwd) + np.max(proc_local_back) \

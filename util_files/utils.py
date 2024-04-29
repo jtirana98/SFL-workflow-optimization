@@ -262,7 +262,7 @@ def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
     
     do_devices = np.zeros((K))
     for i in range(K):
-        do_devices[i] = random.randint(0,1)
+        do_devices[i] = random.randint(0,3)
         #do_devices[i] = 0
     #do_devices[2] = 1
     # forward parameters
@@ -419,7 +419,7 @@ def create_scenario(filename, point_a, point_b, K, H, scenario, max_slot):
             unique_values.append(int(np.rint(trans_back_gradients[j,i])))
 
     max_value = max(unique_values)
-
+    print(max_value)
     # Re-difine parameters as splots
     max_slot_back = max_slot
  
@@ -694,7 +694,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
     
     do_devices = np.zeros((K))
     for i in range(K):
-        do_devices[i] = random.randint(0,1)
+        do_devices[i] = random.randint(0,2)
 
     p_proc_device = [6.4, 7.2, 7.2]
     #p_transf_device = [lambda bandwidth : bandwidth*(random.randint(15,78)*0.000000001), 2.3, 2.3]
@@ -800,9 +800,9 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
         memory_capacity[i] = int(max(memory_demand_))*K
     
  
-    max_slot = 500
-    max_slot_back = 500 #v 2000#r 1500
-    max_slot_maxx = 500#v 5000# r-4000
+    max_slot = 1500
+    max_slot_back = 1500 #v 2000#r 1500
+    max_slot_maxx = 1500#v 5000# r-4000
     for j in range(K):
         for i in range(H_prime):
             release_date[j,i] = np.ceil(release_date[j,i]/max_slot).astype(int)
