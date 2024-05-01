@@ -96,9 +96,11 @@ def run_hybrid(K, H, release_date_fwd, proc_fwd,
                 else:
                     if check_memory(memory_capacity[j], load_[j]+memory_demand[i]):
                         no_offload = release_date_fwd[i,H+i] + proc_fwd[i,H+i] + release_date_back[i,H+i] + proc_bck[i,H+i]
-                        offload = max([release_date_fwd[i,H+i] + proc_fwd[i,H+i] + release_date_back[i,H+i] \
-                                       + proc_bck[i,H+i] + trans_back_activations[i,j] + trans_back_gradients[i,j] for j in range(H)])
-                        if no_offload < offload:
+                        offload = max([release_date_fwd[i,j] + proc_fwd[i,j] + release_date_back[i,j] \
+                                       + proc_bck[i,j] + trans_back_activations[i,j] + trans_back_gradients[i,j] for j in range(H)])
+                        print(f'{i} - [{no_offload}]  {offload}')
+                        if no_offload <= offload:
+                            #print(f'{i} - [{H+i}]')
                             load_[j] += memory_demand[i]
                             y[i,j] = 1
                             fit = []
@@ -112,6 +114,7 @@ def run_hybrid(K, H, release_date_fwd, proc_fwd,
         if len(fit) == 1: # den xoraei pouthena allou
             distribution[fit[0]] += 1
             y[i,fit[0]] = 1
+            #print(f'{i} - [{fit[0]}]')
         else:
             best_load = (-1,-1)
             for j in range(len(fit)):
@@ -124,6 +127,7 @@ def run_hybrid(K, H, release_date_fwd, proc_fwd,
             distribution[best_load[0]] += 1
             load_[best_load[0]] += memory_demand[i]
             y[i,best_load[0]] = 1  
+            #print(f'{i} - [{best_load[0]}]')
 
     print(f'-----------------------------GREEDY--------------------------------')
     print(y)

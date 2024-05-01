@@ -1232,8 +1232,8 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
 
 
     for i in range(0, point_a):
-            d1_proc_fwd_first += d1_data[i][0]
-            d1_proc_back_first += d1_data[i][1] + d1_data[i][2]
+        d1_proc_fwd_first += d1_data[i][0]
+        d1_proc_back_first += d1_data[i][1] + d1_data[i][2]
 
     for i in range(point_a, point_b):
         d1_proc_fwd_medium += d1_data[i][0]
@@ -1415,7 +1415,7 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
     
     machine_devices = np.zeros((H_prime))
     for i in range(H):
-        machine_devices[i] = 1#random.randint(0,1)
+        machine_devices[i] = random.randint(0,1)
 
 
     # data owner device type 
@@ -1588,59 +1588,16 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
     memory_capacity = [np.zeros((H)), np.zeros((H_prime))]
     for i in range(H_prime):
         if i < H:
-            memory_capacity[0][i] = int(max(memory_demand_))*K
-        memory_capacity[1][i] = int(max(memory_demand_))*K
-    
-    '''
-    unique_values = []
-    for j in range(K):
-        for i in range(H):
-            unique_values.append(int(np.rint(release_date[j,i])))
-            unique_values.append(int(np.rint(release_date_back[j,i])))
-
-    for j in range(K):
-        unique_values.append(int(np.rint(proc_local[j])))
-        unique_values.append(int(np.rint(proc_local_back[j])))
-
+            memory_capacity[0][i] = int(max(memory_demand_))*int(K/H)
+            memory_capacity[1][i] = int(max(memory_demand_))*int(K/H)
+        else:
+            memory_capacity[1][i] = int(max(memory_demand_))
     
     
-    for j in range(K):
-        for i in range(H):
-            unique_values.append(int(np.rint(trans_back[j,i])))
-            unique_values.append(int(np.rint(trans_back_gradients[j,i])))
-
-    max_value = max(unique_values)
-
-    # Re-difine parameters as splots
-    max_slot_back = max_slot
- 
-    for j in range(K):
-        for i in range(H):
-            
-            release_date[j,i] = np.ceil((release_date[j,i]*max_slot)/max_value).astype(int)
-            trans_back[j,i] = np.ceil((trans_back[j,i]*max_slot)/max_value).astype(int)
-            
-            release_date_back[j,i] = np.ceil((release_date_back[j,i]*max_slot)/max_value).astype(int)
-            trans_back_gradients[j,i] = np.ceil((trans_back_gradients[j,i]*max_slot)/max_value).astype(int)
-
-            if i == 0:
-                proc_local[j] = np.ceil((proc_local[j]*max_slot)/max_value).astype(int)
-                proc_local_back[j] = np.ceil((proc_local_back[j]*max_slot)/max_value).astype(int)
-
-            proc[j,i] =  np.ceil((proc[j,i]*max_slot)/max_value).astype(int)
-            
-            if proc[j,i] == 0:
-                    proc[j,i] = 1
-
-            proc_bck[j,i] =  np.ceil((proc_bck[j,i]*max_slot)/max_value).astype(int)
-
-            if proc_bck[j,i] == 0:
-                    proc_bck[j,i] = 1
-    '''
-
-    max_slot = 1500
-    max_slot_back = 1500 #v 2000#r 1500
-    max_slot_maxx = 1500#v 5000# r-4000
+    
+    max_slot = 2000
+    max_slot_back = 2000 #v 2000#r 1500
+    max_slot_maxx = 2000#v 5000# r-4000
     for j in range(K):
         for i in range(H_prime):
             if i < H:
@@ -2289,5 +2246,5 @@ def fifo(K, H, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activation
                 
                 next_task.back = True
                 arival_jobs.append(next_task)
-        
+    print(f_temp)
     return max(f_temp)

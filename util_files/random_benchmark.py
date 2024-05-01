@@ -62,29 +62,32 @@ def run_hybrid(K, H, release_date_fwd, proc_fwd,
     y = np.zeros((K,H_prime))
     done = []
 
-    while len(done) < K:
-        while True:
-            i = random.randint(0, K-1)
-            if i not in done:
-                done.append(i)
-                break
+    #while len(done) < K:
+        # while True:
+        #     i = random.randint(0, K-1)
+        #     if i not in done:
+        #         done.append(i)
+        #         break
+    for i in range(K):
         fit = []
         for j in range(H):
             if check_memory(memory_capacity[j], load_[j]+memory_demand[i]):
                 fit.append(j)
         
-        if check_memory(memory_capacity[H+i], load_[j]+memory_demand[i]):
+        if check_memory(memory_capacity[H+i], load_[H+i]+memory_demand[i]):
             fit.append(H+i)
-              
+        
+        print(fit)
         if len(fit) == 1:
             #distribution[fit[0]] += 1
             y[i,fit[0]] = 1
             load_[fit[0]] += memory_demand[i]
         else:
-            my_machine = random.randint(0, len(fit)-1)
-            y[i,fit[my_machine]] = 1
-            load_[fit[my_machine]] += memory_demand[i]
+            my_machine = random.choice(fit)
+            y[i,my_machine] = 1
+            load_[my_machine] += memory_demand[i]
             #distribution[fit[my_machine]] += 1
+            print(my_machine)
 
     print('--------------------- RANDOM ------------------------')
     print(y)

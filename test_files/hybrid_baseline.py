@@ -19,7 +19,7 @@ def get_args():
     parser.add_argument('--log', type=str, default='test1.txt', help='filename for the logging')
     parser.add_argument('--clients', '-K', type=int, default=50, help='the number of clients')
     parser.add_argument('--helpers', '-H', type=int, default=2, help='the number of helpers')
-    parser.add_argument('--splitting_points', '-S', type=str, default='3,33', help='give an input in the format of s1,s2')
+    parser.add_argument('--splitting_points', '-S', type=str, default='4,15', help='give an input in the format of s1,s2')
     parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
     parser.add_argument('--scenario', '-s', type=int, default=1, help='scenario 1 for low heterogeneity or 2 for high')
     parser.add_argument('--dataset', '-d', type=str, default='cifar10', help='dataset, options cifar10/mnist')
@@ -63,15 +63,14 @@ if __name__ == '__main__':
     memory_capacity, memory_demand, 
     release_date_back, proc_bck, 
     proc_local_back, trans_back_gradients) = utils.create_scenario_hybrid(filename, point_a, point_b, 
-                                                                   K, H, 
-                                                                   scenario,100)
+                                                                                K, H, 100, args.scenario)
     
     # Define the time horizon
-    T_hybrid = np.max(release_date[1]) + K*np.max(proc[1][0,0:H]) + np.max([proc[1][k,H+k] for k in range(K)])  \
-                        + np.max(release_date_back[1]) + K*np.max(proc_bck[1][0,0:H]) + np.max([proc_bck[1][k,H+k] for k in range(K)])  \
+    T_hybrid = np.max(release_date[1]) + int(K/H)*np.max(proc[1][0,0:H]) + np.max([proc[1][k,H+k] for k in range(K)])  \
+                        + np.max(release_date_back[1]) + int(K/H)*np.max(proc_bck[1][0,0:H]) + np.max([proc_bck[1][k,H+k] for k in range(K)])  \
                         + np.max(proc_local[1]) + np.max(proc_local_back[1])\
                         + np.max(np.max(trans_back[1])) + np.max(np.max(trans_back_gradients[1])) 
-
+    print(T_hybrid)
     w_hybrid_admm = ([-1], -1)
     w_hybrid_admm = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
                                             proc_local[1].astype(int), trans_back[1].astype(int), 
@@ -79,6 +78,7 @@ if __name__ == '__main__':
                                             release_date_back[1].astype(int), proc_bck[1].astype(int), 
                                             proc_local_back[1].astype(int), trans_back_gradients[1].astype(int)) 
 
+    
     start_fcfs = time.time()
     w_fcfs = fcfs_sol.run_hybrid(K, H, release_date[1].astype(int), proc[1].astype(int), 
                                             proc_local[1].astype(int), trans_back[1].astype(int), 
