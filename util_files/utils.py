@@ -1295,11 +1295,11 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
     max_fwd_last = int(max([d1_proc_fwd_last, jetson_cpu_proc_fwd_last, jetson_gpu_proc_fwd_last]))
     min_fwd_last = int(min([d1_proc_fwd_last, jetson_cpu_proc_fwd_last, jetson_gpu_proc_fwd_last]))
     
-    max_fwd_medium = int(max([d1_proc_fwd_medium, jetson_cpu_proc_fwd_medium, jetson_gpu_proc_fwd_medium]))
-    min_fwd_medium = int(min([d1_proc_fwd_medium, jetson_cpu_proc_fwd_medium, jetson_gpu_proc_fwd_medium]))
+    max_fwd_medium = int(max([d1_proc_fwd_medium, jetson_cpu_proc_fwd_medium/2, jetson_gpu_proc_fwd_medium]))
+    min_fwd_medium = int(min([d1_proc_fwd_medium, jetson_cpu_proc_fwd_medium/2, jetson_gpu_proc_fwd_medium]))
 
-    max_back_medium = int(max([d1_proc_back_medium, jetson_cpu_proc_back_medium, jetson_gpu_proc_back_medium]))
-    min_back_medium = int(min([d1_proc_back_medium, jetson_cpu_proc_back_medium, jetson_gpu_proc_back_medium]))
+    max_back_medium = int(max([d1_proc_back_medium, jetson_cpu_proc_back_medium/2, jetson_gpu_proc_back_medium]))
+    min_back_medium = int(min([d1_proc_back_medium, jetson_cpu_proc_back_medium/2, jetson_gpu_proc_back_medium]))
 
     max_back_first = int(max([d1_proc_back_first, jetson_cpu_proc_back_first, jetson_gpu_proc_back_first]))
     min_back_first = int(min([d1_proc_back_first, jetson_cpu_proc_back_first, jetson_gpu_proc_back_first]))
