@@ -1595,9 +1595,9 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
     
     
     
-    max_slot = 2000
-    max_slot_back = 2000 #v 2000#r 1500
-    max_slot_maxx = 2000#v 5000# r-4000
+    max_slot = 700
+    max_slot_back = 700 #v 2000#r 1500
+    max_slot_maxx = 700#v 5000# r-4000
     for j in range(K):
         for i in range(H_prime):
             if i < H:

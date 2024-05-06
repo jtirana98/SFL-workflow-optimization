@@ -613,16 +613,18 @@ def run_second(K, H, T_all, release_date_fwd, proc_fwd,
 
     start = time.time()
     # completition time definition
+    '''
     for j in range(H): #for all machines
         for i in range(K):
             m1.addConstrs( f_offload[i] >= (t+1)*x[j,i,t] for t in range(T))
+    '''
 
     #for all devices
-    for i in range(K):
-        m1.addConstr( f_device[i] >= y[i, H+i]*(release_date_fwd[i,H+i] + proc_fwd[i,H+i]  + 
-                                                proc_local_fwd[i]))
+    #for i in range(K):
+        #m1.addConstr( f_device[i] >= (release_date_fwd[i,H+i] + proc_fwd[i,H+i]  + 
+        #                                        proc_local_fwd[i]))
 
-        m1.addConstr( f[i] >= f_offload[i] +f_device[i])
+    #    m1.addConstr( f[i] >= f_offload[i] + f_device[i])
 
     # C1: A job cannot be assigned to a time interval before the release time
     for i in range(H): #for all devices
@@ -636,8 +638,8 @@ def run_second(K, H, T_all, release_date_fwd, proc_fwd,
         m1.addConstr( x[j,:,:].T @ ones_K <= ones_T )
 
     # C5: A job should be processed entirely once
-    for i in range(K):
-        m1.addConstr(qsum(qsum(x[j,i,t] for t in range(T))/proc_fwd[i,j] for j in range(H)) == 1)
+    #for i in range(K):
+    #   m1.addConstr(qsum(qsum(x[j,i,t] for t in range(T))/proc_fwd[i,j] for j in range(H)) == 1)
 
     end = time.time()
     
@@ -673,10 +675,31 @@ def run_second(K, H, T_all, release_date_fwd, proc_fwd,
             my_ds = []
         
         for i in range(K):
+            if iter >= 1:
+                c = m1.getConstrByName(f'const1finish-{i}')
+                m1.remove(c)
+
+                c = m1.getConstrByName(f'const1ff-{i}')
+                m1.remove(c)
+
+                c = m1.getConstrByName(f'const1extra-{i}')
+                m1.remove(c)
+
+            m1.addConstr(qsum(qsum(x[j,i,t] for t in range(T))/proc_fwd[i,j] for j in range(H)) + y_par[i,i+H] == 1,  name=f'const1extra-{i}')
+            m1.addConstr(f_device[i] >= y_par[i,i+H]*(release_date_fwd[i,H+i] + proc_fwd[i,H+i]),  name=f'const1finish-{i}')
+            m1.addConstr(f[i] >= f_offload[i] + f_device[i],  name=f'const1ff-{i}')
+            
             for j in range(H):
                 if iter >= 1:
                     c = m1.getConstrByName(f'const1add-{i}-{j}')
                     m1.remove(c)
+                
+                for t in range(T):
+                    if iter >= 1:
+                        c = m1.getConstrByName(f'const1final-{i}-{j}-{t}')
+                        m1.remove(c)
+                    
+                    m1.addConstr( f_offload[i] >= (t+1)*x[j,i,t], name=f'const1final-{i}-{j}-{t}')
 
                 m1.addConstr(contr1_add_1[i,j] == (qsum(x[j,i,t] for t in range(T)) - y_par[i,j]*proc_fwd[i,j]), name=f'const1add-{i}-{j}')
                 my_ds.append(m1.addConstr(contr1_abs_1[i,j] == gp.abs_(contr1_add_1[i,j]), name=f'const1ab-{i}-{j}'))
@@ -700,7 +723,7 @@ def run_second(K, H, T_all, release_date_fwd, proc_fwd,
         end = time.time()
         time_stamps.append(end-start)
         time_stamps_nobuild.append(end-start_opt)
-
+        print(f'ITERATION:::: {iter}')
         x_par = np.copy(np.array(x.X))
         np.copy(np.array(w.X))
 
@@ -718,13 +741,13 @@ def run_second(K, H, T_all, release_date_fwd, proc_fwd,
             
             my_g = max(g_interm)
             if my_g == 0:
-               my_g = release_date_fwd[i,H+i] + proc_fwd[i,H+i] + proc_local_fwd[i]    
+               my_g = release_date_fwd[i,H+i] + proc_fwd[i,H+i]    
             
             g_values += [my_g]
 
 
         f_par = np.copy(g_values)
-        
+
         # Redefine error constraints P2
         if iter >= 1:
             for dd in my_ds2:
@@ -878,7 +901,8 @@ def run_second(K, H, T_all, release_date_fwd, proc_fwd,
 
             all_time.append(machine_time)
         
-        time_stamps.append(max(all_time))
+        if len(all_time) > 0 and flag_exit:
+            time_stamps.append(max(all_time))
         cs = []
         cs_back = []
         reserved = [0 for i in range(H_prime)]
@@ -909,6 +933,7 @@ def run_second(K, H, T_all, release_date_fwd, proc_fwd,
                     fmax = release_date_fwd[i,H+i] + release_date_back[i,H+i] + \
                                                     proc_fwd[i,H+i] + proc_bck[i,H+i] + \
                                                     proc_local_fwd[i]
+                    C = fmax + proc_local_back[i]
                 else:
                     last_zero = -1
                     for my_machine in range(H):
@@ -918,7 +943,7 @@ def run_second(K, H, T_all, release_date_fwd, proc_fwd,
                                     last_zero = k+1
                                     my_super_machine = my_machine
                     fmax = last_zero
-                C = fmax + proc_local_back[i] + trans_back_gradients[i,my_super_machine]
+                    C = fmax + proc_local_back[i] + trans_back_gradients[i,my_super_machine]
                 cs_back.append(C)
 
             #print(f'{utils.bcolors.FAIL}BACK max is: {max(cs_back)}{utils.bcolors.ENDC}')
