@@ -20,12 +20,13 @@ def get_args():
     parser.add_argument('--log', type=str, default='test1.txt', help='filename for the logging')
     parser.add_argument('--clients', '-K', type=int, default=50, help='the number of clients')
     parser.add_argument('--helpers', '-H', type=int, default=2, help='the number of helpers')
-    parser.add_argument('--splitting_points', '-S', type=str, default='2,20', help='give an input in the format of s1,s2') # resnet (3,20) #v3,10
+    parser.add_argument('--splitting_points', '-S', type=str, default='2,10', help='give an input in the format of s1,s2') # resnet (3,20) #v3,10
     parser.add_argument('--model', '-m', type=str, default='resnet101', help='select model resnet101/vgg19')
     parser.add_argument('--scenario', '-s', type=int, default=1, help='scenario 1 for low heterogeneity or 2 for high')
     parser.add_argument('--dataset', '-d', type=str, default='cifar10', help='dataset, options cifar10/mnist')
     parser.add_argument('--slow_devices', type=int, default=0, help='the number of slow client devices')
     parser.add_argument('--slow_network', type=int, default=0, help='the number of slow connectivities')
+    parser.add_argument('--max_slot', type=int, default=500, help='duration of slot')
     args = parser.parse_args()
     return args
 
@@ -78,7 +79,7 @@ if __name__ == '__main__':
     memory_capacity, memory_demand, 
     release_date_back, proc_bck, 
     proc_local_back, trans_back_gradients) = utils.create_scenario_hybrid(filename, point_a, point_b, 
-                                                                                K, H, 100, args.scenario)
+                                                                                K, H, args.max_slot, args.scenario)
 
     # Define the time horizon (original)
     T = np.max(release_date[0]) + K*np.max(proc[0][0,:]) + np.max(release_date_back[0]) + K*np.max(proc_bck[0][0,:]) \
