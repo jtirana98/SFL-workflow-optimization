@@ -658,7 +658,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
                 break
         
         completed.append(net_line)
-        network_type[int(net_line/H),int(net_line%H)] = random.randint(1,4)
+        network_type[int(net_line/H),int(net_line%H)] = random.randint(1,4)*0.1
 
 
     for i in range(num_class1):
@@ -670,7 +670,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
                 break
         
         completed.append(net_line)
-        network_type[int(net_line/H),int(net_line%H)] = random.randint(5,10)
+        network_type[int(net_line/H),int(net_line%H)] = random.randint(5,10)*0.1
     
     for i in range(num_class2):
         
@@ -717,8 +717,8 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
     p_proc_device = [6.4, 7.2, 7.2]
     #p_transf_device = [lambda bandwidth : bandwidth*(random.randint(15,78)*0.000000001), 2.3, 2.3]
     #p_receive_device = [lambda bandwidth : bandwidth*(random.randint(5,38)*0.000000001), 2.2, 2.2]
-    p_transf_device = [2, 2.3, 2.3]
-    p_receive_device = [1.2, 2.2, 2.2]
+    p_transf_device = [2.5, 2.3, 2.3]
+    p_receive_device = [1.5, 2.2, 2.2]
     
     
     release_date = np.zeros((K,H_prime))
@@ -740,7 +740,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
         P_comp[j] = p_proc_device[int(do_devices[j])]
         for i in range(H_prime):
             if i < H:
-                indx = int(network_type[j,i])
+                indx = network_type[j,i]
                 
                 slow = 1
                 if indx <= 1:
@@ -818,9 +818,8 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
         memory_capacity[i] = int(max(memory_demand_))*K
     
  
-    max_slot = 1500
-    max_slot_back = 1500 #v 2000#r 1500
-    max_slot_maxx = 1500#v 5000# r-4000
+    max_slot_back = max_slot #v 2000#r 1500
+    max_slot_maxx = max_slot#v 5000# r-4000
     for j in range(K):
         for i in range(H_prime):
             release_date[j,i] = np.ceil(release_date[j,i]/max_slot).astype(int)
@@ -846,7 +845,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
             if proc_bck[j,i] == 0:
                 proc_bck[j,i] = 1
     
-    
+    '''
     print('release date')
     print(release_date)
     print('proc')
@@ -864,7 +863,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
     print('trans back')
     print(trans_back_gradients)
     print('------')
-
+    '''
     
     
     return (release_date, proc, 
