@@ -139,7 +139,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     ones_T = np.ones((T,1))
 
     MAX_ITER = 5
-    rho = 350
+    rho = 700
 
     m1 = gp.Model("xsubproblem") # forward job assigment problem
     m2 = gp.Model("ysubproblem") # allocation problem
@@ -181,7 +181,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
             else:
                 if sum_temp < m_min:
                     m_min = sum_temp
-                    min_i = j
+                    min_i = i
         y_par[j,min_i] = 1 
     
     print(y_par)
@@ -399,94 +399,95 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
         y_ = y_par
         all_time = []
 
-        for i in range(H_prime): # theoritically this can be done in parallel
-            Kx = list(np.transpose(np.argwhere(y_[:,i]==1))[0]) # finds which data owners are assigned to the machine i
-            if len(Kx) == 0:
-                continue
+        if flag_exit:
+            for i in range(H_prime): # theoritically this can be done in parallel
+                Kx = list(np.transpose(np.argwhere(y_[:,i]==1))[0]) # finds which data owners are assigned to the machine i
+                if len(Kx) == 0:
+                    continue
+                
+                procx = np.copy(proc_fwd[Kx, i])  # this is a row-vector
+                release_datex = np.copy(release_date_fwd[Kx, i])
+                proc_localx = np.copy(proc_local_fwd[Kx])
+                trans_backx = np.copy(trans_back_activations[Kx, i])
+                Tx = np.max(release_datex) + len(Kx)*np.max(procx)  # to constrain the T
+                start_sub = time.time()
+                x__ = feasibility_check(len(Kx), release_datex, procx, proc_localx, trans_backx, memory_capacity[i], Tx)
+                end_sub = time.time()
+
+                machine_time = end_sub-start_sub
+
+                jj = 0
+                for j in Kx:
+                    for t in range(Tx):
+                        x_par[i,j,t] = x__[0,jj,t]
+                    jj += 1
+                
+                f_temp = np.zeros((len(Kx)))
+                for kk in range(len(Kx)):
+                    for t in range(Tx):
+                        if f_temp[kk] < (t+1)*x__[0,kk,t]:
+                            f_temp[kk] = (t+1)*x__[0,kk,t]
+                
+                procz = np.copy(proc_bck[Kx, i])  # this is a row-vector
+                release_datez = np.copy(release_date_back[Kx, i])
+                proc_localz = np.copy(proc_local_back[Kx])
+                trans_backz = np.copy(trans_back_gradients[Kx, i])
+
+                for kk in range(len(Kx)):
+                    release_datez[kk] += f_temp[kk] + proc_localx[kk] + trans_backx[kk]
+                
+                Tz = np.max(release_datez) + len(Kx)*np.max(procz)  # to constrain the T
+                x__extend = np.zeros((1,len(Kx),Tz))
+                
+                for jj in range(len(Kx)):
+                    for t in range(min(Tx,Tz)):
+                        x__extend[0,jj,t] = x__[0,jj,t]
+                
+                start_sub = time.time()
+
+                # SELECT ALGORITHM -- P_b ----- SELECT ONLY ONE
+
+                # USE SOLVER UNCOMMENT BELOW
+                z__ = backward_for_each_machine(len(Kx), release_datez, procz, proc_localz, trans_backz, memory_capacity[i], Tz, x__extend)
+                
+                # OR USE OUR IMPLEMENTATION:
+                #z__ = np.expand_dims(algo2(len(Kx), release_datez, procz, proc_localz, trans_backz, memory_capacity[i], Tz, x__extend), axis=0)
+                
+                # ----- SELECT ONLY ONE
+
+                end_sub = time.time()
+                machine_time += end_sub - start_sub
+
+                jj = 0
+                for j in Kx:
+                    for t in range(Tz):
+                        z_par[i,j,t] = z__[0,jj,t]
+                        #z_par[i,j,t] = z__[jj,t]
+                    jj += 1
+
+                all_time.append(machine_time)
             
-            procx = np.copy(proc_fwd[Kx, i])  # this is a row-vector
-            release_datex = np.copy(release_date_fwd[Kx, i])
-            proc_localx = np.copy(proc_local_fwd[Kx])
-            trans_backx = np.copy(trans_back_activations[Kx, i])
-            Tx = np.max(release_datex) + len(Kx)*np.max(procx)  # to constrain the T
-            start_sub = time.time()
-            x__ = feasibility_check(len(Kx), release_datex, procx, proc_localx, trans_backx, memory_capacity[i], Tx)
-            end_sub = time.time()
+            time_stamps.append(max(all_time))
+            cs = []
+            cs_back = []
+            reserved = [0 for i in range(H_prime)]
+            f_m = np.zeros(K)
 
-            machine_time = end_sub-start_sub
-
-            jj = 0
-            for j in Kx:
-                for t in range(Tx):
-                    x_par[i,j,t] = x__[0,jj,t]
-                jj += 1
-            
-            f_temp = np.zeros((len(Kx)))
-            for kk in range(len(Kx)):
-                for t in range(Tx):
-                    if f_temp[kk] < (t+1)*x__[0,kk,t]:
-                        f_temp[kk] = (t+1)*x__[0,kk,t]
-            
-            procz = np.copy(proc_bck[Kx, i])  # this is a row-vector
-            release_datez = np.copy(release_date_back[Kx, i])
-            proc_localz = np.copy(proc_local_back[Kx])
-            trans_backz = np.copy(trans_back_gradients[Kx, i])
-
-            for kk in range(len(Kx)):
-                release_datez[kk] += f_temp[kk] + proc_localx[kk] + trans_backx[kk]
-            
-            Tz = np.max(release_datez) + len(Kx)*np.max(procz)  # to constrain the T
-            x__extend = np.zeros((1,len(Kx),Tz))
-            
-            for jj in range(len(Kx)):
-                for t in range(min(Tx,Tz)):
-                    x__extend[0,jj,t] = x__[0,jj,t]
-            
-            start_sub = time.time()
-
-            # SELECT ALGORITHM -- P_b ----- SELECT ONLY ONE
-
-            # USE SOLVER UNCOMMENT BELOW
-            z__ = backward_for_each_machine(len(Kx), release_datez, procz, proc_localz, trans_backz, memory_capacity[i], Tz, x__extend)
-            
-            # OR USE OUR IMPLEMENTATION:
-            #z__ = np.expand_dims(algo2(len(Kx), release_datez, procz, proc_localz, trans_backz, memory_capacity[i], Tz, x__extend), axis=0)
-            
-            # ----- SELECT ONLY ONE
-
-            end_sub = time.time()
-            machine_time += end_sub - start_sub
-
-            jj = 0
-            for j in Kx:
-                for t in range(Tz):
-                    z_par[i,j,t] = z__[0,jj,t]
-                    #z_par[i,j,t] = z__[jj,t]
-                jj += 1
-
-            all_time.append(machine_time)
-        
-        time_stamps.append(max(all_time))
-        cs = []
-        cs_back = []
-        reserved = [0 for i in range(H_prime)]
-        f_m = np.zeros(K)
-
-        for i in range(K): #for all jobs
-            my_machine = 0
-            my_super_machine = 0
-            last_zero = -1
-            for my_machine in range(H_prime):
-                for k in range(T):
-                    if np.rint(x_par[my_machine,i,k]) >= 1:
-                        if last_zero < k+1:
-                            last_zero = k+1
-                            my_super_machine = my_machine
-            fmax = last_zero
-            f_m[i] = fmax
-            C = fmax + proc_local_fwd[i] + trans_back_activations[i,my_super_machine]
-            cs.append(C)
-            reserved[my_super_machine] += 1
+            for i in range(K): #for all jobs
+                my_machine = 0
+                my_super_machine = 0
+                last_zero = -1
+                for my_machine in range(H_prime):
+                    for k in range(T):
+                        if np.rint(x_par[my_machine,i,k]) >= 1:
+                            if last_zero < k+1:
+                                last_zero = k+1
+                                my_super_machine = my_machine
+                fmax = last_zero
+                f_m[i] = fmax
+                C = fmax + proc_local_fwd[i] + trans_back_activations[i,my_super_machine]
+                cs.append(C)
+                reserved[my_super_machine] += 1
 
         if flag_exit: # we are at the end, and have solved backward() as well
             for i in range(K): #for all jobs
