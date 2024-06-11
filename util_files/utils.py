@@ -648,7 +648,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
     num_class3 = int((total_connections*28)/100)
 
     num_class2 += K*H - (num_class0+num_class1+num_class2+num_class3)
-
+    '''
     completed = []
     for i in range(num_class0):
         while True:
@@ -658,7 +658,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
                 break
         
         completed.append(net_line)
-        network_type[int(net_line/H),int(net_line%H)] = random.randint(1,4)*0.1
+        network_type[int(net_line/H),int(net_line%H)] = random.randint(1,4)
 
 
     for i in range(num_class1):
@@ -670,7 +670,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
                 break
         
         completed.append(net_line)
-        network_type[int(net_line/H),int(net_line%H)] = random.randint(5,10)*0.1
+        network_type[int(net_line/H),int(net_line%H)] = random.randint(5,10)
     
     for i in range(num_class2):
         
@@ -693,6 +693,14 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
         
         completed.append(net_line)
         network_type[int(net_line/H),int(net_line%H)] = random.randint(16,30)
+    '''
+
+    for i in range(K):
+        network_type[i,0] = 1
+        network_type[i,1] = 20
+        #network_type[i,2] = 30
+        #network_type[i,3] = 30
+        #network_type[i,4] = 30
 
     # helper device type 
     # we have:
@@ -702,7 +710,12 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
     machine_devices = np.zeros((H_prime))
     for i in range(H):
         machine_devices[i] = random.randint(0,1)
-
+    
+    machine_devices[0] = 0
+    machine_devices[1] = 1
+    #machine_devices[2] = 1
+    #machine_devices[3] = 1
+    #machine_devices[4] = 1
 
     # data owner device type 
     # we have:
@@ -712,14 +725,15 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
     
     do_devices = np.zeros((K))
     for i in range(K):
-        do_devices[i] = random.randint(0,2)
+        do_devices[i] = 0
 
     p_proc_device = [6.4, 7.2, 7.2]
     #p_transf_device = [lambda bandwidth : bandwidth*(random.randint(15,78)*0.000000001), 2.3, 2.3]
     #p_receive_device = [lambda bandwidth : bandwidth*(random.randint(5,38)*0.000000001), 2.2, 2.2]
-    p_transf_device = [2.5, 2.3, 2.3]
-    p_receive_device = [1.5, 2.2, 2.2]
-    
+    #p_transf_device = [2.5, 2.3, 2.3]
+    #p_receive_device = [1.5, 2.2, 2.2]
+    p_transf_device = [4, 2.3, 4]
+    p_receive_device = [4, 2.2, 4]
     
     release_date = np.zeros((K,H_prime))
     proc = np.zeros((K,H_prime)) 
@@ -751,12 +765,8 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
                 release_date_back[j,i] = my_net(activations_to_do, indx)#*slow
                 trans_back_gradients[j,i] = my_net(activations_to_cn, indx)#*slow
 
-                if int(do_devices[j] == 0):
-                    P_transf[j,i] = p_transf_device[0]#(indx)
-                    P_receive[j,i] = p_receive_device[0]#(indx)
-                else:
-                    P_transf[j,i] = p_transf_device[1]
-                    P_receive[j,i] = p_receive_device[1] 
+                P_transf[j,i] = p_transf_device[int(do_devices[j])]#(indx)
+                P_receive[j,i] = p_receive_device[int(do_devices[j])]#(indx)
             if scenario == 1:
                 if int(do_devices[j]) == 0:
                     release_date[j,i] +=  d1_proc_fwd_first
@@ -778,7 +788,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
                     elif int(do_devices[j]) == 1:
                         proc_local[j] =  jetson_gpu_proc_fwd_last
                         proc_local_back[j] =  jetson_gpu_proc_back_first
-                    elif int(do_devices[j]) == 3:
+                    elif int(do_devices[j]) == 2:
                         proc_local[j] =  jetson_cpu_proc_fwd_last
                         proc_local_back[j] =  jetson_cpu_proc_back_first
                         
@@ -800,7 +810,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
                     elif int(do_devices[j]) == 1:
                         proc[j,i] =  jetson_gpu_proc_fwd_medium
                         proc_bck[j,i] =  jetson_gpu_proc_back_medium
-                    elif int(do_devices[j]) == 3:
+                    elif int(do_devices[j]) == 2:
                         proc[j,i] =  jetson_cpu_proc_fwd_medium
                         proc_bck[j,i] =  jetson_cpu_proc_back_medium
 
@@ -817,7 +827,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
     for i in range(H_prime):
         memory_capacity[i] = int(max(memory_demand_))*K
     
- 
+
     max_slot_back = max_slot #v 2000#r 1500
     max_slot_maxx = max_slot#v 5000# r-4000
     for j in range(K):
@@ -845,7 +855,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
             if proc_bck[j,i] == 0:
                 proc_bck[j,i] = 1
     
-    '''
+    
     print('release date')
     print(release_date)
     print('proc')
@@ -863,7 +873,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
     print('trans back')
     print(trans_back_gradients)
     print('------')
-    '''
+    
     
     
     return (release_date, proc, 
@@ -1186,8 +1196,6 @@ def create_scenario_hybrid_energy_exploration(filename, point_a, point_b, K, H, 
 
 def create_scenario_hybrid(filename, point_a, point_b, K, H, 
                                  max_slot, scenario):
-    
-
     df_vm = pd.read_excel(io=filename, sheet_name='VM', header=None)
     df_laptop = pd.read_excel(io=filename, sheet_name='laptop', header=None)
     df_d1 = pd.read_excel(io=filename, sheet_name='d1', header=None)
@@ -1407,6 +1415,18 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
         completed.append(net_line)
         network_type[int(net_line/H),int(net_line%H)] = random.randint(16,20)
 
+    if H == 10:
+        for i in range(2):
+            for j in range(K):
+                network_type[j,i] = 1
+    
+    if H == 5:
+        for i in range(2):
+            for j in range(K):
+                network_type[j,i] = 1
+    
+
+
     # helper device type 
     # we have:
     # 0 for vm
@@ -1416,6 +1436,13 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
     for i in range(H):
         machine_devices[i] = random.randint(0,1)
 
+    if H == 10:
+        machine_devices[0:2] = 1
+        machine_devices[2:-1] = 0
+    
+    if H == 5:
+        machine_devices[0] = 1
+        machine_devices[1:-1] = 0
 
     # data owner device type 
     # we have:
@@ -1425,7 +1452,7 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
     
     do_devices = np.zeros((K))
     for i in range(K):
-        do_devices[i] = random.randint(0,1)
+        do_devices[i] = random.randint(0,2)
     
     release_date = [np.zeros((K,H)), np.zeros((K,H_prime))]
     proc = [np.zeros((K,H)), np.zeros((K,H_prime))] 
@@ -1533,11 +1560,14 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
                             proc_local[k][j] =  d1_proc_fwd_last
                             proc_local_back[k][j] =  d1_proc_back_first
                         elif int(do_devices[j]) == 1:
-                            proc_local[k][j] =  jetson_gpu_proc_fwd_last
-                            proc_local_back[k][j] =  jetson_gpu_proc_back_first
-                        elif int(do_devices[j]) == 3:
                             proc_local[k][j] =  jetson_cpu_proc_fwd_last
                             proc_local_back[k][j] =  jetson_cpu_proc_back_first
+                        elif int(do_devices[j]) == 2:
+                            proc_local[k][j] =  jetson_gpu_proc_fwd_last
+                            proc_local_back[k][j] =  jetson_gpu_proc_back_first
+                        #elif int(do_devices[j]) == 3:
+                        #    proc_local[k][j] =  jetson_cpu_proc_fwd_last
+                        #    proc_local_back[k][j] =  jetson_cpu_proc_back_first
                         
 
                 if scenario == 2:
@@ -1562,11 +1592,11 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
                         proc[1][j,i] =  d1_proc_fwd_medium
                         proc_bck[1][j,i] =  d1_proc_back_medium
                     elif int(do_devices[j]) == 1:
-                        proc[1][j,i] =  jetson_gpu_proc_fwd_medium
-                        proc_bck[1][j,i] =  jetson_gpu_proc_back_medium
-                    elif int(do_devices[j]) == 3:
                         proc[1][j,i] =  jetson_cpu_proc_fwd_medium
                         proc_bck[1][j,i] =  jetson_cpu_proc_back_medium
+                    elif int(do_devices[j]) == 2:
+                        proc[1][j,i] =  jetson_gpu_proc_fwd_medium
+                        proc_bck[1][j,i] =  jetson_gpu_proc_back_medium
 
             if scenario == 2:
                 if i < H:
@@ -1586,7 +1616,21 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
 
     memory_capacity = [np.zeros((H)), np.zeros((H_prime))]
     for i in range(H_prime):
-        if i < H:
+        if H == 5 and i < H:
+            if i <= 1:
+                memory_capacity[0][i] = int(max(memory_demand_))*int(K)
+                memory_capacity[1][i] = int(max(memory_demand_))*int(K)
+            else:
+                memory_capacity[0][i] = int(max(memory_demand_))
+                memory_capacity[1][i] = int(max(memory_demand_))
+        elif H == 10 and i < H:
+            if i <= 1:
+                memory_capacity[0][i] = int(max(memory_demand_))*int(K/2)
+                memory_capacity[1][i] = int(max(memory_demand_))*int(K/2)
+            else:
+                memory_capacity[0][i] = int(max(memory_demand_))
+                memory_capacity[1][i] = int(max(memory_demand_))
+        elif i < H:
             memory_capacity[0][i] = int(max(memory_demand_))*int(K/H)
             memory_capacity[1][i] = int(max(memory_demand_))*int(K/H)
         else:

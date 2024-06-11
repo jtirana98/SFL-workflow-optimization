@@ -66,16 +66,16 @@ if __name__ == '__main__':
     release_date_back, proc_bck, 
     proc_local_back, trans_back_gradients,
     P_comp, P_transf, P_receive,
-    max_slot, network_bwd, ksi) = utils.create_scenario_hybrid_energy(filename, point_a, point_b, K, H, 500)
+    max_slot, network_bwd, ksi) = utils.create_scenario_hybrid_energy(filename, point_a, point_b, K, H, 1500)
 
     # Define the time horizon (hybrid)
-    T_hybrid = np.max(release_date) + max(K*np.max(proc[0,0:H]), np.max([proc[k,H+k] for k in range(K)]))  \
+    T_hybrid = np.max(release_date) + max(np.max([np.sum([proc[l,h] for l in range(K)]) for h in range(H)]), np.max([proc[k,H+k] for k in range(K)]))  \
                         + np.max(release_date_back) \
-                        + max(K*np.max(proc_bck[0,0:H]), np.max([proc_bck[k,H+k] for k in range(K)])) \
+                        + max(np.max([np.sum([proc_bck[l,h] for l in range(K)]) for h in range(H)]), np.max([proc_bck[k,H+k] for k in range(K)])) \
                         + np.max(proc_local)  \
                         + np.max(proc_local_back) \
-                        + np.max(np.max(trans_back)) \
-                        + np.max(np.max(trans_back_gradients))
+                        + np.max(trans_back) \
+                        + np.max(trans_back_gradients)
 
     T_hybrid = int(T_hybrid)
     print(f'time horizon {T_hybrid} alpha is {args.alpha}')

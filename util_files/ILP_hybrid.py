@@ -257,9 +257,9 @@ def run_energy(K, H, T, release_date_fwd, proc_fwd,
     # Define the objective function
     
     m.addConstrs(comp[i] == qsum(trans_back_gradients[i,:] * y[i,:]) + f[i] + proc_local_back[i] for i in range(K))
-       
     
     m.addConstr(maxobj == gp.max_(comp[i] for i in range(K)))
+    m.addConstr(maxobj <= T)
 
     for i in range(K):
         m.addConstr(eng_comp[i] == (max_slot/1000)*P_comp[i]*(release_date_fwd[i,H+i]+release_date_back[i,H+i] \
@@ -325,7 +325,7 @@ def run_energy(K, H, T, release_date_fwd, proc_fwd,
             if(at_least == 0):
                 print(f'0', end='\t')
         print('')
-    
+    '''
     g_var = []
     print("--------Completition time--------")
     for i in range(K): #for all jobs
@@ -346,7 +346,7 @@ def run_energy(K, H, T, release_date_fwd, proc_fwd,
         else:
             print(f'C{i+1}: {C} - M-{my_machine}')
     print(f'objective function: {m.ObjVal}')
-    '''
+    
     print('print output:')
     print(f' Computing: {eng_comp.X}')
     print(f' Transport: {eng_transf.X}')
