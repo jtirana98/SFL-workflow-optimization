@@ -63,7 +63,7 @@ if __name__ == '__main__':
     memory_capacity, memory_demand, 
     release_date_back, proc_bck, 
     proc_local_back, trans_back_gradients) = utils.create_scenario_hybrid(filename, point_a, point_b, 
-                                                                                K, H, 1000, args.scenario)
+                                                                                K, H, 1500, args.scenario)
     
     # Define the time horizon
     T_hybrid = np.max(release_date[1]) + int(K/H)*np.max(proc[1][0,0:H]) + np.max([proc[1][k,H+k] for k in range(K)])  \
@@ -113,6 +113,6 @@ if __name__ == '__main__':
     print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {w_fcfs}{utils.bcolors.ENDC}")    
     print(f"{utils.bcolors.OKGREEN}for the benchmark {w_random}{utils.bcolors.ENDC}")
     print(f"{utils.bcolors.OKGREEN}for the benchmark2 {w_random2}{utils.bcolors.ENDC}")
-
+    print(f"For the ADMM solution {w_hybrid_admm[1]} sec")
     
     #print(f"{utils.bcolors.OKGREEN}For the FCFS we needed {duration_fcfs} sec, for the ADMM solution {w_hybrid_admm[1]} sec, and for the benchmark we need {duration_random}{utils.bcolors.ENDC}")
