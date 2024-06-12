@@ -5,6 +5,7 @@ from gurobipy import GRB
 from gurobipy import quicksum as qsum
 import warnings
 import time
+import random
 
 import utils 
 warnings.filterwarnings("ignore")
@@ -139,7 +140,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     ones_T = np.ones((T,1))
 
     MAX_ITER = 5
-    rho = 700
+    rho = 350
 
     m1 = gp.Model("xsubproblem") # forward job assigment problem
     m2 = gp.Model("ysubproblem") # allocation problem
@@ -171,18 +172,33 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     for j in range(K):
         m_min = 0
         min_i = 0
-        for i in range(H_prime):
-            if i >= H and j != i - H:
-                continue
-            sum_temp = release_date_fwd[j,i] + proc_fwd[j,i] + trans_back_activations[j,i] + release_date_back[j,i] + proc_bck[j,i] + trans_back_gradients[j,i]
-            if i == 0:
-                m_min = sum_temp
-                min_i = i
-            else:
-                if sum_temp < m_min:
+        min_ii = []
+        no_offload = release_date_fwd[j,H+j] + proc_fwd[j,H+j] + release_date_back[j,H+j] + proc_bck[j,H+j]
+        offload = max([release_date_fwd[j,i] + proc_fwd[j,i]*(K/H) + release_date_back[j,i] \
+                        + proc_bck[j,i]*(K/H) + trans_back_activations[j,i] + trans_back_gradients[j,i] for i in range(H)])
+        
+        print(f'{no_offload} and {offload}')
+        if no_offload < offload:
+            min_i = H + j
+        else:
+            for i in range(H):
+                sum_temp = release_date_fwd[j,i] + proc_fwd[j,i] + trans_back_activations[j,i] + release_date_back[j,i] + proc_bck[j,i] + trans_back_gradients[j,i]
+                print(f'{sum_temp}  {m_min}')
+                if i == 0:
                     m_min = sum_temp
                     min_i = i
-        y_par[j,min_i] = 1 
+                else:
+                    if sum_temp == m_min:
+                        min_ii.append(i)
+                    elif sum_temp < m_min:
+                        m_min = sum_temp
+                        min_i = i
+                        min_ii = [i]
+                        
+        if len(min_ii) == 0:
+            y_par[j,min_i] = 1
+        else:   
+            y_par[j,random.choice(min_ii)] = 1
     
     print(y_par)
 
@@ -392,7 +408,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
         
 
         # Call Algorithm-2 to compute z variables
-        if iter == 2: 
+        if iter == 1: 
             flag_exit = True # mark it that we reached the end
 
         x_par = np.zeros((H_prime,K,T))
@@ -400,7 +416,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
         all_time = []
 
         if flag_exit:
-            for i in range(H_prime): # theoritically this can be done in parallel
+            for i in range(H): # theoritically this can be done in parallel
                 Kx = list(np.transpose(np.argwhere(y_[:,i]==1))[0]) # finds which data owners are assigned to the machine i
                 if len(Kx) == 0:
                     continue
@@ -467,7 +483,8 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
 
                 all_time.append(machine_time)
             
-            time_stamps.append(max(all_time))
+            if len(all_time) > 0:
+                time_stamps.append(max(all_time))
             cs = []
             cs_back = []
             reserved = [0 for i in range(H_prime)]
@@ -483,6 +500,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
                             if last_zero < k+1:
                                 last_zero = k+1
                                 my_super_machine = my_machine
+                                
                 fmax = last_zero
                 f_m[i] = fmax
                 C = fmax + proc_local_fwd[i] + trans_back_activations[i,my_super_machine]
@@ -490,18 +508,25 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
                 reserved[my_super_machine] += 1
 
         if flag_exit: # we are at the end, and have solved backward() as well
+            print('completition time')
             for i in range(K): #for all jobs
                 my_machine = 0
                 my_super_machine = 0
                 last_zero = -1
-                for my_machine in range(H_prime):
+                for my_machine in range(H):
                     for k in range(T_back):
                         if np.rint(z_par[my_machine,i,k]) >= 1:
                             if last_zero < k+1:
                                 last_zero = k+1
                                 my_super_machine = my_machine
-                fmax = last_zero
-                C = fmax + proc_local_back[i] + trans_back_gradients[i,my_super_machine]
+                if last_zero == -1:
+                    my_super_machine = H + i
+                    j = i
+                    C = release_date_fwd[j,H+j] + proc_fwd[j,H+j] + release_date_back[j,H+j] + proc_bck[j,H+j]
+                else:
+                    fmax = last_zero
+                    C = fmax + proc_local_back[i] + trans_back_gradients[i,my_super_machine]
+                print(f'[{i}] - {C}')
                 cs_back.append(C)
 
             #print(f'{utils.bcolors.FAIL}BACK max is: {max(cs_back)}{utils.bcolors.ENDC}')
@@ -724,7 +749,7 @@ def run_second(K, H, T_all, release_date_fwd, proc_fwd,
         end = time.time()
         time_stamps.append(end-start)
         time_stamps_nobuild.append(end-start_opt)
-        print(f'ITERATION:::: {iter}')
+        print(f'----------- ITERATION:::: {iter}  ------------------')
         x_par = np.copy(np.array(x.X))
         np.copy(np.array(w.X))
 
@@ -827,7 +852,7 @@ def run_second(K, H, T_all, release_date_fwd, proc_fwd,
         '''
 
         # Call Algorithm-2 to compute z variables
-        if iter == 2: 
+        if iter == 4: 
             flag_exit = True # mark it that we reached the end
 
         x_par = np.zeros((H,K,T))

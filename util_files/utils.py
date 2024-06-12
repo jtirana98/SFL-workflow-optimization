@@ -1415,15 +1415,15 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
         completed.append(net_line)
         network_type[int(net_line/H),int(net_line%H)] = random.randint(16,20)
 
-    if H == 10:
-        for i in range(2):
-            for j in range(K):
-                network_type[j,i] = 1
+    # if H == 10:
+    #     for i in range(2):
+    #         for j in range(K):
+    #             network_type[j,i] = 1
     
-    if H == 5:
-        for i in range(2):
-            for j in range(K):
-                network_type[j,i] = 1
+    # if H == 5:
+    #     for i in range(2):
+    #         for j in range(K):
+    #             network_type[j,i] = 1
     
 
 
@@ -1434,15 +1434,16 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
     
     machine_devices = np.zeros((H_prime))
     for i in range(H):
-        machine_devices[i] = random.randint(0,1)
+        machine_devices[i] = 1  #random.randint(0,1)
 
-    if H == 10:
-        machine_devices[0:2] = 1
-        machine_devices[2:-1] = 0
+    # if H == 10:
+    #     machine_devices[0:2] = 1
+    #     machine_devices[2:-1] = 0
+
     
-    if H == 5:
-        machine_devices[0] = 1
-        machine_devices[1:-1] = 0
+    # if H == 5:
+    #     machine_devices[0] = 1
+    #     machine_devices[1:-1] = 0
 
     # data owner device type 
     # we have:
@@ -1583,8 +1584,8 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
                             proc[k][j,i] =  vm_proc_fwd
                             proc_bck[k][j,i] =  vm_proc_back
                         elif int(machine_devices[i]) == 1:
-                            proc[k][j,i] = laptop_proc_fwd
-                            proc_bck[k][j,i] = laptop_proc_back
+                            proc[k][j,i] = laptop_proc_fwd + 2*max_slot
+                            proc_bck[k][j,i] = laptop_proc_back + 2*max_slot
                 else:
                     if j != i - H:
                         continue
@@ -1631,6 +1632,7 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
                 memory_capacity[0][i] = int(max(memory_demand_))
                 memory_capacity[1][i] = int(max(memory_demand_))
         elif i < H:
+        #if i < H:
             memory_capacity[0][i] = int(max(memory_demand_))*int(K/H)
             memory_capacity[1][i] = int(max(memory_demand_))*int(K/H)
         else:
@@ -2247,7 +2249,9 @@ def fifo(K, H, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activation
 
     # Estimated Completition time
     for machine in range(H):
+        print(f'machine {machine}')
         my_jobs = list(np.transpose(np.argwhere(y[:,machine]==1))[0])
+        print(my_jobs)
         machine_time = 0
         arival_jobs = []
         for j in my_jobs:

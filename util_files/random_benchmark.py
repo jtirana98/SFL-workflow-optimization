@@ -55,7 +55,7 @@ def run_hybrid(K, H, release_date_fwd, proc_fwd,
             proc_local_back, trans_back_gradients, y=[]):
     
     # random seed 
-    random.seed(42)
+    random.seed(1)
     H_prime = K + H
     #distribution = [0 for i in range(H)]
     load_ = [0 for i in range(H_prime)]
@@ -77,7 +77,6 @@ def run_hybrid(K, H, release_date_fwd, proc_fwd,
         if check_memory(memory_capacity[H+i], load_[H+i]+memory_demand[i]):
             fit.append(H+i)
         
-        print(fit)
         if len(fit) == 1:
             #distribution[fit[0]] += 1
             y[i,fit[0]] = 1
@@ -87,7 +86,6 @@ def run_hybrid(K, H, release_date_fwd, proc_fwd,
             y[i,my_machine] = 1
             load_[my_machine] += memory_demand[i]
             #distribution[fit[my_machine]] += 1
-            print(my_machine)
 
     print('--------------------- RANDOM ------------------------')
     print(y)
@@ -104,7 +102,7 @@ def run_hybrid2(K, H, release_date_fwd, proc_fwd,
             proc_local_back, trans_back_gradients, y=[]):
     
     # random seed 
-    random.seed(42)
+    random.seed(0)
     H_prime = K + H
     #distribution = [0 for i in range(H)]
     load_ = [0 for i in range(H_prime)]
@@ -121,11 +119,10 @@ def run_hybrid2(K, H, release_date_fwd, proc_fwd,
         fit = []
 
         no_offload = release_date_fwd[i,H+i] + proc_fwd[i,H+i] + release_date_back[i,H+i] + proc_bck[i,H+i]
-        offload = max([release_date_fwd[i,j] + proc_fwd[i,j] + release_date_back[i,j] \
-                        + proc_bck[i,j] + trans_back_activations[i,j] + trans_back_gradients[i,j] for j in range(H)])
+        offload = max([release_date_fwd[i,j] + proc_fwd[i,j]*(H/K) + release_date_back[i,j] \
+                        + proc_bck[i,j]*(H/K) + trans_back_activations[i,j] + trans_back_gradients[i,j] for j in range(H)])
         j = H + i
-        print(f'{i} - [{no_offload}]  {offload}')
-        if no_offload <= offload and (check_memory(memory_capacity[H+i], load_[H+i]+memory_demand[i])):
+        if no_offload <= offload: #and (check_memory(memory_capacity[H+i], load_[H+i]+memory_demand[i])):
             load_[j] += memory_demand[i]
             y[i,j] = 1
         else:   
@@ -146,7 +143,6 @@ def run_hybrid2(K, H, release_date_fwd, proc_fwd,
                 y[i,my_machine] = 1
                 load_[my_machine] += memory_demand[i]
                 #distribution[fit[my_machine]] += 1
-                print(my_machine)
 
     print('--------------------- RANDOM ------------------------')
     print(y)
