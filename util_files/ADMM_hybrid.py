@@ -134,13 +134,16 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     
     H_prime = H+K
     stable = 0
-    T = np.max(release_date_fwd) + K*np.max(proc_fwd[0:H])
+    T = np.max(release_date_fwd) + K*np.max(proc_fwd[0,0:H])
+    # T = np.max(release_date_fwd) + max(K*np.max(proc_fwd[0,0:H]), np.max([proc_fwd[k,H+k] for k in range(K)]))  \
+    #                     + np.max(proc_local_fwd) + np.max(proc_local_back)\
+    #                     + np.max(np.max(trans_back_activations))
     ones_H = np.ones((H_prime,1))
     ones_K = np.ones((K,1))
     ones_T = np.ones((T,1))
 
     MAX_ITER = 5
-    rho = 350
+    rho = 700
 
     m1 = gp.Model("xsubproblem") # forward job assigment problem
     m2 = gp.Model("ysubproblem") # allocation problem
@@ -177,13 +180,13 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
         offload = max([release_date_fwd[j,i] + proc_fwd[j,i]*(K/H) + release_date_back[j,i] \
                         + proc_bck[j,i]*(K/H) + trans_back_activations[j,i] + trans_back_gradients[j,i] for i in range(H)])
         
-        print(f'{no_offload} and {offload}')
-        if no_offload < offload:
+        #print(f'{no_offload} and {offload}')
+        if no_offload < offload and (utils.max_memory_demand <= memory_capacity[H+j]):
             min_i = H + j
         else:
             for i in range(H):
                 sum_temp = release_date_fwd[j,i] + proc_fwd[j,i] + trans_back_activations[j,i] + release_date_back[j,i] + proc_bck[j,i] + trans_back_gradients[j,i]
-                print(f'{sum_temp}  {m_min}')
+                #print(f'{sum_temp}  {m_min}')
                 if i == 0:
                     m_min = sum_temp
                     min_i = i
@@ -197,8 +200,17 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
                         
         if len(min_ii) == 0:
             y_par[j,min_i] = 1
-        else:   
-            y_par[j,random.choice(min_ii)] = 1
+        else:
+            all_load = []
+            min_sum = K + 100
+            min_i_sum = -1
+            for machine in range(len(min_ii)):
+                all_load.append(len(np.argwhere(y_par[:,min_ii[machine]]==1)))
+                if all_load[-1] < min_sum:
+                    min_sum = all_load[-1]
+                    min_i_sum = min_ii[machine]
+            y_par[j,min_i_sum] = 1
+            #print(y_par)
     
     print(y_par)
 
@@ -408,7 +420,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
         
 
         # Call Algorithm-2 to compute z variables
-        if iter == 1: 
+        if iter == 2: 
             flag_exit = True # mark it that we reached the end
 
         x_par = np.zeros((H_prime,K,T))
@@ -522,12 +534,17 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
                 if last_zero == -1:
                     my_super_machine = H + i
                     j = i
-                    C = release_date_fwd[j,H+j] + proc_fwd[j,H+j] + release_date_back[j,H+j] + proc_bck[j,H+j]
+                    C = release_date_fwd[j,H+j] + proc_fwd[j,H+j] + release_date_back[j,H+j] + proc_bck[j,H+j] + proc_local_fwd[i] + proc_local_back[i]
                 else:
                     fmax = last_zero
                     C = fmax + proc_local_back[i] + trans_back_gradients[i,my_super_machine]
-                print(f'[{i}] - {C}')
+                print(f'[{i}] - {C} {my_super_machine}')
                 cs_back.append(C)
+            
+            for machine in range(H):
+                print(f'machine {machine}')
+                my_jobs = list(np.transpose(np.argwhere(y.X[:,machine]==1))[0])
+                print(my_jobs)
 
             #print(f'{utils.bcolors.FAIL}BACK max is: {max(cs_back)}{utils.bcolors.ENDC}')
        

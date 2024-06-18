@@ -1439,7 +1439,6 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
     # if H == 10:
     #     machine_devices[0:2] = 1
     #     machine_devices[2:-1] = 0
-
     
     # if H == 5:
     #     machine_devices[0] = 1
@@ -1584,8 +1583,8 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
                             proc[k][j,i] =  vm_proc_fwd
                             proc_bck[k][j,i] =  vm_proc_back
                         elif int(machine_devices[i]) == 1:
-                            proc[k][j,i] = laptop_proc_fwd + 2*max_slot
-                            proc_bck[k][j,i] = laptop_proc_back + 2*max_slot
+                            proc[k][j,i] = laptop_proc_fwd #+ 2*max_slot
+                            proc_bck[k][j,i] = laptop_proc_back #+ 2*max_slot
                 else:
                     if j != i - H:
                         continue
@@ -1619,8 +1618,8 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
     for i in range(H_prime):
         if H == 5 and i < H:
             if i <= 1:
-                memory_capacity[0][i] = int(max(memory_demand_))*int(K)
-                memory_capacity[1][i] = int(max(memory_demand_))*int(K)
+                memory_capacity[0][i] = int(max(memory_demand_))*int(K/2)
+                memory_capacity[1][i] = int(max(memory_demand_))*int(K/2)
             else:
                 memory_capacity[0][i] = int(max(memory_demand_))
                 memory_capacity[1][i] = int(max(memory_demand_))
@@ -1632,14 +1631,562 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
                 memory_capacity[0][i] = int(max(memory_demand_))
                 memory_capacity[1][i] = int(max(memory_demand_))
         elif i < H:
-        #if i < H:
-            memory_capacity[0][i] = int(max(memory_demand_))*int(K/H)
-            memory_capacity[1][i] = int(max(memory_demand_))*int(K/H)
+        # if i < H:
+            memory_capacity[0][i] = int(max(memory_demand_))*K#int(K/H)
+            memory_capacity[1][i] = int(max(memory_demand_))*K#int(K/H)
         else:
-            memory_capacity[1][i] = int(max(memory_demand_))
+            memory_capacity[1][i] = random.choice([1, int(max(memory_demand_))])
     
     
     
+    max_slot_back = max_slot #v 2000#r 1500
+    max_slot_maxx = max_slot#v 5000# r-4000
+    for j in range(K):
+        for i in range(H_prime):
+            if i < H:
+                release_date[0][j,i] = np.ceil(release_date[0][j,i]/max_slot).astype(int)
+                trans_back[0][j,i] = np.ceil(trans_back[0][j,i]/max_slot).astype(int)
+                
+                release_date_back[0][j,i] = np.ceil(release_date_back[0][j,i]/max_slot_maxx).astype(int)
+                trans_back_gradients[0][j,i] = np.ceil(trans_back_gradients[0][j,i]/max_slot).astype(int)
+            
+                release_date[1][j,i] = np.ceil(release_date[1][j,i]/max_slot).astype(int)
+                trans_back[1][j,i] = np.ceil(trans_back[1][j,i]/max_slot).astype(int)
+                
+                release_date_back[1][j,i] = np.ceil(release_date_back[1][j,i]/max_slot_maxx).astype(int)
+                trans_back_gradients[1][j,i] = np.ceil(trans_back_gradients[1][j,i]/max_slot).astype(int)
+            else:
+                release_date[1][j,i] = np.ceil(release_date[1][j,i]/max_slot).astype(int)
+                trans_back[1][j,i] = np.ceil(trans_back[1][j,i]/max_slot).astype(int)
+                
+                release_date_back[1][j,i] = np.ceil(release_date_back[1][j,i]/max_slot_maxx).astype(int)
+                trans_back_gradients[1][j,i] = np.ceil(trans_back_gradients[1][j,i]/max_slot).astype(int)
+
+            if i == 0:
+                proc_local[0][j] = np.ceil(proc_local[0][j]/max_slot).astype(int)
+                proc_local_back[0][j] = np.ceil(proc_local_back[0][j]/max_slot_back).astype(int)
+
+                proc_local[1][j] = np.ceil(proc_local[1][j]/max_slot).astype(int)
+                proc_local_back[1][j] = np.ceil(proc_local_back[1][j]/max_slot_back).astype(int)
+
+            if i < H:
+                proc[0][j,i] =  np.ceil(proc[0][j,i]/max_slot).astype(int)
+            
+                if proc[0][j,i] == 0:
+                        proc[0][j,i] = 1
+
+                proc_bck[0][j,i] =  np.ceil(proc_bck[0][j,i]/max_slot_back).astype(int)
+                if proc_bck[0][j,i] == 0:
+                        proc_bck[0][j,i] = 1
+
+                proc[1][j,i] =  np.ceil(proc[1][j,i]/max_slot).astype(int)
+            
+                if proc[1][j,i] == 0:
+                        proc[1][j,i] = 1
+
+                proc_bck[1][j,i] =  np.ceil(proc_bck[1][j,i]/max_slot_back).astype(int)
+
+                if proc_bck[1][j,i] == 0:
+                        proc_bck[1][j,i] = 1
+            else:
+                
+                proc[1][j,i] =  np.ceil(proc[1][j,i]/max_slot).astype(int)
+                
+                if proc[1][j,i] == 0:
+                   proc[1][j,i] = 1
+
+
+                
+                proc_bck[1][j,i] =  np.ceil(proc_bck[1][j,i]/max_slot_back).astype(int)
+
+                if proc_bck[1][j,i] == 0:
+                    proc_bck[1][j,i] = 1
+    
+    
+    print('release date')
+    print(release_date[1])
+    print('proc')
+    print(proc[1])
+    print('proc local')
+    print(proc_local[1])
+    print('trans back')
+    print(trans_back[1])
+    print('release data back')
+    print(release_date_back[1])
+    print('proc back')
+    print(proc_bck[1])
+    print('proc local back')
+    print(proc_local_back[1])
+    print('trans back')
+    print(trans_back_gradients[1])
+    print('------')
+
+    
+    
+    return (release_date, proc, 
+    proc_local, trans_back, 
+    memory_capacity, memory_demand_, 
+    release_date_back, proc_bck, 
+    proc_local_back, trans_back_gradients)
+
+def create_scenario_hybrid_scenario2(filename, point_a, point_b, K, H, 
+                                 max_slot, scenario):
+    df_vm = pd.read_excel(io=filename, sheet_name='VM', header=None)
+    df_laptop = pd.read_excel(io=filename, sheet_name='laptop', header=None)
+    df_d1 = pd.read_excel(io=filename, sheet_name='d1', header=None)
+    df_jetson_cpu = pd.read_excel(io=filename, sheet_name='jetson-cpu', header=None)
+    df_jetson_gpu = pd.read_excel(io=filename, sheet_name='jetson-gpu', header=None)
+    df_memory = pd.read_excel(io=filename, sheet_name='memory', header=None)
+    
+    H_prime = H + K
+    # processing time on vms
+    vm_data = df_vm.values.tolist()
+
+    point_a = 2
+    point_b = 20
+    
+    point_a_2 = 2
+    point_b_2 = 5
+
+
+    vm_proc_fwd = [0, 0]
+    vm_proc_back = [0, 0]
+
+    for i in range(point_a, point_b):
+        vm_proc_fwd[0] += vm_data[i][0] + max_slot
+        vm_proc_back[0] += vm_data[i][1] + vm_data[i][2] + max_slot
+
+    for i in range(point_a_2, point_b_2):
+        vm_proc_fwd[1] += vm_data[i][0]
+        vm_proc_back[1] += vm_data[i][1] + vm_data[i][2]
+
+    print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+    print(f'{vm_proc_fwd[0]} {vm_proc_fwd[1]}')
+    print(f'{vm_proc_back[0]} {vm_proc_back[1]}')
+    print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+    # processing time on my laptop
+    laptop_data = df_laptop.values.tolist()
+    
+    laptop_proc_fwd = [0, 0]
+    laptop_proc_back = [0, 0]
+
+    for i in range(point_a, point_b):
+        laptop_proc_fwd[0] += laptop_data[i][0]
+        laptop_proc_back[0] += laptop_data[i][1] + laptop_data[i][2]
+
+    for i in range(point_a_2, point_b_2):
+        laptop_proc_fwd[1] += laptop_data[i][0]
+        laptop_proc_back[1] += laptop_data[i][1] + laptop_data[i][2]
+
+    print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+    print(f'{laptop_proc_fwd[0]} {laptop_proc_fwd[1]}')
+    print(f'{laptop_proc_back[0]} {laptop_proc_back[1]}')
+    print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+
+    max_proc_fwd = [int(max([vm_proc_fwd[0], laptop_proc_fwd[0]])), int(max([vm_proc_fwd[1], laptop_proc_fwd[1]]))]
+    min_proc_fwd = [int(min([vm_proc_fwd[0], laptop_proc_fwd[0]])), int(min([vm_proc_fwd[1], laptop_proc_fwd[1]]))]
+
+    max_proc_back = [int(max([vm_proc_back[0], laptop_proc_back[0]])), int(max([vm_proc_back[1], laptop_proc_back[1]]))]
+    min_proc_back = [int(min([vm_proc_back[0], laptop_proc_back[0]])), int(min([vm_proc_back[1], laptop_proc_back[1]]))]
+    
+    # processing time on d1
+    d1_data = df_d1.values.tolist()
+    d1_proc_fwd_first = [0, 0]
+    d1_proc_fwd_medium = [0, 0]
+    d1_proc_fwd_last = [0, 0]
+    d1_proc_back_first = [0, 0]
+    d1_proc_back_medium = [0, 0]
+    d1_proc_back_last = [0, 0]
+
+
+    for i in range(0, point_a):
+        d1_proc_fwd_first[0] += d1_data[i][0]
+        d1_proc_back_first[0] += d1_data[i][1] + d1_data[i][2]
+
+    for i in range(point_a, point_b):
+        d1_proc_fwd_medium[0] += d1_data[i][0]
+        d1_proc_back_medium[0] += d1_data[i][1] + d1_data[i][2]
+        
+    for i in range(point_b, len(d1_data)):
+        d1_proc_fwd_last[0] += d1_data[i][0]
+        d1_proc_back_last[0] += d1_data[i][1] + d1_data[i][2]
+
+    # second split d1
+    for i in range(0, point_a_2):
+        d1_proc_fwd_first[1] += d1_data[i][0]
+        d1_proc_back_first[1] += d1_data[i][1] + d1_data[i][2]
+
+    for i in range(point_a_2, point_b_2):
+        d1_proc_fwd_medium[1] += d1_data[i][0]
+        d1_proc_back_medium[1] += d1_data[i][1] + d1_data[i][2]
+        
+    for i in range(point_b_2, len(d1_data)):
+        d1_proc_fwd_last[1] += d1_data[i][0]
+        d1_proc_back_last[1] += d1_data[i][1] + d1_data[i][2]
+
+    # processing time on jetson-cpu
+    jetson_cpu_data = df_jetson_cpu.values.tolist()
+
+    jetson_cpu_proc_fwd_first = [0, 0]
+    jetson_cpu_proc_fwd_medium = [0, 0]
+    jetson_cpu_proc_fwd_last = [0, 0]
+    jetson_cpu_proc_back_first = [0, 0]
+    jetson_cpu_proc_back_medium = [0, 0]
+    jetson_cpu_proc_back_last = [0, 0]
+    
+    for i in range(0, point_a):
+        jetson_cpu_proc_fwd_first[0] += jetson_cpu_data[i][0]
+        jetson_cpu_proc_back_first[0] += jetson_cpu_data[i][1] + jetson_cpu_data[i][2]
+    
+    for i in range(point_a, point_b):
+        jetson_cpu_proc_fwd_medium[0] += jetson_cpu_data[i][0]
+        jetson_cpu_proc_back_medium[0] += jetson_cpu_data[i][1] + jetson_cpu_data[i][2]
+
+    
+    for i in range(point_b, len(jetson_cpu_data)):
+        jetson_cpu_proc_fwd_last[0] += jetson_cpu_data[i][0]
+        jetson_cpu_proc_back_last[0] += jetson_cpu_data[i][1] + jetson_cpu_data[i][2]
+
+    # second cut
+    for i in range(0, point_a_2):
+        jetson_cpu_proc_fwd_first[1] += jetson_cpu_data[i][0]
+        jetson_cpu_proc_back_first[1] += jetson_cpu_data[i][1] + jetson_cpu_data[i][2]
+    
+    for i in range(point_a_2, point_b_2):
+        jetson_cpu_proc_fwd_medium[1] += jetson_cpu_data[i][0]
+        jetson_cpu_proc_back_medium[1] += jetson_cpu_data[i][1] + jetson_cpu_data[i][2]
+
+    
+    for i in range(point_b_2, len(jetson_cpu_data)):
+        jetson_cpu_proc_fwd_last[1] += jetson_cpu_data[i][0]
+        jetson_cpu_proc_back_last[1] += jetson_cpu_data[i][1] + jetson_cpu_data[i][2]
+
+    # processing time on jetson-gpu
+    jetson_gpu_data = df_jetson_gpu.values.tolist()
+
+    jetson_gpu_proc_fwd_first = [0, 0]
+    jetson_gpu_proc_fwd_medium = [0, 0]
+    jetson_gpu_proc_fwd_last = [0, 0]
+    jetson_gpu_proc_back_first = [0, 0]
+    jetson_gpu_proc_back_medium = [0, 0]
+    jetson_gpu_proc_back_last = [0, 0]
+
+    for i in range(0, point_a):
+        jetson_gpu_proc_fwd_first[0] += jetson_gpu_data[i][0]
+        jetson_gpu_proc_back_first[0] += jetson_gpu_data[i][1] + jetson_gpu_data[i][2]
+
+    for i in range(point_a, point_b):
+        jetson_gpu_proc_fwd_medium[0] += jetson_gpu_data[i][0]
+        jetson_gpu_proc_back_medium[0] += jetson_gpu_data[i][1] + jetson_gpu_data[i][2]
+    
+    for i in range(point_b, len(jetson_gpu_data)):
+        jetson_gpu_proc_fwd_last[0] += jetson_gpu_data[i][0]
+        jetson_gpu_proc_back_last[0] += jetson_gpu_data[i][1] + jetson_gpu_data[i][2]
+
+    # second cut
+    for i in range(0, point_a_2):
+        jetson_gpu_proc_fwd_first[1] += jetson_gpu_data[i][0]
+        jetson_gpu_proc_back_first[1] += jetson_gpu_data[i][1] + jetson_gpu_data[i][2]
+
+    for i in range(point_a_2, point_b_2):
+        jetson_gpu_proc_fwd_medium[1] += jetson_gpu_data[i][0]
+        jetson_gpu_proc_back_medium[1] += jetson_gpu_data[i][1] + jetson_gpu_data[i][2]
+    
+    for i in range(point_b_2, len(jetson_gpu_data)):
+        jetson_gpu_proc_fwd_last[1] += jetson_gpu_data[i][0]
+        jetson_gpu_proc_back_last[1] += jetson_gpu_data[i][1] + jetson_gpu_data[i][2]
+
+    max_fwd_first = [int(max([d1_proc_fwd_first[0], jetson_gpu_proc_fwd_first[0]])), int(max([d1_proc_fwd_first[1], jetson_gpu_proc_fwd_first[1]]))]
+    min_fwd_first = [int(min([d1_proc_fwd_first[0], jetson_gpu_proc_fwd_first[0]])), int(min([d1_proc_fwd_first[1], jetson_gpu_proc_fwd_first[1]]))]
+
+    max_fwd_last = [int(max([d1_proc_fwd_last[0], jetson_gpu_proc_fwd_last[0]])),int(max([d1_proc_fwd_last[1], jetson_gpu_proc_fwd_last[1]]))]
+    min_fwd_last = [int(max([d1_proc_fwd_last[0], jetson_gpu_proc_fwd_last[0]])),int(max([d1_proc_fwd_last[1], jetson_gpu_proc_fwd_last[1]]))]
+    
+    max_fwd_medium = [int(max([d1_proc_fwd_medium[0], jetson_gpu_proc_fwd_medium[0]])), int(max([d1_proc_fwd_medium[1], jetson_gpu_proc_fwd_medium[1]]))]
+    min_fwd_medium = [int(min([d1_proc_fwd_medium[0], jetson_gpu_proc_fwd_medium[0]])), int(min([d1_proc_fwd_medium[1], jetson_gpu_proc_fwd_medium[1]]))]
+
+    max_back_medium = [int(max([d1_proc_back_medium[0], jetson_gpu_proc_back_medium[0]])), int(max([d1_proc_back_medium[1], jetson_gpu_proc_back_medium[1]]))]
+    min_back_medium = [int(min([d1_proc_back_medium[0], jetson_gpu_proc_back_medium[0]])), int(min([d1_proc_back_medium[1], jetson_gpu_proc_back_medium[1]]))]
+
+    max_back_first = [int(max([d1_proc_back_first[0], jetson_gpu_proc_back_first[0]])), int(max([d1_proc_back_first[1], jetson_gpu_proc_back_first[1]]))]
+    min_back_first = [int(min([d1_proc_back_first[0], jetson_gpu_proc_back_first[0]])), int(min([d1_proc_back_first[1], jetson_gpu_proc_back_first[1]]))]
+
+    max_back_last = [int(max([d1_proc_back_last[0], jetson_gpu_proc_back_last[0]])), int(max([d1_proc_back_last[1], jetson_gpu_proc_back_last[1]]))]
+    min_back_last = [int(min([d1_proc_back_last[0], jetson_gpu_proc_back_last[0]])), int(min([d1_proc_back_last[1], jetson_gpu_proc_back_last[1]]))]
+
+    memory_data = df_memory.values.tolist()
+    
+    # travel data
+    activations_to_cn = [memory_data[point_a-1][0], memory_data[point_a_2-1][0]]
+    activations_to_do = [memory_data[point_b-1][0], memory_data[point_b_2-1][0]]
+
+    # store data
+    store_data_owner = [0, 0]
+    for i in range(0, point_a):
+        store_data_owner[0] += memory_data[i][0] + memory_data[i][1]
+        
+    for i in range(point_b, len(d1_data)):
+        store_data_owner[0] += memory_data[i][0] + memory_data[i][1]
+
+    # second cut
+    for i in range(0, point_a_2):
+        store_data_owner[1] += memory_data[i][0] + memory_data[i][1]
+        
+    for i in range(point_b_2, len(d1_data)):
+        store_data_owner[1] += memory_data[i][0] + memory_data[i][1]
+
+
+    store_compute_node = [0, 0]
+    for i in range(point_a, point_b):
+        store_compute_node[0] += memory_data[i][0] + memory_data[i][1]
+    store_compute_node[0] = (store_compute_node[0]/1024) # prefer MB
+
+    for i in range(point_a_2, point_b_2):
+        store_compute_node[1] += memory_data[i][0] + memory_data[i][1]
+    store_compute_node[1] = (store_compute_node[1]/1024) # prefer MB
+
+
+    my_net = lambda data,bandwidth : ((data*0.0008)/bandwidth)*1000
+    network_connections = [ lambda a : ((a*0.000008)/8)*1000, # 8 Mbits/sec
+                            lambda a : (a*0.0000008)*1000, # 10 Mbits/sec
+                            lambda a : ((a*0.000000008)/7.13)*1000, # 7.13 Gbits/sec
+                            lambda a : ((a*0.000008)/2)*1000 # 2 Mbits/sec
+                            ]
+    
+    # random seed 
+    original_state = np.random.get_state()
+    random.seed(42)
+
+    # randomly select the network connections using the Atari stats
+    network_type = np.zeros((K,H))
+
+    '''
+    We consider the following cases:
+
+    class-0        <= 4 Mbps      --> 30%
+    class-1        >4 and <= 10   --> 42%
+    class-2        >10 and <= 15  --> 12%
+    class-3        > 15 and <= 20 --> 28%
+    '''
+
+    class0 = []
+    class1 = []
+    class2 = []
+    class3 = []
+
+    total_connections = K*H
+
+    num_class0 = int((total_connections*30)/100)
+    num_class1 = int((total_connections*42)/100)
+    num_class2 = int((total_connections*12)/100)
+    num_class3 = int((total_connections*28)/100)
+
+    num_class2 += K*H - (num_class0+num_class1+num_class2+num_class3)
+
+    completed = []
+    for i in range(num_class0):
+        while True:
+            net_line = int(random.randint(0,total_connections-1))
+
+            if not (net_line in completed):
+                break
+        
+        completed.append(net_line)
+        network_type[int(net_line/H),int(net_line%H)] = random.randint(1,4)
+
+
+    for i in range(num_class1):
+        
+        while True:
+            net_line = int(random.randint(0,total_connections-1))
+
+            if not (net_line in completed):
+                break
+        
+        completed.append(net_line)
+        network_type[int(net_line/H),int(net_line%H)] = random.randint(5,10)
+    
+    for i in range(num_class2):
+        
+        while True:
+            net_line = int(random.randint(0,total_connections-1))
+
+            if not (net_line in completed):
+                break
+        
+        completed.append(net_line)
+        network_type[int(net_line/H),int(net_line%H)] = random.randint(11,15)
+    
+    for i in range(num_class3):
+        
+        while True:
+            net_line = int(random.randint(0,total_connections-1))
+
+            if not (net_line in completed):
+                break
+        
+        completed.append(net_line)
+        network_type[int(net_line/H),int(net_line%H)] = random.randint(16,20)    
+
+    # helper device type 
+    # we have:
+    # 0 for vm
+    # 1 for laptop
+    
+    machine_devices = np.zeros((H_prime))
+    for i in range(H):
+        machine_devices[i] = 1  #random.randint(0,1)
+
+    # data owner device type 
+    # we have:
+    # 0 for d1
+    # 1 for jetson cpu
+    # 2 for jetson gpu
+    
+    do_devices = np.zeros((K))
+    for i in range(K):
+        do_devices[i] = random.randint(0,2)
+    
+    release_date = [np.zeros((K,H)), np.zeros((K,H_prime))]
+    proc = [np.zeros((K,H)), np.zeros((K,H_prime))] 
+    proc_local = [np.zeros((K)), np.zeros((K))]
+    trans_back = [np.zeros((K, H)), np.zeros((K, H_prime))] 
+    release_date_back = [np.zeros((K,H)), np.zeros((K,H_prime))]
+    proc_bck = [np.zeros((K,H)), np.zeros((K,H_prime))] 
+    proc_local_back = [np.zeros((K)), np.zeros((K))]
+    trans_back_gradients = [np.zeros((K, H)), np.zeros((K, H_prime))]
+
+
+    # Construct scenario
+
+    # if scenario == 2: # heterogeneous
+    release_date_ = np.zeros((K))
+    release_date_back_ = np.zeros((K))
+    proc_local_ = np.zeros((K))
+    proc_local_back_ = np.zeros((K))
+    
+    proc_fwd_ = np.zeros((K, H_prime))
+    proc_back_ = np.zeros((K, H_prime))
+    
+    
+    mid_point = 10
+    # get the first -- larger cut
+    for j in range(K):
+        index = 0
+        if j >= mid_point:
+            index = 1
+        if do_devices[j] == 1:
+            release_date_[j] =  jetson_cpu_proc_fwd_first[index]
+            release_date_back_[j] = jetson_cpu_proc_back_last[index]
+            proc_local_[j] =  jetson_cpu_proc_fwd_last[index]
+            proc_local_back_[j] =  jetson_cpu_proc_back_first[index]
+        else:
+            release_date_[j] =  random.randint(min_fwd_first[index], max_fwd_first[index])
+            release_date_back_[j] = random.randint(min_back_last[index], max_back_last[index])
+            proc_local_[j] =  random.randint(min_fwd_last[index], max_fwd_last[index])
+            proc_local_back_[j] =  random.randint(min_back_first[index], max_back_first[index])
+
+
+    # release_date_.sort()
+    # release_date_back_.sort()
+    # proc_local_.sort()
+    # proc_local_back_.sort()
+
+    # for j in range(K):
+    #     do_devices[j] = int(random.randint(0, K-1))
+    for j in range(K):
+        index = 0
+        if (j >= mid_point):
+            index = 1
+        for i in range(H_prime):
+            if i < H:
+                # if i > 0 and i <= 1:
+                #     proc_fwd_[j][i] = proc_fwd_[j][0]
+                #     proc_back_[j][i] = proc_fwd_[j][0]
+                # else:
+                proc_fwd_[j][i] =  random.randint(min_proc_fwd[index], max_proc_fwd[index])
+                proc_back_[j][i] = random.randint(min_proc_back[index], max_proc_back[index])
+            else:
+                if do_devices[j] == 1:
+                    proc_fwd_[j][i]  = jetson_cpu_proc_fwd_medium[index]
+                    proc_back_[j][i] = jetson_cpu_proc_back_medium[index]
+                else:
+                    proc_fwd_[j][i] =  random.randint(min_fwd_medium[index], max_fwd_medium[index])
+                    proc_back_[j][i] = random.randint(min_back_medium[index], max_back_medium[index])
+
+    # for i in range(H_prime):
+    #     if i < H:
+    #         machine_devices[i] = int(random.randint(0, H-1))
+    #     else:
+    #         machine_devices[i] = int(random.randint(H, H_prime-1))
+
+    for j in range(K):
+        index = 0
+        if (j >= mid_point):
+            index = 1
+
+        for i in range(H_prime):
+            if i < H:
+                indx = int(network_type[j,i])
+                for k in range(2):
+                    release_date[k][j,i] = my_net(activations_to_cn[index], indx)
+                    trans_back[k][j,i] = my_net(activations_to_do[index], indx)
+
+                    release_date_back[k][j,i] = my_net(activations_to_do[index], indx)
+                    trans_back_gradients[k][j,i] = my_net(activations_to_cn[index], indx)
+            
+            
+            # if scenario == 2:
+            if i < H:
+                release_date[0][j,i] +=  release_date_[j]
+                release_date_back[0][j,i] += release_date_back_[j]
+
+                
+            if i == 0:
+                # if scenario == 2:
+                for k in range(2):
+                    proc_local[k][j] =  proc_local_[j]
+                    proc_local_back[k][j] =  proc_local_back_[j]
+
+            # if scenario == 2:
+            if i < H:
+                for k in range(2):
+                    proc[k][j,i] =  proc_fwd_[j][i]
+                    proc_bck[k][j,i] = proc_back_[j][i]
+            else:
+                proc[1][j,i] =  proc_fwd_[j][i]
+                proc_bck[1][j,i] = proc_back_[j][i]
+
+    memory_demand_ = np.ones((K)) * store_compute_node[0]
+    for i in range(K):
+        memory_demand_[i] = int(math.ceil(memory_demand_[i]))
+    
+    global max_memory_demand
+    max_memory_demand = int(max(memory_demand_))
+
+    memory_capacity = [np.zeros((H)), np.zeros((H_prime))]
+    for i in range(H_prime):
+        # if H == 5 and i < H:
+        #     if i <= 1:
+        #         memory_capacity[0][i] = int(max(memory_demand_))*int(K/2)
+        #         memory_capacity[1][i] = int(max(memory_demand_))*int(K/2)
+        #     else:
+        #         memory_capacity[0][i] = int(max(memory_demand_))
+        #         memory_capacity[1][i] = int(max(memory_demand_))
+        # elif H == 10 and i < H:
+        #     if i <= 1:
+        #         memory_capacity[0][i] = int(max(memory_demand_))*int(K/2)
+        #         memory_capacity[1][i] = int(max(memory_demand_))*int(K/2)
+        #     else:
+        #         memory_capacity[0][i] = int(max(memory_demand_))
+        #         memory_capacity[1][i] = int(max(memory_demand_))
+        # elif i < H:
+        if i < H:
+            memory_capacity[0][i] = int(max(memory_demand_))*K#int(K/H)
+            memory_capacity[1][i] = int(max(memory_demand_))*K#int(K/H)
+        else:
+            memory_capacity[1][i] = random.choice([1, int(max(memory_demand_))])
+
     max_slot_back = max_slot #v 2000#r 1500
     max_slot_maxx = max_slot#v 5000# r-4000
     for j in range(K):

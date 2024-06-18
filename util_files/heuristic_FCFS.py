@@ -96,10 +96,10 @@ def run_hybrid(K, H, release_date_fwd, proc_fwd,
                 else:
                     if check_memory(memory_capacity[j], load_[j]+memory_demand[i]):
                         no_offload = release_date_fwd[i,H+i] + proc_fwd[i,H+i] + release_date_back[i,H+i] + proc_bck[i,H+i]
-                        offload = max([release_date_fwd[i,k] + proc_fwd[i,k]*(H/K) + release_date_back[i,k] \
-                                        + proc_bck[i,k]*(H/K) + trans_back_activations[i,k] + trans_back_gradients[i,k] for k in range(H)])
+                        offload = max([release_date_fwd[i,k] + proc_fwd[i,k]*(K/H) + release_date_back[i,k] \
+                                        + proc_bck[i,k]*(K/H) + trans_back_activations[i,k] + trans_back_gradients[i,k] for k in range(H)])
                         #print(f'{i} - [{no_offload}]  {offload}')
-                        if no_offload <= offload:
+                        if no_offload <= offload and (check_memory(memory_capacity[H+i], load_[H+i]+memory_demand[i])):
                             #print(f'{i} - [{H+i}]')
                             load_[j] += memory_demand[i]
                             y[i,j] = 1

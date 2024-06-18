@@ -102,7 +102,7 @@ def run_hybrid2(K, H, release_date_fwd, proc_fwd,
             proc_local_back, trans_back_gradients, y=[]):
     
     # random seed 
-    random.seed(0)
+    random.seed(1)
     H_prime = K + H
     #distribution = [0 for i in range(H)]
     load_ = [0 for i in range(H_prime)]
@@ -122,7 +122,7 @@ def run_hybrid2(K, H, release_date_fwd, proc_fwd,
         offload = max([release_date_fwd[i,j] + proc_fwd[i,j]*(H/K) + release_date_back[i,j] \
                         + proc_bck[i,j]*(H/K) + trans_back_activations[i,j] + trans_back_gradients[i,j] for j in range(H)])
         j = H + i
-        if no_offload <= offload: #and (check_memory(memory_capacity[H+i], load_[H+i]+memory_demand[i])):
+        if no_offload <= offload and (check_memory(memory_capacity[H+i], load_[H+i]+memory_demand[i])):
             load_[j] += memory_demand[i]
             y[i,j] = 1
         else:   
