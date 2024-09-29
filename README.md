@@ -2,7 +2,7 @@
 
 This code is for the paper: _Tirana, J., Tsigkari D., Iosifidis G., Chatzopoulos, D. Workflow Optimization for Parallel Split Learning, in proc. of IEEE INFOCOM 2024._
 
-ATTENTION !!! *This documentation concerns the release v1.0.1 from February* !!!
+$${\color{orange}!!!ATTENTION!!!}$$  *This documentation concerns the release v1.0.1 from February* !!!
 
 The additional coding files are not finalized yet...
 
