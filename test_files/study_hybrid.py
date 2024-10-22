@@ -1,15 +1,11 @@
 import argparse
 import numpy as np
-import pandas as pd
-import random
-import math
 import time
 import sys
 
 
 sys.path.insert(0,'../util_files')
 
-#import ADMM_solution as admm_sol
 import ILP_hybrid as ilp_hybrid
 import ILP_solver as ilp_sol
 import ADMM_hybrid as admm_hybrid
@@ -91,12 +87,12 @@ if __name__ == '__main__':
     print('---------------------- ORIGINAL -----------------------------------')
     w_original = 2
     
-    # ilp_sol.run(K, H, T, release_date[0].astype(int), proc[0].astype(int), 
-    #                                         proc_local[0].astype(int), trans_back[0].astype(int), 
-    #                                         memory_capacity[0].astype(int), 
-    #                                         release_date_back[0].astype(int), proc_bck[0].astype(int), 
-    #                                         proc_local_back[0].astype(int), trans_back_gradients[0].astype(int), 
-    #                                         args.log)
+    ilp_sol.run(K, H, T, release_date[0].astype(int), proc[0].astype(int), 
+                                            proc_local[0].astype(int), trans_back[0].astype(int), 
+                                            memory_capacity[0].astype(int), 
+                                            release_date_back[0].astype(int), proc_bck[0].astype(int), 
+                                            proc_local_back[0].astype(int), trans_back_gradients[0].astype(int), 
+                                            args.log)
     
     end_ilp = time.time()
 
@@ -112,11 +108,10 @@ if __name__ == '__main__':
     print(T_hybrid)
     print(T)
     print('end time horizon')
-    start_ilp = time.time()
-    
+
+    print('---------------------- HYBRID -----------------------------------')
     start_hybrid_optimal = time.time()
     w_hybrid = 2
-    print('---------------------- HYBRID -----------------------------------')
     w_hybrid = ilp_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
                                             proc_local[1].astype(int), trans_back[1].astype(int), 
                                             memory_capacity[1].astype(int), 
@@ -127,11 +122,11 @@ if __name__ == '__main__':
     duration_ilp = end_hybrid_optimal - start_hybrid_optimal
     w_hybrid_admm = ([0,0], -1)
     print('---------------------- ADMM -----------------------------------')
-    # w_hybrid_admm = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
-    #                                         proc_local[1].astype(int), trans_back[1].astype(int), 
-    #                                         memory_capacity[1].astype(int), memory_demand[1].astype(int),
-    #                                         release_date_back[1].astype(int), proc_bck[1].astype(int), 
-    #                                         proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
+    w_hybrid_admm = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
+                                            proc_local[1].astype(int), trans_back[1].astype(int), 
+                                            memory_capacity[1].astype(int), memory_demand[1].astype(int),
+                                            release_date_back[1].astype(int), proc_bck[1].astype(int), 
+                                            proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
     
 
     
