@@ -61,19 +61,72 @@ if __name__ == '__main__':
 
     w_hybrid_admm = ([0,0], -1)
     print('---------------------- ADMM -----------------------------------')
-    w_hybrid_admm = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
+    (w_hybrid_admm, _, y_admm, x, z) = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
                                             proc_local[1].astype(int), trans_back[1].astype(int), 
                                             memory_capacity[1].astype(int), memory_demand[1].astype(int),
                                             release_date_back[1].astype(int), proc_bck[1].astype(int), 
                                             proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
     
-    w_fcfs = fcfs_sol.run_hybrid(K, H, release_date[1].astype(int), proc[1].astype(int), 
+    (y_fcfs, w_fcfs) = fcfs_sol.run_hybrid(K, H, release_date[1].astype(int), proc[1].astype(int), 
                                             proc_local[1].astype(int), trans_back[1].astype(int), 
                                             memory_capacity[1].astype(int), [memory_demand[1].astype(int) for i in range(K)],
                                             release_date_back[1].astype(int), proc_bck[1].astype(int), 
                                             proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
     
 
+    for j in range(5):
+        print(f'helper {j}')
+        for k in range(30):
+            if y_admm[k,j] == 1:
+                print(f'client {k}')
     
-    print(f"{utils.bcolors.OKGREEN}The hybrid-makespan for the admm is {w_hybrid_admm[0][-1]}{utils.bcolors.ENDC}")
+    # helper 0: 16- 20 28-
+    # helper 1: 7- 11 12
+    # helper 2: 5
+    # helper 3: 9
+    # helper 4: 10
+    print(f"{utils.bcolors.OKGREEN}The hybrid-makespan for the admm is {w_hybrid_admm[-1]}{utils.bcolors.ENDC}")
     print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {w_fcfs}{utils.bcolors.ENDC}")  
+
+
+    print('------------- make change --> delay client --------------')
+
+    # adaptive phase ADMM
+    release_date[1][9,2] = 15
+    release_date[1][7,1] = 5
+    release_date[1][5,0] = 7
+    release_date[1][16,0] = 5
+    release_date[1][28,0] = 6
+
+    # ignoring for FCFS
+    f_temp_slower = utils.fifo(K, H+K, release_date[1].astype(int), proc[1].astype(int), proc_local[1].astype(int), 
+                               trans_back[1].astype(int), release_date_back[1].astype(int),  proc_bck[1].astype(int), 
+                               proc_local_back[1].astype(int), trans_back_gradients[1].astype(int), y_fcfs)
+
+    print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {f_temp_slower} in lazy phase {utils.bcolors.ENDC}") 
+
+
+    print('------------- Recomputing next round --------------')
+
+    (y_fcfs, w_fcfs) = fcfs_sol.run_hybrid(K, H, release_date[1].astype(int), proc[1].astype(int), 
+                                            proc_local[1].astype(int), trans_back[1].astype(int), 
+                                            memory_capacity[1].astype(int), [memory_demand[1].astype(int) for i in range(K)],
+                                            release_date_back[1].astype(int), proc_bck[1].astype(int), 
+                                            proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
+    
+    (w_hybrid_admm, _, y_admm, _, _) = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
+                                            proc_local[1].astype(int), trans_back[1].astype(int), 
+                                            memory_capacity[1].astype(int), memory_demand[1].astype(int),
+                                            release_date_back[1].astype(int), proc_bck[1].astype(int), 
+                                            proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
+    
+    for j in range(5):
+        print(f'helper {j}')
+        for k in range(30):
+            if y_admm[k,j] == 1:
+                print(f'client {k}')
+    
+    
+    print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is next round  {w_fcfs}{utils.bcolors.ENDC}")  
+    print(f"{utils.bcolors.OKGREEN}The hybrid-makespan for the admm in next round is {w_hybrid_admm[-1]}{utils.bcolors.ENDC}")
+

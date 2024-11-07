@@ -558,7 +558,7 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     print('ADMM ALLOCATION:')
     print(y.X)
     print('-------------')
-    return (obj_per_iter, total_time)
+    return (obj_per_iter, total_time, y.X, x_par, z_par) #ATTENTION: NOT COMPATIBLE WITH OTHERS
 
 
 def run_second(K, H, T_all, release_date_fwd, proc_fwd, 

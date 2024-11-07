@@ -1516,11 +1516,11 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
                     slow = 1
                     if indx <= 1:
                         slow = 5
-                    release_date[k][j,i] = my_net(activations_to_cn, indx)#*slow
-                    trans_back[k][j,i] = my_net(activations_to_do, indx)#*slow
+                    release_date[k][j,i] = my_net(activations_to_cn, indx)*slow
+                    trans_back[k][j,i] = my_net(activations_to_do, indx)*slow
 
-                    release_date_back[k][j,i] = my_net(activations_to_do, indx)#*slow
-                    trans_back_gradients[k][j,i] = my_net(activations_to_cn, indx)#*slow
+                    release_date_back[k][j,i] = my_net(activations_to_do, indx)*slow
+                    trans_back_gradients[k][j,i] = my_net(activations_to_cn, indx)*slow
             
             if scenario == 1:
                 if int(do_devices[j]) == 0:
@@ -1583,20 +1583,20 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
                             proc[k][j,i] =  vm_proc_fwd
                             proc_bck[k][j,i] =  vm_proc_back
                         elif int(machine_devices[i]) == 1:
-                            proc[k][j,i] = laptop_proc_fwd #+ 2*max_slot
-                            proc_bck[k][j,i] = laptop_proc_back #+ 2*max_slot
+                            proc[k][j,i] = laptop_proc_fwd + 2*max_slot
+                            proc_bck[k][j,i] = laptop_proc_back + 2*max_slot
                 else:
                     if j != i - H:
                         continue
                     if int(do_devices[j]) == 0:
                         proc[1][j,i] =  d1_proc_fwd_medium
-                        proc_bck[1][j,i] =  d1_proc_back_medium
+                        proc_bck[1][j,i] =  d1_proc_back_medium 
                     elif int(do_devices[j]) == 1:
                         proc[1][j,i] =  jetson_cpu_proc_fwd_medium
                         proc_bck[1][j,i] =  jetson_cpu_proc_back_medium
                     elif int(do_devices[j]) == 2:
                         proc[1][j,i] =  jetson_gpu_proc_fwd_medium
-                        proc_bck[1][j,i] =  jetson_gpu_proc_back_medium
+                        proc_bck[1][j,i] =  jetson_gpu_proc_back_medium 
 
             if scenario == 2:
                 if i < H:
@@ -1616,6 +1616,7 @@ def create_scenario_hybrid(filename, point_a, point_b, K, H,
 
     memory_capacity = [np.zeros((H)), np.zeros((H_prime))]
     for i in range(H_prime):
+        # memory limit
         if H == 5 and i < H:
             if i <= 1:
                 memory_capacity[0][i] = int(max(memory_demand_))*int(K/2)

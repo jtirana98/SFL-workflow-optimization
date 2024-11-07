@@ -98,9 +98,8 @@ def run_hybrid(K, H, release_date_fwd, proc_fwd,
                         no_offload = release_date_fwd[i,H+i] + proc_fwd[i,H+i] + release_date_back[i,H+i] + proc_bck[i,H+i]
                         offload = max([release_date_fwd[i,k] + proc_fwd[i,k]*(K/H) + release_date_back[i,k] \
                                         + proc_bck[i,k]*(K/H) + trans_back_activations[i,k] + trans_back_gradients[i,k] for k in range(H)])
-                        #print(f'{i} - [{no_offload}]  {offload}')
+                        # print(f'{i} - [{no_offload}]  {offload}')
                         if no_offload <= offload and (check_memory(memory_capacity[H+i], load_[H+i]+memory_demand[i])):
-                            #print(f'{i} - [{H+i}]')
                             load_[j] += memory_demand[i]
                             y[i,j] = 1
                             fit = []
@@ -129,9 +128,9 @@ def run_hybrid(K, H, release_date_fwd, proc_fwd,
             y[i,best_load[0]] = 1  
             #print(f'{i} - [{best_load[0]}]')
 
-    print(f'-----------------------------GREEDY--------------------------------')
+ 
     print(y)
     f_temp_slower = utils.fifo(K, H+K, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activations, 
          release_date_back, proc_bck, proc_local_back, trans_back_gradients, y)
 
-    return f_temp_slower
+    return (y,f_temp_slower) #ATTENTION: NOT COMPATIBLE WITH OTHERS
