@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     w_hybrid_admm = ([0,0], -1)
     print('---------------------- ADMM -----------------------------------')
-    (w_hybrid_admm, _, y_admm, x, z) = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
+    (w_hybrid_admm, _, y_admm, x_par, z_par) = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
                                             proc_local[1].astype(int), trans_back[1].astype(int), 
                                             memory_capacity[1].astype(int), memory_demand[1].astype(int),
                                             release_date_back[1].astype(int), proc_bck[1].astype(int), 
@@ -73,18 +73,24 @@ if __name__ == '__main__':
                                             release_date_back[1].astype(int), proc_bck[1].astype(int), 
                                             proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
     
-
-    for j in range(5):
+    clients_0 = []
+    clients_1 = []
+    for j in range(2):
         print(f'helper {j}')
         for k in range(30):
             if y_admm[k,j] == 1:
                 print(f'client {k}')
+                if j == 0:
+                    clients_0.append(k)
+                else:
+                    clients_1.append(k)
     
     # helper 0: 16- 20 28-
     # helper 1: 7- 11 12
     # helper 2: 5
     # helper 3: 9
     # helper 4: 10
+
     print(f"{utils.bcolors.OKGREEN}The hybrid-makespan for the admm is {w_hybrid_admm[-1]}{utils.bcolors.ENDC}")
     print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {w_fcfs}{utils.bcolors.ENDC}")  
 
@@ -97,6 +103,101 @@ if __name__ == '__main__':
     release_date[1][5,0] = 7
     release_date[1][16,0] = 5
     release_date[1][28,0] = 6
+
+    h = 0.5
+
+    # for helper 0:
+    start_client = [-1 for _ in range(len(clients_0))]
+    end_client = [-1 for _ in range(len(clients_0))]
+
+    start_client_z = [-1 for _ in range(len(clients_0))]
+    end_client_z = [-1 for _ in range(len(clients_0))]
+
+
+    T_back = z_par.shape[3]
+    T_fwd = x_par.shape[3]
+
+    print(f'T forward is {T_fwd} the backward is {T_back}')
+    print(T_back)
+    my_machine = 0
+
+    budget_x = []
+    budget_z = []
+
+    for client in clients_0:
+        budget_x.append(proc[1][client, my_machine])
+        budget_z.append(proc_bck[1][client, my_machine])
+
+    for k in range(max(T_fwd, T_back)):
+        kathisterimenos = False
+        for client in range(len(clients_0)):
+            if k < T_fwd and np.rint(x_par[my_machine,clients_0[client],k]) >= 1:
+                if release_date[1][clients_0[client], my_machine] <= k: # have not been delayed
+                    if start_client[client] == -1:
+                        start_client[client] = k 
+                    if budget_x[client] == 0.5:
+                        kathisterimenos = True # we have space to shift
+                        budget_x[client] = 0
+                        end_client[client] = k-0.5
+                    else:
+                        budget_x[client] -= 1
+                        if  budget_x[client] <= 0:
+                            end_client[client] = k
+                else:
+                    kathisterimenos = True
+            elif np.rint(z_par[my_machine,clients_0[client],k]) >= 1:
+                has_arrived = end_client[1][client] + trans_back[1][clients_0[client],my_machine]  \
+                            + proc_local[1][clients_0[client]] + release_date_back[1][clients_0[client], my_machine]
+                if end_client[client] != -1 and has_arrived <= k: # have not been delayed
+                    if start_client_z[client] == -1:
+                        start_client_z = k
+                    if budget_z[client] == 0.5:
+                        kathisterimenos = True # we have space to shift
+                        budget_z[client] = 0
+                        end_client_z[client] = k-0.5
+                    else:
+                        budget_z[client] -= 1
+                        if  budget_z[client] <= 0:
+                            end_client_z[client] = k
+                else:
+                    kathisterimenos = True
+        
+        if kathisterimenos: # exoume eleutero slot
+            for k_n in range(k_n, max(T_fwd, T_back)):
+                for client_l in range(len(clients_0)):
+                    if k_n < T_fwd and np.rint(x_par[my_machine,clients_0[client_l],k_n]) >= 1:
+                        if release_date[1][clients_0[client_l], my_machine] <= k: # have not been delayed
+                            if start_client[client_l] == -1:
+                                start_client[client_l] = k + 0.5
+                            budget_x[client_l] -= 0.5  
+                            if  budget_x[client_l] <= 0:
+                                end_client[client_l] = k-0.5
+                    elif  np.rint(z_par[my_machine,clients_0[client_l],k_n]) >= 1:
+                        has_arrived = end_client[1][client_l] + trans_back[1][clients_0[client_l],my_machine]  \
+                            + proc_local[1][clients_0[client_l]] + release_date_back[1][clients_0[client_l], my_machine]
+                        if end_client[client_l] != -1 and has_arrived <= k: # have not been delayed
+                            if start_client_z[client_l] == -1:
+                                start_client_z[client_l] = k + 0.5
+                            budget_z[client_l] -= 0.5
+                            if  budget_z[client_l] <= 0:
+                                end_client_z[client_l] = k-0.5
+                        
+
+
+    # sublirwsi perissevoumwn
+    # TODO
+    # compute new completition time for machine
+    completition_0 = 0
+    f_client0 = [0 for _ in range(len(clients_0))]
+    for client in range(len(clients_0)):
+        f_client0[client] = end_client_z[client] + proc_local_back[1][clients_0[client]] + trans_back_gradients[1][clients_0[client],my_machine]
+    
+    completition_0 = max(f_client0)
+
+
+    completition_1 = 0
+    Completition_ADMM_LAZE = max(completition_0, completition_1, #TODO apo ta palia
+                                 )
 
     # ignoring for FCFS
     f_temp_slower = utils.fifo(K, H+K, release_date[1].astype(int), proc[1].astype(int), proc_local[1].astype(int), 

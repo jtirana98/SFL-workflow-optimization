@@ -574,6 +574,7 @@ def run_second(K, H, T_all, release_date_fwd, proc_fwd,
     ones_H = np.ones((H,1))
     ones_K = np.ones((K,1))
     ones_T = np.ones((T,1))
+    
 
     MAX_ITER = 5
     rho = 350
