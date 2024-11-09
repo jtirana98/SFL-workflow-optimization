@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
     print(f"{utils.bcolors.OKGREEN}The hybrid-makespan for the admm is {w_hybrid_admm[-1]}{utils.bcolors.ENDC}")
     print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {w_fcfs}{utils.bcolors.ENDC}")  
-
+    
 
     print('------------- make change --> delay client --------------')
 
@@ -110,95 +110,140 @@ if __name__ == '__main__':
     start_client = [-1 for _ in range(len(clients_0))]
     end_client = [-1 for _ in range(len(clients_0))]
 
-    start_client_z = [-1 for _ in range(len(clients_0))]
-    end_client_z = [-1 for _ in range(len(clients_0))]
+    start_client_z = [-1 for _ in range(len(clients_1))]
+    end_client_z = [-1 for _ in range(len(clients_1))]
 
-
-    T_back = z_par.shape[3]
-    T_fwd = x_par.shape[3]
+    print(z_par.shape)
+    T_back = z_par.shape[2]
+    T_fwd = x_par.shape[2]
 
     print(f'T forward is {T_fwd} the backward is {T_back}')
     print(T_back)
-    my_machine = 0
+    clients = [clients_0,
+               clients_1]
 
-    budget_x = []
-    budget_z = []
-
-    for client in clients_0:
-        budget_x.append(proc[1][client, my_machine])
-        budget_z.append(proc_bck[1][client, my_machine])
-
-    for k in range(max(T_fwd, T_back)):
-        kathisterimenos = False
-        for client in range(len(clients_0)):
-            if k < T_fwd and np.rint(x_par[my_machine,clients_0[client],k]) >= 1:
-                if release_date[1][clients_0[client], my_machine] <= k: # have not been delayed
-                    if start_client[client] == -1:
-                        start_client[client] = k 
-                    if budget_x[client] == 0.5:
-                        kathisterimenos = True # we have space to shift
-                        budget_x[client] = 0
-                        end_client[client] = k-0.5
-                    else:
-                        budget_x[client] -= 1
-                        if  budget_x[client] <= 0:
-                            end_client[client] = k
-                else:
-                    kathisterimenos = True
-            elif np.rint(z_par[my_machine,clients_0[client],k]) >= 1:
-                has_arrived = end_client[1][client] + trans_back[1][clients_0[client],my_machine]  \
-                            + proc_local[1][clients_0[client]] + release_date_back[1][clients_0[client], my_machine]
-                if end_client[client] != -1 and has_arrived <= k: # have not been delayed
-                    if start_client_z[client] == -1:
-                        start_client_z = k
-                    if budget_z[client] == 0.5:
-                        kathisterimenos = True # we have space to shift
-                        budget_z[client] = 0
-                        end_client_z[client] = k-0.5
-                    else:
-                        budget_z[client] -= 1
-                        if  budget_z[client] <= 0:
-                            end_client_z[client] = k
-                else:
-                    kathisterimenos = True
+    print(f' FINISH TIMES BEFOR {cs_back}')
+    for my_machine in ([0, 1]):
+        budget_x = []
+        budget_z = []
         
-        if kathisterimenos: # exoume eleutero slot
-            for k_n in range(k_n, max(T_fwd, T_back)):
-                for client_l in range(len(clients_0)):
-                    if k_n < T_fwd and np.rint(x_par[my_machine,clients_0[client_l],k_n]) >= 1:
-                        if release_date[1][clients_0[client_l], my_machine] <= k: # have not been delayed
-                            if start_client[client_l] == -1:
-                                start_client[client_l] = k + 0.5
-                            budget_x[client_l] -= 0.5  
-                            if  budget_x[client_l] <= 0:
-                                end_client[client_l] = k-0.5
-                    elif  np.rint(z_par[my_machine,clients_0[client_l],k_n]) >= 1:
-                        has_arrived = end_client[1][client_l] + trans_back[1][clients_0[client_l],my_machine]  \
-                            + proc_local[1][clients_0[client_l]] + release_date_back[1][clients_0[client_l], my_machine]
-                        if end_client[client_l] != -1 and has_arrived <= k: # have not been delayed
-                            if start_client_z[client_l] == -1:
-                                start_client_z[client_l] = k + 0.5
-                            budget_z[client_l] -= 0.5
-                            if  budget_z[client_l] <= 0:
-                                end_client_z[client_l] = k-0.5
-                        
+        print(f'The machine: {my_machine}')
 
+        for client in clients[my_machine]:
+            budget_x.append(proc[1][client, my_machine])
+            budget_z.append(proc_bck[1][client, my_machine])
+        
+        print(budget_x)
+        last_t = -1
+        for k in range(max(T_fwd, T_back)):
+            for client in range(len(clients[my_machine])):
+                kathisterimenos = False
+                if k < T_fwd and np.rint(x_par[my_machine,clients[my_machine][client],k]) >= 1:
+                    print(f'at time {k} client {clients[my_machine][client]} should be here fwd')
+                    if release_date[1][clients[my_machine][client], my_machine] <= k and budget_x[client] > 0: # have not been delayed
+                        print('IT IS!')
+                        last_t = k
+                        if start_client[client] == -1:
+                            start_client[client] = k 
+                        if budget_x[client] == 0.5:
+                            last_t -= 0.5
+                            print('finish 0.5')
+                            kathisterimenos = True # we have space to shift
+                            budget_x[client] = 0
+                            end_client[client] = k-0.5
+                        else:
+                            budget_x[client] -= 1
+                            if  budget_x[client] <= 0:
+                                end_client[client] = k
+                    else:
+                        print(f'NOOO! {budget_x[client]}')
+                        kathisterimenos = True
+                elif np.rint(z_par[my_machine,clients[my_machine][client],k]) >= 1:
+                    print(f'at time {k} client {clients[my_machine][client]} should be here back')
+                    has_arrived = end_client[client] + trans_back[1][clients[my_machine][client],my_machine]  \
+                                + proc_local[1][clients[my_machine][client]] + release_date_back[1][clients[my_machine][client], my_machine]
+                    if end_client[client] != -1 and has_arrived <= k  and budget_z[client] > 0: # have not been delayed
+                        print('IT IS!')
+                        last_t = k
+                        if start_client_z[client] == -1:
+                            start_client_z[client] = k
+                        if budget_z[client] == 0.5:
+                            last_t -= 0.5
+                            kathisterimenos = True # we have space to shift
+                            budget_z[client] = 0
+                            print('finish 0.5')
+                            end_client_z[client] = k-0.5
+                        else:
+                            budget_z[client] -= 1
+                            if  budget_z[client] <= 0:
+                                end_client_z[client] = k
+                    else:
+                        print(f'NOOO! {budget_z[client]}')
+                        kathisterimenos = True
+                
+                if kathisterimenos: # exoume eleutero slot
+                    print('KATHISTERIMENA')
+                    found = False
+                    for k_n in range(k, max(T_fwd, T_back)):
+                        if found:
+                            break
+                        for client_l in range(len(clients[my_machine])):
+                            if k_n < T_fwd and np.rint(x_par[my_machine,clients[my_machine][client_l],k_n]) >= 1 and budget_x[client_l] > 0:
+                                if release_date[1][clients[my_machine][client_l], my_machine] <= k: 
+                                    print(f'found client {clients[my_machine][client_l]} insted fwd')
+                                    last_t = k
+                                    if start_client[client_l] == -1:
+                                        start_client[client_l] = k
+                                    budget_x[client_l] -= 0.5
+                                    if  budget_x[client_l] <= 0:
+                                        end_client[client_l] = k
+                                        print(f'teleiwse')
+                                    found = True
+                                    break
+                            elif  np.rint(z_par[my_machine,clients[my_machine][client_l],k_n]) >= 1:
+                                has_arrived = end_client[client_l] + trans_back[1][clients[my_machine][client_l],my_machine]  \
+                                    + proc_local[1][clients[my_machine][client_l]] + release_date_back[1][clients[my_machine][client_l], my_machine]
+                                if end_client[client_l] != -1 and has_arrived <= k and budget_z[client_l] > 0:
+                                    last_t = k
+                                    print(f'found client {clients[my_machine][client_l]} insted bwd')
+                                    if start_client_z[client_l] == -1:
+                                        start_client_z[client_l] = k
+                                    budget_z[client_l] -= 0.5
+                                    if  budget_z[client_l] <= 0:
+                                        end_client_z[client_l] = k
+                                        print(f'teleiwse')
+                                    found = True
+                                    break
+                            
+        # sublirwsi perissevoumwn
+        for x_incomplete in range(len(clients[my_machine])):
+            print(f'hehhe incomplete {clients[my_machine][x_incomplete]} {last_t}')
+            if budget_x[x_incomplete] > 0:
+                end_client[x_incomplete] = last_t + budget_x[x_incomplete]
+                last_t = last_t + budget_x[x_incomplete]
+                budget_x[x_incomplete] = 0
+                print(f'fwd {end_client[x_incomplete]}')
 
-    # sublirwsi perissevoumwn
-    for x_incomplet in range(len(clients_0)):
-        if budget_z[]
+            if budget_z[x_incomplete] > 0:
+                end_client_z[x_incomplete] = last_t + budget_z[x_incomplete] + trans_back[1][clients[my_machine][x_incomplete],my_machine]  \
+                                + proc_local[1][clients[my_machine][x_incomplete]] + release_date_back[1][clients[my_machine][x_incomplete], my_machine]
+                last_t = last_t + budget_z[x_incomplete]
+                budget_z[x_incomplete] = 0
+                print(f'back {end_client_z[x_incomplete]}')
 
-    # compute new completition time for machine
-    completition_0 = 0
-    f_client0 = [0 for _ in range(len(clients_0))]
-    for client in range(len(clients_0)):
-        f_client0[client] = end_client_z[client] + proc_local_back[1][clients_0[client]] + trans_back_gradients[1][clients_0[client],my_machine]
+            
+
+        # compute new completition time for machine
+        f_client0 = [0 for _ in range(len(clients[my_machine]))]
+        for client in range(len(clients[my_machine])):
+            f_client0[client] = end_client_z[client] + proc_local_back[1][clients[my_machine][client]] + trans_back_gradients[1][clients[my_machine][client],my_machine]
     
     
-    for client in range(clients_0):
-        cs_back[clients_0[client]] = f_client0[client] 
-
-    Completition_ADMM_LAZE = max(cs_back)
+        for client in range(len(clients[my_machine])):
+            cs_back[clients[my_machine][client]] = f_client0[client] 
+    
+    print(f' FINISH TIMES AFTER {cs_back}')
+    Completition_ADMM_LAZY = max(cs_back)
 
     # ignoring for FCFS
     f_temp_slower = utils.fifo(K, H+K, release_date[1].astype(int), proc[1].astype(int), proc_local[1].astype(int), 
@@ -206,6 +251,7 @@ if __name__ == '__main__':
                                proc_local_back[1].astype(int), trans_back_gradients[1].astype(int), y_fcfs)
 
     print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {f_temp_slower} in lazy phase {utils.bcolors.ENDC}") 
+    print(f"{utils.bcolors.OKGREEN}The makespan for ADMM is  {Completition_ADMM_LAZY} in lazy phase {utils.bcolors.ENDC}") 
 
 
     print('------------- Recomputing next round --------------')

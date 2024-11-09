@@ -799,7 +799,7 @@ def create_scenario_hybrid_energy(filename, point_a, point_b, K, H,
                         proc[j,i] =  vm_proc_fwd
                         proc_bck[j,i] =  vm_proc_back
                     elif int(machine_devices[i]) == 1:
-                        proc[j,i] = laptop_proc_fwd
+                        proc[j,i] = laptop_proc_fwd 
                         proc_bck[j,i] = laptop_proc_back
                 else:
                     if j != i - H:
