@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     w_hybrid_admm = ([0,0], -1)
     print('---------------------- ADMM -----------------------------------')
-    (w_hybrid_admm, _, y_admm, x_par, z_par) = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
+    (w_hybrid_admm, _, y_admm, x_par, z_par, cs_back) = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
                                             proc_local[1].astype(int), trans_back[1].astype(int), 
                                             memory_capacity[1].astype(int), memory_demand[1].astype(int),
                                             release_date_back[1].astype(int), proc_bck[1].astype(int), 
@@ -185,19 +185,20 @@ if __name__ == '__main__':
 
 
     # sublirwsi perissevoumwn
-    # TODO
+    for x_incomplet in range(len(clients_0)):
+        if budget_z[]
+
     # compute new completition time for machine
     completition_0 = 0
     f_client0 = [0 for _ in range(len(clients_0))]
     for client in range(len(clients_0)):
         f_client0[client] = end_client_z[client] + proc_local_back[1][clients_0[client]] + trans_back_gradients[1][clients_0[client],my_machine]
     
-    completition_0 = max(f_client0)
+    
+    for client in range(clients_0):
+        cs_back[clients_0[client]] = f_client0[client] 
 
-
-    completition_1 = 0
-    Completition_ADMM_LAZE = max(completition_0, completition_1, #TODO apo ta palia
-                                 )
+    Completition_ADMM_LAZE = max(cs_back)
 
     # ignoring for FCFS
     f_temp_slower = utils.fifo(K, H+K, release_date[1].astype(int), proc[1].astype(int), proc_local[1].astype(int), 
@@ -215,7 +216,7 @@ if __name__ == '__main__':
                                             release_date_back[1].astype(int), proc_bck[1].astype(int), 
                                             proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
     
-    (w_hybrid_admm, _, y_admm, _, _) = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
+    (w_hybrid_admm, _, y_admm, _, _, _) = admm_hybrid.run(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
                                             proc_local[1].astype(int), trans_back[1].astype(int), 
                                             memory_capacity[1].astype(int), memory_demand[1].astype(int),
                                             release_date_back[1].astype(int), proc_bck[1].astype(int), 
