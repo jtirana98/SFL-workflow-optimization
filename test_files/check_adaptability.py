@@ -122,7 +122,7 @@ if __name__ == '__main__':
     clients = [clients_0,
                clients_1]
 
-    print(f' FINISH TIMES BEFOR {cs_back}')
+    print(f' FINISH TIMES BEFORE {cs_back}')
     for my_machine in ([0, 1]):
         budget_x = []
         budget_z = []
@@ -250,10 +250,16 @@ if __name__ == '__main__':
                                trans_back[1].astype(int), release_date_back[1].astype(int),  proc_bck[1].astype(int), 
                                proc_local_back[1].astype(int), trans_back_gradients[1].astype(int), y_fcfs)
 
-    print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {f_temp_slower} in lazy phase {utils.bcolors.ENDC}") 
     print(f"{utils.bcolors.OKGREEN}The makespan for ADMM is  {Completition_ADMM_LAZY} in lazy phase {utils.bcolors.ENDC}") 
+    print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {f_temp_slower} in lazy phase {utils.bcolors.ENDC}") 
+    
+    temp_sc = admm_hybrid.run_scheduling(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
+                                            proc_local[1].astype(int), trans_back[1].astype(int), 
+                                            memory_capacity[1].astype(int), memory_demand[1].astype(int),
+                                            release_date_back[1].astype(int), proc_bck[1].astype(int), 
+                                            proc_local_back[1].astype(int), trans_back_gradients[1].astype(int), y_admm)
 
-
+    print(f"{utils.bcolors.OKGREEN}The makespan for ADMM is  {temp_sc} with fixed scheduling {utils.bcolors.ENDC}") 
     print('------------- Recomputing next round --------------')
 
     (y_fcfs, w_fcfs) = fcfs_sol.run_hybrid(K, H, release_date[1].astype(int), proc[1].astype(int), 
@@ -275,6 +281,7 @@ if __name__ == '__main__':
                 print(f'client {k}')
     
     
-    print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is next round  {w_fcfs}{utils.bcolors.ENDC}")  
     print(f"{utils.bcolors.OKGREEN}The hybrid-makespan for the admm in next round is {w_hybrid_admm[-1]}{utils.bcolors.ENDC}")
+    print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is next round  {w_fcfs}{utils.bcolors.ENDC}")  
+    
 

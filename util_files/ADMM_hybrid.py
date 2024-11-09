@@ -560,6 +560,129 @@ def run(K, H, T_all, release_date_fwd, proc_fwd,
     print('-------------')
     return (obj_per_iter, total_time, y.X, x_par, z_par, cs_back) #ATTENTION: NOT COMPATIBLE WITH OTHERS
 
+def run_scheduling(K, H, T_all, release_date_fwd, proc_fwd, 
+            proc_local_fwd, trans_back_activations, 
+            memory_capacity, memory_demand,
+            release_date_back, proc_bck, 
+            proc_local_back, trans_back_gradients, y_old):
+    
+    H_prime = H+K
+    stable = 0
+    T = np.max(release_date_fwd) + K*np.max(proc_fwd[0,0:H])
+    
+    ones_H = np.ones((H_prime,1))
+    ones_K = np.ones((K,1))
+    ones_T = np.ones((T,1))
+
+    
+    T_back = np.max(release_date_fwd) + K*np.max(proc_fwd[0][0:H]) + np.max(release_date_back) + K*np.max(proc_bck[0,0:H]) \
+                        + np.max(proc_local_fwd) + np.max(proc_local_back) \
+                        + np.max(np.max(trans_back_activations)) + np.max(np.max(trans_back_gradients))
+
+    z_par = np.zeros((H_prime,K,T_back))
+    x_par = np.zeros((H_prime,K,T))
+    y_ = y_old
+
+    for i in range(H): # theoritically this can be done in parallel
+        Kx = list(np.transpose(np.argwhere(y_[:,i]==1))[0]) # finds which data owners are assigned to the machine i
+        if len(Kx) == 0:
+            continue
+        
+        procx = np.copy(proc_fwd[Kx, i])  # this is a row-vector
+        release_datex = np.copy(release_date_fwd[Kx, i])
+        proc_localx = np.copy(proc_local_fwd[Kx])
+        trans_backx = np.copy(trans_back_activations[Kx, i])
+        Tx = np.max(release_datex) + len(Kx)*np.max(procx)  # to constrain the T
+        start_sub = time.time()
+        x__ = feasibility_check(len(Kx), release_datex, procx, proc_localx, trans_backx, memory_capacity[i], Tx)
+        end_sub = time.time()
+
+        machine_time = end_sub-start_sub
+
+        jj = 0
+        for j in Kx:
+            for t in range(Tx):
+                x_par[i,j,t] = x__[0,jj,t]
+            jj += 1
+        
+        f_temp = np.zeros((len(Kx)))
+        for kk in range(len(Kx)):
+            for t in range(Tx):
+                if f_temp[kk] < (t+1)*x__[0,kk,t]:
+                    f_temp[kk] = (t+1)*x__[0,kk,t]
+        
+        procz = np.copy(proc_bck[Kx, i])  # this is a row-vector
+        release_datez = np.copy(release_date_back[Kx, i])
+        proc_localz = np.copy(proc_local_back[Kx])
+        trans_backz = np.copy(trans_back_gradients[Kx, i])
+
+        for kk in range(len(Kx)):
+            release_datez[kk] += f_temp[kk] + proc_localx[kk] + trans_backx[kk]
+        
+        Tz = np.max(release_datez) + len(Kx)*np.max(procz)  # to constrain the T
+        x__extend = np.zeros((1,len(Kx),Tz))
+        
+        for jj in range(len(Kx)):
+            for t in range(min(Tx,Tz)):
+                x__extend[0,jj,t] = x__[0,jj,t]
+        
+
+        z__ = backward_for_each_machine(len(Kx), release_datez, procz, proc_localz, trans_backz, memory_capacity[i], Tz, x__extend)
+        
+        
+        end_sub = time.time()
+        machine_time += end_sub - start_sub
+
+        jj = 0
+        for j in Kx:
+            for t in range(Tz):
+                z_par[i,j,t] = z__[0,jj,t]
+            jj += 1
+
+    cs = []
+    cs_back = []
+    reserved = [0 for i in range(H_prime)]
+    f_m = np.zeros(K)
+
+    for i in range(K): #for all jobs
+        my_machine = 0
+        my_super_machine = 0
+        last_zero = -1
+        for my_machine in range(H_prime):
+            for k in range(T):
+                if np.rint(x_par[my_machine,i,k]) >= 1:
+                    if last_zero < k+1:
+                        last_zero = k+1
+                        my_super_machine = my_machine
+                        
+        fmax = last_zero
+        f_m[i] = fmax
+        C = fmax + proc_local_fwd[i] + trans_back_activations[i,my_super_machine]
+        cs.append(C)
+        reserved[my_super_machine] += 1
+
+    for i in range(K): #for all jobs
+        my_machine = 0
+        my_super_machine = 0
+        last_zero = -1
+        for my_machine in range(H):
+            for k in range(T_back):
+                if np.rint(z_par[my_machine,i,k]) >= 1:
+                    if last_zero < k+1:
+                        last_zero = k+1
+                        my_super_machine = my_machine
+        if last_zero == -1:
+            my_super_machine = H + i
+            j = i
+            C = release_date_fwd[j,H+j] + proc_fwd[j,H+j] + release_date_back[j,H+j] + proc_bck[j,H+j] + proc_local_fwd[i] + proc_local_back[i]
+        else:
+            fmax = last_zero
+            C = fmax + proc_local_back[i] + trans_back_gradients[i,my_super_machine]
+        cs_back.append(C)
+    print(cs_back)
+    obj_per_iter = max(cs_back)
+    return obj_per_iter
+
 
 def run_second(K, H, T_all, release_date_fwd, proc_fwd, 
             proc_local_fwd, trans_back_activations, 
