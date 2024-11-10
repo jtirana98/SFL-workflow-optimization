@@ -72,58 +72,54 @@ if __name__ == '__main__':
                                             memory_capacity[1].astype(int), [memory_demand[1].astype(int) for i in range(K)],
                                             release_date_back[1].astype(int), proc_bck[1].astype(int), 
                                             proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
-    
-    clients_0 = []
-    clients_1 = []
-    for j in range(2):
-        print(f'helper {j}')
-        for k in range(30):
-            if y_admm[k,j] == 1:
-                print(f'client {k}')
-                if j == 0:
-                    clients_0.append(k)
-                else:
-                    clients_1.append(k)
-    
-    # helper 0: 16- 20 28-
-    # helper 1: 7- 11 12
-    # helper 2: 5
-    # helper 3: 9
-    # helper 4: 10
-
+        
+   
     print(f"{utils.bcolors.OKGREEN}The hybrid-makespan for the admm is {w_hybrid_admm[-1]}{utils.bcolors.ENDC}")
     print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {w_fcfs}{utils.bcolors.ENDC}")  
     
 
     print('------------- make change --> delay client --------------')
 
-    # adaptive phase ADMM
-    release_date[1][9,2] = 15
-    release_date[1][7,1] = 5
-    release_date[1][5,0] = 7
-    release_date[1][16,0] = 5
-    release_date[1][28,0] = 6
+    if model_type == 'resnet101' and K = 30 and H = 5:
+    
+        release_date[1][9,2] = 15
+        release_date[1][7,1] = 5
+        release_date[1][5,0] = 7
+        release_date[1][16,0] = 5
+        release_date[1][28,0] = 6
+
+        clients_0 = []
+        clients_1 = []
+        for j in range(2):
+            print(f'helper {j}')
+            for k in range(30):
+                if y_admm[k,j] == 1:
+                    print(f'client {k}')
+                    if j == 0:
+                        clients_0.append(k)
+                    else:
+                        clients_1.append(k)
+
+        # for helper 0:
+        start_client = [-1 for _ in range(len(clients_0))]
+        end_client = [-1 for _ in range(len(clients_0))]
+
+        start_client_z = [-1 for _ in range(len(clients_1))]
+        end_client_z = [-1 for _ in range(len(clients_1))]
+        machines = [0, 1] 
 
     h = 0.5
-
-    # for helper 0:
-    start_client = [-1 for _ in range(len(clients_0))]
-    end_client = [-1 for _ in range(len(clients_0))]
-
-    start_client_z = [-1 for _ in range(len(clients_1))]
-    end_client_z = [-1 for _ in range(len(clients_1))]
-
-    print(z_par.shape)
     T_back = z_par.shape[2]
     T_fwd = x_par.shape[2]
 
+    # adaptive phase ADMM
     print(f'T forward is {T_fwd} the backward is {T_back}')
     print(T_back)
     clients = [clients_0,
                clients_1]
 
     print(f' FINISH TIMES BEFORE {cs_back}')
-    for my_machine in ([0, 1]):
+    for my_machine in machines:
         budget_x = []
         budget_z = []
         
@@ -139,15 +135,15 @@ if __name__ == '__main__':
             for client in range(len(clients[my_machine])):
                 kathisterimenos = False
                 if k < T_fwd and np.rint(x_par[my_machine,clients[my_machine][client],k]) >= 1:
-                    print(f'at time {k} client {clients[my_machine][client]} should be here fwd')
+                    # print(f'at time {k} client {clients[my_machine][client]} should be here fwd')
                     if release_date[1][clients[my_machine][client], my_machine] <= k and budget_x[client] > 0: # have not been delayed
-                        print('IT IS!')
+                        # print('IT IS!')
                         last_t = k
                         if start_client[client] == -1:
                             start_client[client] = k 
                         if budget_x[client] == 0.5:
                             last_t -= 0.5
-                            print('finish 0.5')
+                            # print('finish 0.5')
                             kathisterimenos = True # we have space to shift
                             budget_x[client] = 0
                             end_client[client] = k-0.5
@@ -156,14 +152,14 @@ if __name__ == '__main__':
                             if  budget_x[client] <= 0:
                                 end_client[client] = k
                     else:
-                        print(f'NOOO! {budget_x[client]}')
+                        # print(f'NOOO! {budget_x[client]}')
                         kathisterimenos = True
                 elif np.rint(z_par[my_machine,clients[my_machine][client],k]) >= 1:
                     print(f'at time {k} client {clients[my_machine][client]} should be here back')
                     has_arrived = end_client[client] + trans_back[1][clients[my_machine][client],my_machine]  \
                                 + proc_local[1][clients[my_machine][client]] + release_date_back[1][clients[my_machine][client], my_machine]
                     if end_client[client] != -1 and has_arrived <= k  and budget_z[client] > 0: # have not been delayed
-                        print('IT IS!')
+                        # print('IT IS!')
                         last_t = k
                         if start_client_z[client] == -1:
                             start_client_z[client] = k
@@ -171,18 +167,18 @@ if __name__ == '__main__':
                             last_t -= 0.5
                             kathisterimenos = True # we have space to shift
                             budget_z[client] = 0
-                            print('finish 0.5')
+                            # print('finish 0.5')
                             end_client_z[client] = k-0.5
                         else:
                             budget_z[client] -= 1
                             if  budget_z[client] <= 0:
                                 end_client_z[client] = k
                     else:
-                        print(f'NOOO! {budget_z[client]}')
+                        # print(f'NOOO! {budget_z[client]}')
                         kathisterimenos = True
                 
                 if kathisterimenos: # exoume eleutero slot
-                    print('KATHISTERIMENA')
+                    # print('KATHISTERIMENA')
                     found = False
                     for k_n in range(k, max(T_fwd, T_back)):
                         if found:
@@ -190,14 +186,14 @@ if __name__ == '__main__':
                         for client_l in range(len(clients[my_machine])):
                             if k_n < T_fwd and np.rint(x_par[my_machine,clients[my_machine][client_l],k_n]) >= 1 and budget_x[client_l] > 0:
                                 if release_date[1][clients[my_machine][client_l], my_machine] <= k: 
-                                    print(f'found client {clients[my_machine][client_l]} insted fwd')
+                                    # print(f'found client {clients[my_machine][client_l]} insted fwd')
                                     last_t = k
                                     if start_client[client_l] == -1:
                                         start_client[client_l] = k
                                     budget_x[client_l] -= 0.5
                                     if  budget_x[client_l] <= 0:
                                         end_client[client_l] = k
-                                        print(f'teleiwse')
+                                        # print(f'teleiwse')
                                     found = True
                                     break
                             elif  np.rint(z_par[my_machine,clients[my_machine][client_l],k_n]) >= 1:
