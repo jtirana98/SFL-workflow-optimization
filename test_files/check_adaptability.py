@@ -79,44 +79,56 @@ if __name__ == '__main__':
     
     print('------------- make change --> delay client --------------')
     
-    release_date[1][5,2] = 15
-    release_date_back[1][5,2] = 15
+    release_date[1][9,0] = release_date[1][9,0]*2
+    release_date_back[1][9,0] = release_date_back[1][9,0]*2
 
-    release_date[1][8,4] = 17
-    release_date_back[1][8,4] = 20
+    release_date[1][13,0] = release_date[1][13,0]*2
+    release_date_back[1][13,0] = release_date_back[1][13,0]*2
 
-    release_date[1][32,0] = 9
-    release_date_back[1][32,0] = 7
+    release_date[1][16,0] = release_date[1][16,0]*2
+    release_date_back[1][16,0] = release_date_back[1][16,0]*2
 
-    release_date[1][30,1] = 30
-    release_date_back[1][30,1] = 30
+    release_date[1][34,0] = release_date[1][34,0]*2
+    release_date_back[1][34,0] = release_date_back[1][34,0]*2
 
-    release_date[1][3,0] = 15
-    release_date_back[1][3,0] = 25
+    release_date[1][39,0] = release_date[1][39,0]*2
+    release_date_back[1][39,0] = release_date_back[1][39,0]*2
 
-    release_date[1][37,1] = 9
-    release_date_back[1][37,1] = 7
+    release_date[1][47,0] = release_date[1][47,0]*2
+    release_date_back[1][47,0] = release_date_back[1][47,0]*2
 
-    release_date[1][6,0] = 20
-    release_date_back[1][6,0] = 15
+    release_date[1][15,1] = release_date[1][15,1]*2
+    release_date_back[1][15,1] = release_date_back[1][15,1]*2
 
-    release_date[1][9,0] = 20
-    release_date_back[1][9,0] = 15
+    release_date[1][22,1] = release_date[1][22,1]*2
+    release_date_back[1][22,1] = release_date_back[1][22,1]*2
 
-    release_date[1][47,0] = 20
-    release_date_back[1][47,0] = 15
+    release_date[1][33,1] = release_date[1][33,1]*2
+    release_date_back[1][33,1] = release_date_back[1][33,1]*2
 
-    release_date[1][48,0] = 12
-    release_date_back[1][48,0] = 12
+    release_date[1][41,1] = release_date[1][41,1]*2
+    release_date_back[1][41,1] = release_date_back[1][41,1]*2
 
-    release_date[1][9,0] = 14
-    release_date_back[1][9,0] = 15
+    release_date[1][8,0] = release_date[1][8,0]*2
+    release_date_back[1][8,0] = release_date_back[1][8,0]*2
+    
+    release_date[1][8,1] = release_date[1][8,1]*2
+    release_date_back[1][8,1] = release_date_back[1][8,1]*2
 
-    release_date[1][21,4] = 14
-    release_date_back[1][21,4] = 15
+    release_date[1][8,2] = release_date[1][8,2]*2
+    release_date_back[1][8,2] = release_date_back[1][8,2]*2
+    
+    release_date[1][8,3] = release_date[1][8,3]*2
+    release_date_back[1][8,3] = release_date_back[1][8,3]*2
 
-    release_date[1][25,0] = 20
-    release_date_back[1][25,0] = 20
+    release_date[1][8,4] = release_date[1][8,4]*2
+    release_date_back[1][8,4] = release_date_back[1][8,4]*2
+
+    release_date[1][0,0] = release_date[1][0,0]*10
+    release_date_back[1][0,0] = release_date_back[1][0,0]*10
+
+    release_date[1][21,0] = release_date[1][21,0]*10
+    release_date_back[1][21,0] = release_date_back[1][21,0]*10
 
     machines = [i for i in range(H)]
     clients = []
