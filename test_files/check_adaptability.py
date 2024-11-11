@@ -13,12 +13,12 @@ import utils as utils
 
 if __name__ == '__main__':
     logs = 'test1.txt'
-    K = 30
+    K = 50
     H = 5
 
     scenario = 1 # low heterogeneity 
 
-    splitting_points = '2,30'
+    splitting_points = '20,30'
 
     points = list(splitting_points.split(','))
     point_a = int(points[0])
@@ -73,40 +73,92 @@ if __name__ == '__main__':
                                             release_date_back[1].astype(int), proc_bck[1].astype(int), 
                                             proc_local_back[1].astype(int), trans_back_gradients[1].astype(int))
         
-   
+    print(f' FINISH TIMES BEFORE {cs_back}')
     print(f"{utils.bcolors.OKGREEN}The hybrid-makespan for the admm is {w_hybrid_admm[-1]}{utils.bcolors.ENDC}")
     print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {w_fcfs}{utils.bcolors.ENDC}")  
     
-
     print('------------- make change --> delay client --------------')
-
-    if model_type == 'resnet101' and K = 30 and H = 5:
     
-        release_date[1][9,2] = 15
-        release_date[1][7,1] = 5
-        release_date[1][5,0] = 7
-        release_date[1][16,0] = 5
-        release_date[1][28,0] = 6
+    release_date[1][5,2] = 15
+    release_date_back[1][5,2] = 15
 
-        clients_0 = []
-        clients_1 = []
-        for j in range(2):
-            print(f'helper {j}')
-            for k in range(30):
-                if y_admm[k,j] == 1:
-                    print(f'client {k}')
-                    if j == 0:
-                        clients_0.append(k)
-                    else:
-                        clients_1.append(k)
+    release_date[1][8,4] = 17
+    release_date_back[1][8,4] = 20
 
-        # for helper 0:
-        start_client = [-1 for _ in range(len(clients_0))]
-        end_client = [-1 for _ in range(len(clients_0))]
+    release_date[1][32,0] = 9
+    release_date_back[1][32,0] = 7
 
-        start_client_z = [-1 for _ in range(len(clients_1))]
-        end_client_z = [-1 for _ in range(len(clients_1))]
-        machines = [0, 1] 
+    release_date[1][30,1] = 30
+    release_date_back[1][30,1] = 30
+
+    release_date[1][3,0] = 15
+    release_date_back[1][3,0] = 25
+
+    release_date[1][37,1] = 9
+    release_date_back[1][37,1] = 7
+
+    release_date[1][6,0] = 20
+    release_date_back[1][6,0] = 15
+
+    release_date[1][9,0] = 20
+    release_date_back[1][9,0] = 15
+
+    release_date[1][47,0] = 20
+    release_date_back[1][47,0] = 15
+
+    release_date[1][48,0] = 12
+    release_date_back[1][48,0] = 12
+
+    release_date[1][9,0] = 14
+    release_date_back[1][9,0] = 15
+
+    release_date[1][21,4] = 14
+    release_date_back[1][21,4] = 15
+
+    release_date[1][25,0] = 20
+    release_date_back[1][25,0] = 20
+
+    machines = [i for i in range(H)]
+    clients = []
+
+    for j in range(H):
+        print(f'helper {j}')
+        client_h = []
+        for k in range(K):
+            if y_admm[k,j] == 1:
+                print(f'client {k}')
+                client_h.append(k)
+        clients.append(client_h)     
+
+    # if model_type == 'resnet101' and K == 30 and H == 5:
+    
+    #     release_date[1][9,2] = 15
+    #     release_date[1][7,1] = 5
+    #     release_date[1][5,0] = 7
+    #     release_date[1][16,0] = 5
+    #     release_date[1][28,0] = 6
+
+    #     clients_0 = []
+    #     clients_1 = []
+    #     for j in range(2):
+    #         print(f'helper {j}')
+    #         for k in range(30):
+    #             if y_admm[k,j] == 1:
+    #                 print(f'client {k}')
+    #                 if j == 0:
+    #                     clients_0.append(k)
+    #                 else:
+    #                     clients_1.append(k)
+
+    #     # for helper 0:
+    #     start_client = [-1 for _ in range(len(clients_0))]
+    #     end_client = [-1 for _ in range(len(clients_0))]
+
+    #     start_client_z = [-1 for _ in range(len(clients_1))]
+    #     end_client_z = [-1 for _ in range(len(clients_1))]
+    #     machines = [0, 1] 
+    #     clients = [clients_0,
+    #         clients_1]
 
     h = 0.5
     T_back = z_par.shape[2]
@@ -115,8 +167,7 @@ if __name__ == '__main__':
     # adaptive phase ADMM
     print(f'T forward is {T_fwd} the backward is {T_back}')
     print(T_back)
-    clients = [clients_0,
-               clients_1]
+
 
     print(f' FINISH TIMES BEFORE {cs_back}')
     for my_machine in machines:
@@ -124,12 +175,21 @@ if __name__ == '__main__':
         budget_z = []
         
         print(f'The machine: {my_machine}')
+        print(clients[my_machine])
+        if len(clients[my_machine]) == 0:
+            continue
 
         for client in clients[my_machine]:
             budget_x.append(proc[1][client, my_machine])
             budget_z.append(proc_bck[1][client, my_machine])
         
-        print(budget_x)
+        # print(budget_x)
+        start_client = [-1 for _ in range(len(clients[my_machine]))]
+        end_client = [-1 for _ in range(len(clients[my_machine]))]
+
+        start_client_z = [-1 for _ in range(len(clients[my_machine]))]
+        end_client_z = [-1 for _ in range(len(clients[my_machine]))]
+
         last_t = -1
         for k in range(max(T_fwd, T_back)):
             for client in range(len(clients[my_machine])):
@@ -241,10 +301,11 @@ if __name__ == '__main__':
     print(f' FINISH TIMES AFTER {cs_back}')
     Completition_ADMM_LAZY = max(cs_back)
 
-    # ignoring for FCFS
+     # ignoring for FCFS
     f_temp_slower = utils.fifo(K, H+K, release_date[1].astype(int), proc[1].astype(int), proc_local[1].astype(int), 
                                trans_back[1].astype(int), release_date_back[1].astype(int),  proc_bck[1].astype(int), 
                                proc_local_back[1].astype(int), trans_back_gradients[1].astype(int), y_fcfs)
+
 
     print(f"{utils.bcolors.OKGREEN}The makespan for ADMM is  {Completition_ADMM_LAZY} in lazy phase {utils.bcolors.ENDC}") 
     print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {f_temp_slower} in lazy phase {utils.bcolors.ENDC}") 
@@ -279,5 +340,3 @@ if __name__ == '__main__':
     
     print(f"{utils.bcolors.OKGREEN}The hybrid-makespan for the admm in next round is {w_hybrid_admm[-1]}{utils.bcolors.ENDC}")
     print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is next round  {w_fcfs}{utils.bcolors.ENDC}")  
-    
-

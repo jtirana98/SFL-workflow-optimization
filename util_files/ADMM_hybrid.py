@@ -681,6 +681,7 @@ def run_scheduling(K, H, T_all, release_date_fwd, proc_fwd,
         cs_back.append(C)
     print(cs_back)
     obj_per_iter = max(cs_back)
+    print(f'DURING: {obj_per_iter}')
     return obj_per_iter
 
 
