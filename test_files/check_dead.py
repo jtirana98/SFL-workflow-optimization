@@ -253,7 +253,7 @@ if __name__ == '__main__':
     memory_capacity_new = np.zeros((H+K))
     kk = 0
     # print(K+kill_num)
-    # print('-------------------')
+    # print('------------------')
     for k in range(K+kill_num):
         if k in kill:
             continue
