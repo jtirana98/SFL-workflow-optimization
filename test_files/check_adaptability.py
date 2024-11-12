@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
     print('------------- make change --> delay client --------------')
 
-    if model_type == 'resnet101' and K = 30 and H = 5:
+    if model_type == 'resnet101' and K == 30 and H == 5:
     
         release_date[1][9,2] = 15
         release_date[1][7,1] = 5
@@ -88,35 +88,22 @@ if __name__ == '__main__':
         release_date[1][16,0] = 5
         release_date[1][28,0] = 6
 
-        clients_0 = []
-        clients_1 = []
-        for j in range(2):
-            print(f'helper {j}')
-            for k in range(30):
-                if y_admm[k,j] == 1:
-                    print(f'client {k}')
-                    if j == 0:
-                        clients_0.append(k)
-                    else:
-                        clients_1.append(k)
 
-        # for helper 0:
-        start_client = [-1 for _ in range(len(clients_0))]
-        end_client = [-1 for _ in range(len(clients_0))]
+    machines = [i for i in range(H)]
+    clients = []
 
-        start_client_z = [-1 for _ in range(len(clients_1))]
-        end_client_z = [-1 for _ in range(len(clients_1))]
-        machines = [0, 1] 
+    for j in range(H):
+        print(f'helper {j}')
+        client_h = []
+        for k in range(K):
+            if y_admm[k,j] == 1:
+                print(f'client {k}')
+                client_h.append(k)
+        clients.append(client_h)     
 
     h = 0.5
     T_back = z_par.shape[2]
     T_fwd = x_par.shape[2]
-
-    # adaptive phase ADMM
-    print(f'T forward is {T_fwd} the backward is {T_back}')
-    print(T_back)
-    clients = [clients_0,
-               clients_1]
 
     print(f' FINISH TIMES BEFORE {cs_back}')
     for my_machine in machines:
@@ -124,12 +111,21 @@ if __name__ == '__main__':
         budget_z = []
         
         print(f'The machine: {my_machine}')
+        print(clients[my_machine])
+        if len(clients[my_machine]) == 0:
+            continue
 
         for client in clients[my_machine]:
             budget_x.append(proc[1][client, my_machine])
             budget_z.append(proc_bck[1][client, my_machine])
         
-        print(budget_x)
+        # print(budget_x)
+        start_client = [-1 for _ in range(len(clients[my_machine]))]
+        end_client = [-1 for _ in range(len(clients[my_machine]))]
+
+        start_client_z = [-1 for _ in range(len(clients[my_machine]))]
+        end_client_z = [-1 for _ in range(len(clients[my_machine]))]
+
         last_t = -1
         for k in range(max(T_fwd, T_back)):
             for client in range(len(clients[my_machine])):
