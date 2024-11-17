@@ -84,8 +84,9 @@ if __name__ == '__main__':
 
     # KILL THEM WITH KINDNESS
 
-    K = K - 7
-    kill = [9, 12, 17, 33, 34, 41, 47]
+    
+    kill = [9, 12, 17, 33, 34, 41, 47, 21, 25, 8, 6]
+    K = K - len(kill)
 
     for killed in kill:
         for h in range(H):
@@ -253,7 +254,7 @@ if __name__ == '__main__':
     y_admm_new = np.zeros((K,H+K))
     memory_capacity_new = np.zeros((H+K))
     kk = 0
-    for k in range(K+7):
+    for k in range(K+len(kill)):
         if k in kill:
             continue
         
@@ -261,7 +262,7 @@ if __name__ == '__main__':
         proc_local_new[kk] = proc_local[1][k]
 
         hh = 0
-        for h in range(H+K+7):
+        for h in range(H+K+len(kill)):
             if h-H in kill:
                 continue
             release_date_new[kk,hh] = release_date[1][k,h]
