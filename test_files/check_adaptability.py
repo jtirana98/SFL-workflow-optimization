@@ -124,11 +124,11 @@ if __name__ == '__main__':
     release_date[1][8,4] = release_date[1][8,4]*2
     release_date_back[1][8,4] = release_date_back[1][8,4]*2
 
-    release_date[1][0,0] = release_date[1][0,0]*10
-    release_date_back[1][0,0] = release_date_back[1][0,0]*10
+    release_date[1][0,0] = release_date[1][0,0]*8
+    release_date_back[1][0,0] = release_date_back[1][0,0]*8
 
-    release_date[1][21,0] = release_date[1][21,0]*10
-    release_date_back[1][21,0] = release_date_back[1][21,0]*10
+    # release_date[1][21,0] = release_date[1][21,0]*10
+    # release_date_back[1][21,0] = release_date_back[1][21,0]*10
 
     machines = [i for i in range(H)]
     clients = []
