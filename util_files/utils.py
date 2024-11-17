@@ -2818,7 +2818,7 @@ def fifo(K, H, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activation
             arival_jobs.pop(faster)
 
             if next_task.back:
-                if machine_time <= next_task.value:
+                if machine_time <= next_task.value: # the first one or a big wait
                     machine_time = next_task.value
 
                 f_temp[next_task.job] = machine_time + proc_bck[next_task.job, machine] +\
@@ -2827,7 +2827,7 @@ def fifo(K, H, release_date_fwd, proc_fwd, proc_local_fwd, trans_back_activation
                 
                 machine_time +=  proc_bck[next_task.job, machine]
             else:
-                if machine_time <= next_task.value:
+                if machine_time <= next_task.value: # the first one or a big wait
                     machine_time = next_task.value
 
                 next_task.value = machine_time + proc_fwd[next_task.job, machine] +\
