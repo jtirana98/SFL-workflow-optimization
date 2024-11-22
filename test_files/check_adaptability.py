@@ -91,11 +91,11 @@ if __name__ == '__main__':
     release_date[1][34,0] = release_date[1][34,0]*2
     release_date_back[1][34,0] = release_date_back[1][34,0]*2
 
-    release_date[1][39,0] = release_date[1][39,0]*2
-    release_date_back[1][39,0] = release_date_back[1][39,0]*2
+    # release_date[1][39,0] = release_date[1][39,0]*2
+    # release_date_back[1][39,0] = release_date_back[1][39,0]*2
 
-    release_date[1][47,0] = release_date[1][47,0]*2
-    release_date_back[1][47,0] = release_date_back[1][47,0]*2
+    # release_date[1][47,0] = release_date[1][47,0]*2
+    # release_date_back[1][47,0] = release_date_back[1][47,0]*2
 
     release_date[1][15,1] = release_date[1][15,1]*2
     release_date_back[1][15,1] = release_date_back[1][15,1]*2
@@ -103,8 +103,8 @@ if __name__ == '__main__':
     release_date[1][22,1] = release_date[1][22,1]*2
     release_date_back[1][22,1] = release_date_back[1][22,1]*2
 
-    release_date[1][33,1] = release_date[1][33,1]*2
-    release_date_back[1][33,1] = release_date_back[1][33,1]*2
+    # release_date[1][33,1] = release_date[1][33,1]*2
+    # release_date_back[1][33,1] = release_date_back[1][33,1]*2
 
     release_date[1][41,1] = release_date[1][41,1]*2
     release_date_back[1][41,1] = release_date_back[1][41,1]*2
@@ -291,14 +291,15 @@ if __name__ == '__main__':
 
     print(f"{utils.bcolors.OKGREEN}The makespan for ADMM is  {Completition_ADMM_LAZY} in lazy phase {utils.bcolors.ENDC}") 
     print(f"{utils.bcolors.OKGREEN}The makespan for FCFS is  {f_temp_slower} in lazy phase {utils.bcolors.ENDC}") 
-    
+    start_time = time.time()
     temp_sc = admm_hybrid.run_scheduling(K, H, T_hybrid, release_date[1].astype(int), proc[1].astype(int), 
                                             proc_local[1].astype(int), trans_back[1].astype(int), 
                                             memory_capacity[1].astype(int), memory_demand[1].astype(int),
                                             release_date_back[1].astype(int), proc_bck[1].astype(int), 
                                             proc_local_back[1].astype(int), trans_back_gradients[1].astype(int), y_admm)
-
+    end_time = time.time()
     print(f"{utils.bcolors.OKGREEN}The makespan for ADMM is  {temp_sc} with fixed scheduling {utils.bcolors.ENDC}") 
+    print(f"{utils.bcolors.OKGREEN}The computation of the alg2 lasted {(end_time-start_time)} {utils.bcolors.ENDC}") 
     print('------------- Recomputing next round --------------')
 
     (y_fcfs, w_fcfs) = fcfs_sol.run_hybrid(K, H, release_date[1].astype(int), proc[1].astype(int), 
