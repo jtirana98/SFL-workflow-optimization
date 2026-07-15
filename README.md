@@ -1,11 +1,17 @@
 # Workflow Optimization for Parallel Split Learning
 
-This code is for the paper: _Tirana, J., Tsigkari D., Iosifidis G., Chatzopoulos, D. Workflow Optimization for Parallel Split Learning, in proc. of IEEE INFOCOM 2024._
+## Update: 
+The current version contains the extended version presented on the paper: 
+
+Tirana, J., Tsigkari, D., Iosifidis, G., & Chatzopoulos, D. (2025). Minimization of the training makespan in hybrid federated split learning. IEEE Transactions on Mobile Computing, 24(6), 5400-5417.
 
 $${\color{orange}!!!ATTENTION!!!}$$  *This documentation concerns the release v1.0.1 from February* !!!
 
-The additional coding files are not finalized yet...
+What is pending: The guideline for modeling a hybrid federated and split learning system
 
+## Documentation for release v1.0.1
+
+This code is for the paper: _Tirana, J., Tsigkari D., Iosifidis G., Chatzopoulos, D. Workflow Optimization for Parallel Split Learning, in proc. of IEEE INFOCOM 2024._
 ### Set-up and requirements steps
 
 1. Python > 3.9
